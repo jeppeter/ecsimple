@@ -1,0 +1,13 @@
+[package]
+name = "signer"
+version = "0.1.0"
+authors = ["Brown, Simon <simon@simbro.me>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.7"
+num-bigint = { version = "0.3", features = ["rand"] }
+num-traits = "0.2"
+rust-crypto = "0.2.36"
