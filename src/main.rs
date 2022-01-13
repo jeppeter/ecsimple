@@ -93,11 +93,11 @@ fn main() {
 
     const WIDTH: u32 = 4;
 
-    let generator = secp256k1.g;
+    let generator = secp256k1.g.to_affine();
 
-    let precomputes = precompute_points(generator.clone(), WIDTH);
+    let precomputes = precompute_points(generator, WIDTH);
 
-    let public_key = generator.multiply_with_non_adjacent_form(
+    let public_key = secp256k1.g.to_affine().multiply_with_non_adjacent_form(
         private_key.clone(),
         WIDTH,
         &precomputes,
@@ -111,7 +111,7 @@ fn main() {
         WIDTH,
     );
 
-    println!("\nPublic key:\n\n{}\n", compress_point(&public_key.to_affine()));
+    println!("\nPublic key:\n\n{}\n", compress_point(&public_key));
 
     println!("Signature:\n\nr: {:x}\ns: {:x}\n", signature.r, signature.s);
 

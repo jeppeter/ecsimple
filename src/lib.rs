@@ -37,8 +37,6 @@ pub struct Signature {
     pub s: BigInt,
 }
 
-// TODO:  split into modules !!!!
-
 // operator overloading....
 // https://doc.rust-lang.org/std/ops/
 
@@ -119,9 +117,9 @@ impl AffinePoint {
 
     // Q ← 0
     // for i from m to 0 do
-    //     Q ← point_double_repeat(Q, w)
-    //     if di > 0 then
-    //         Q ← point_add(Q, diP) # using pre-computed value of diP
+    // Q ← point_double_repeat(Q, w)
+    // if di > 0 then
+    // Q ← point_add(Q, diP) # using pre-computed value of diP
     // return Q
     pub fn multiply_with_windowed_method(self, mut n: BigInt, p: &Vec<AffinePoint>) -> AffinePoint {
         let w = 4; // w.unwrap_or(4);
@@ -147,10 +145,10 @@ impl AffinePoint {
             // get rightmost bits of scalar
             let chunk = &n & &mask;
 
-            n = n >> w;
+            n = BigInt::from(n) >> w;
 
             // d is the index of the precompute added
-            d.push(chunk.to_u16().unwrap());
+            d.push(chunk);
         }
 
         let mut i: i32 = m;
@@ -168,11 +166,56 @@ impl AffinePoint {
                 continue;
             }
 
-            let index = &d[i as usize];
+            let (_sign, digits) = &d[i as usize].to_u32_digits();
+            let index = digits.get(0).unwrap_or(&0);
 
             if index > &0 {
                 let point = p.get((index - 1) as usize).unwrap();
                 q = q.add(point);
+            }
+
+            i = i - 1;
+        }
+
+        q
+    }
+
+    // TODO: use Jacobian Points instead of Affine Points!!!
+    pub fn multiply_with_non_adjacent_form(
+        self,
+        n: BigInt,
+        width: u32,
+        pre_comp: &std::vec::Vec<AffinePoint>,
+    ) -> AffinePoint {
+        let wnaf = calculate_wnaf(width, n);
+
+        let mut q = AffinePoint {
+            x: zero(),
+            y: zero(),
+            fp: self.fp.clone(),
+        };
+
+        let mut i = (wnaf.len() as i32) - 1;
+
+        while i > -1 {
+            q = q.double();
+
+            let n = i as usize;
+
+            if wnaf[n] > 0 {
+                let d = (wnaf[n] - 1) / 2;
+
+                q = q.add(&pre_comp[d as usize]);
+            } else if wnaf[n] < 0 {
+                let d = (-wnaf[n] - 1) / 2;
+
+                let z = AffinePoint {
+                    x: pre_comp[d as usize].x.clone(),
+                    y: pre_comp[d as usize].y.clone() * -1,
+                    fp: self.fp.clone(),
+                };
+
+                q = q.add(&z);
             }
 
             i = i - 1;
@@ -292,8 +335,9 @@ pub fn compress_point(point: &AffinePoint) -> String {
 }
 
 // Q is the point we are multiplying
+// n is the scalar that we are multiplying the point by
 // w is the window width
-pub fn precompute_points(mut q: JacobianPoint, w: u32) -> std::vec::Vec<JacobianPoint> {
+pub fn precompute_points(mut q: AffinePoint, w: u32) -> std::vec::Vec<AffinePoint> {
     let mut p = vec![q.clone()];
 
     q = q.double();
@@ -396,15 +440,6 @@ impl JacobianPoint {
         }
     }
 
-    pub fn new(x: BigInt, y: BigInt, z: BigInt, fp: BigInt) -> JacobianPoint {
-        JacobianPoint {
-            x: x,
-            y: y,
-            z: z,
-            fp: fp,
-        }
-    }
-
     // https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl
     fn add(self, other: &JacobianPoint) -> JacobianPoint {
         let x1 = &self.x;
@@ -420,7 +455,12 @@ impl JacobianPoint {
         }
 
         if x1 == &zero() && y1 == &zero() {
-            return other.clone();
+            return JacobianPoint {
+                x: other.x.clone(),
+                y: other.y.clone(),
+                z: other.z.clone(),
+                fp: self.fp,
+            };
         }
 
         // what about case when P === Q ?
@@ -441,7 +481,12 @@ impl JacobianPoint {
         let y3 = modulo(&(r * (v - &x3) - BigInt::from(2) * s1 * j), &self.fp);
         let z3 = modulo(&((BigInt::pow(&(z1 + z2), 2) - z1z1 - z2z2) * h), &self.fp);
 
-        return JacobianPoint::new(x3, y3, z3, self.fp.clone());
+        JacobianPoint {
+            x: x3,
+            y: y3,
+            z: z3,
+            fp: self.fp,
+        }
     }
 
     // https://en.wikibooks.org/wiki/Cryptography/Prime_Curve/Jacobian_Coordinates
@@ -463,13 +508,28 @@ impl JacobianPoint {
         let y3 = modulo(&(e * (d - &x3) - BigInt::from(8) * c), &self.fp);
         let z3 = modulo(&(BigInt::from(2) * y1 * z1), &self.fp);
 
-        return JacobianPoint::new(x3, y3, z3, self.fp.clone());
+        JacobianPoint {
+            x: x3,
+            y: y3,
+            z: z3,
+            fp: self.fp,
+        }
     }
 
     pub fn multiply(self, mut n: BigInt) -> AffinePoint {
-        let mut q = JacobianPoint::new(zero(), zero(), one(), self.fp.clone());
+        let mut q = JacobianPoint {
+            x: zero(),
+            y: zero(),
+            z: one(),
+            fp: self.fp.clone(),
+        };
 
-        let mut j = JacobianPoint::new(self.x, self.y, one(), self.fp.clone());
+        let mut j = JacobianPoint {
+            x: self.x,
+            y: self.y,
+            z: one(),
+            fp: self.fp.clone(),
+        };
 
         while n > zero() {
             if &n % BigInt::from(2) != zero() {
@@ -482,45 +542,5 @@ impl JacobianPoint {
         }
 
         q.to_affine()
-    }
-
-    pub fn multiply_with_non_adjacent_form(
-        self,
-        n: BigInt,
-        width: u32,
-        pre_comp: &std::vec::Vec<JacobianPoint>,
-    ) -> JacobianPoint {
-        let wnaf = calculate_wnaf(width, n);
-
-        let mut q = JacobianPoint::new(zero(), zero(), one(), self.fp.clone());
-
-        let mut i = (wnaf.len() as i32) - 1;
-
-        while i > -1 {
-            q = q.double();
-
-            let n = i as usize;
-
-            if wnaf[n] > 0 {
-                let d = (wnaf[n] - 1) / 2;
-
-                q = q.add(&pre_comp[d as usize]);
-            } else if wnaf[n] < 0 {
-                let d = (-wnaf[n] - 1) / 2;
-
-                let z = JacobianPoint {
-                    x: pre_comp[d as usize].x.clone(),
-                    y: pre_comp[d as usize].y.clone() * -1,
-                    z: pre_comp[d as usize].z.clone(),
-                    fp: self.fp.clone(),
-                };
-
-                q = q.add(&z);
-            }
-
-            i = i - 1;
-        }
-
-        q
     }
 }
