@@ -38,7 +38,7 @@ pub fn sign(
     message: &str,
     d: BigInt,
     k: Option<BigInt>,
-    precomputes: &Vec<JacobianPoint>,
+    precomputes: &Vec<AffinePoint>,
     width: u32,
 ) -> Signature {
     let secp256k1 = curves::get_curve("secp256k1");
@@ -47,6 +47,7 @@ pub fn sign(
 
     let p = secp256k1
         .g
+        .to_affine()
         .multiply_with_non_adjacent_form(k.clone(), width, &precomputes);
 
     let r = modulo(&p.x, &secp256k1.p);
@@ -66,8 +67,8 @@ pub fn sign(
 pub fn verify(
     signature: &Signature,
     message: &str,
-    public_key: JacobianPoint,
-    mut precomputes: Vec<JacobianPoint>,
+    public_key: AffinePoint,
+    mut precomputes: Vec<AffinePoint>,
     width: u32,
 ) -> bool {
     let secp256k1 = curves::get_curve("secp256k1");
@@ -86,6 +87,7 @@ pub fn verify(
 
     let u1_point = secp256k1
         .g
+        .to_affine()
         .multiply_with_non_adjacent_form(u1, width, &precomputes);
 
     precomputes = precompute_points(public_key.clone(), width);

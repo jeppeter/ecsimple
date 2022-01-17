@@ -167,15 +167,15 @@ mod tests {
 
             let k = BigInt::parse_bytes(private_key.as_bytes(), 16).unwrap();
 
-            let precomputes = precompute_points(secp256k1.g.clone(), WIDTH);
+            let precomputes = precompute_points(secp256k1.g.to_affine().clone(), WIDTH);
 
-            let p = secp256k1.g.multiply_with_non_adjacent_form(
+            let p = secp256k1.g.to_affine().multiply_with_non_adjacent_form(
                 k.clone(),
                 WIDTH,
                 &precomputes,
             );
 
-            let windowed_public_key = compress_point(&p.to_affine());
+            let windowed_public_key = compress_point(&p);
 
             assert_eq!(public_key, windowed_public_key);
         }
