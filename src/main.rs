@@ -1,9 +1,9 @@
 use num_bigint::BigInt;
-use signer::curves::get_curve;
-use signer::ecdsa::{sign, verify};
+use ecsimple::curves::get_curve;
+use ecsimple::ecdsa::{sign, verify};
 use std::{env, process};
 
-use signer::{
+use ecsimple::{
     compress_point, ecdsa_affine, ecdsa_windowed, ecdsa_wnaf, get_window_precomputes,
     precompute_points,
 };

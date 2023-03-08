@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use num_bigint::BigInt;
-    use signer::{compress_point, curves, get_window_precomputes, precompute_points};
+    use ecsimple::{compress_point, curves, get_window_precomputes, precompute_points};
 
     pub fn get_test_vectors() -> [(&'static str, &'static str); 21] {
         return [

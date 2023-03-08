@@ -5,8 +5,8 @@ extern crate test;
 use test::Bencher;
 
 use num_bigint::BigInt;
-use signer::curves::get_curve;
-use signer::ecdsa::{sign, verify};
+use ecsimple::curves::get_curve;
+use ecsimple::ecdsa::{sign, verify};
 
 const K: &str = "80cb080a29daeab3862f5a3edf02f27f9d700da3c996130641b14afdacda3f60";
 const M: &str = "message to sign";

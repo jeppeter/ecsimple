@@ -1,5 +1,5 @@
 [package]
-name = "signer"
+name = "ecsimple"
 version = "0.1.0"
 authors = ["Brown, Simon <simon@simbro.me>"]
 edition = "2018"

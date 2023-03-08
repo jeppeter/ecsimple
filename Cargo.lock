@@ -15,6 +15,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "ecsimple"
+version = "0.1.0"
+dependencies = [
+ "num-bigint",
+ "num-traits",
+ "rand 0.7.3",
+ "rust-crypto",
+]
+
+[[package]]
 name = "fuchsia-cprng"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -186,16 +196,6 @@ name = "rustc-serialize"
 version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcf128d1287d2ea9d80910b5f1120d0b8eede3fbf1abe91c40d39ea7d51e6fda"
-
-[[package]]
-name = "signer"
-version = "0.1.0"
-dependencies = [
- "num-bigint",
- "num-traits",
- "rand 0.7.3",
- "rust-crypto",
-]
 
 [[package]]
 name = "time"

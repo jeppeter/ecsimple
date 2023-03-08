@@ -264,7 +264,7 @@ pub fn get_window_precomputes(q: &AffinePoint, w: Option<u32>) -> Vec<AffinePoin
 /// let a = BigInt::from(218753);
 /// let b = BigInt::from(96461);
 /// let expected = BigInt::from(25831);
-/// let actual = signer::modulo(&a, &b);
+/// let actual = ecsimple::modulo(&a, &b);
 /// assert_eq!(actual, expected);
 /// ```
 pub fn modulo(a: &BigInt, b: &BigInt) -> BigInt {
