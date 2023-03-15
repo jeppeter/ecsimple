@@ -148,6 +148,36 @@ impl Point {
         return Point::new(ocurve,Some(x3.clone()),Some(y3.clone()),None);
     }
 
+    pub fn add_point(&self, other :Self) -> Self {
+        if other.infinity {
+            return self.clone();
+        }
+        if self.infinity {
+            return other.clone();
+        }
+        let scurve :CurveFp = self.curve.as_ref().unwrap().clone();
+        let ocurve :CurveFp = other.curve.as_ref().unwrap().clone();
+        assert!(scurve == ocurve);
+        let sx :BigInt = self.x.as_ref().unwrap().clone();
+        let ox :BigInt = other.x.as_ref().unwrap().clone();
+        let sy :BigInt = self.y.as_ref().unwrap().clone();
+        let oy :BigInt = other.y.as_ref().unwrap().clone();
+        let sp :BigInt = scurve.p();
+        if sx == ox {
+            if ((sy + &oy) % (&sp)) == zero() {
+                return Point::infinity();
+            } else {
+                return self.double();
+            }
+        }
+
+        let l :BigInt = ((oy - &sy ) * inverse_mod(&((&ox) - (&sx)),&sp)) % (&sp);
+
+        let x3 :BigInt = (&l * &l - &sx - &ox ) % (&sp);
+        let y3 :BigInt = ((&l) * (&sx - &x3) - &sy) % (&sp);
+        return Point::new(Some(scurve.clone()),Some(x3.clone()),Some(y3.clone()), None);
+    }
+
     pub fn multiply_int(&self, order :&BigInt) -> Self {
         let e :BigInt = order.clone();
         let mut corder :BigInt = zero();
@@ -246,33 +276,7 @@ impl PartialEq for Point {
 impl std::ops::Add for Point {
     type Output = Self;
     fn add(self, other :Self) -> Self {
-        if other.infinity {
-            return self.clone();
-        }
-        if self.infinity {
-            return other.clone();
-        }
-        let scurve :CurveFp = self.curve.as_ref().unwrap().clone();
-        let ocurve :CurveFp = other.curve.as_ref().unwrap().clone();
-        assert!(scurve == ocurve);
-        let sx :BigInt = self.x.as_ref().unwrap().clone();
-        let ox :BigInt = other.x.as_ref().unwrap().clone();
-        let sy :BigInt = self.y.as_ref().unwrap().clone();
-        let oy :BigInt = other.y.as_ref().unwrap().clone();
-        let sp :BigInt = scurve.p();
-        if sx == ox {
-            if ((sy + &oy) % (&sp)) == zero() {
-                return Point::infinity();
-            } else {
-                return self.double();
-            }
-        }
-
-        let l :BigInt = ((oy - &sy ) * inverse_mod(&((&ox) - (&sx)),&sp)) % (&sp);
-
-        let x3 :BigInt = (&l * &l - &sx - &ox ) % (&sp);
-        let y3 :BigInt = ((&l) * (&sx - &x3) - &sy) % (&sp);
-        return Point::new(Some(scurve.clone()),Some(x3.clone()),Some(y3.clone()), None);
+        return (&self).add_point(other);
     }
 }
 
