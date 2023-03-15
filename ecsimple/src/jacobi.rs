@@ -1,14 +1,14 @@
 
-use num_bigint::{BigInt,Sign};
+use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use crate::arithmetics::*;
 
 #[derive(Clone,Debug)]
 pub struct CurveFp {
-    p :BigInt,
-    a :BigInt,
-    b :BigInt,
-    h :BigInt,
+    pub p :BigInt,
+    pub a :BigInt,
+    pub b :BigInt,
+    pub h :BigInt,
 }
 
 impl PartialEq  for CurveFp {
@@ -109,7 +109,7 @@ impl Point {
         return retv;
     }
 
-    pub fn neg(&self) -> Point {
+    pub fn negative(&self) -> Point {
         let mut ocurve :Option<CurveFp> = None;
         let mut ox :Option<BigInt> = None;
         let mut oy :Option<BigInt> = None;
@@ -192,7 +192,7 @@ impl Point {
         }
         if e < zero() {
             let nege :BigInt = -e;
-            return self.neg().multiply_int(&nege);
+            return self.negative().multiply_int(&nege);
         }
         let (bplus,vecs) = e.to_bytes_be();
         let mut e3 :BigInt = BigInt::from_bytes_be(bplus,&vecs);
@@ -288,8 +288,10 @@ impl std::ops::Mul<BigInt> for Point {
 }
 
 
+#[allow(dead_code)]
 #[derive(Clone,Debug)]
 pub struct PointJacobi {
+    infinity : bool,
     curve :CurveFp,
     coords : (BigInt,BigInt,BigInt),
     order :Option<BigInt>,
@@ -297,10 +299,25 @@ pub struct PointJacobi {
     precompute : Vec<(BigInt,BigInt)>,
 }
 
+#[allow(non_snake_case)]
+#[allow(dead_code)]
 impl PointJacobi {
+    pub fn infinity() -> Self {
+        let zv :BigInt = zero();
+        PointJacobi {
+            infinity : true,
+            curve : CurveFp::new(&zv,&zv,&zv,&zv),
+            order: None,
+            coords : (zero(),zero(),zero()),
+            generator : false,
+            precompute : Vec::new(),
+        }
+    }
+
     pub fn new(curve :&CurveFp, x :&BigInt, y :&BigInt, z :&BigInt,order :Option<BigInt>,generator :bool) -> Self {
         if order.is_none() {
             PointJacobi {
+                infinity : false,
                 curve :curve.clone(),
                 order : None,
                 coords : (x.clone(),y.clone(),z.clone()),
@@ -309,6 +326,7 @@ impl PointJacobi {
             }
         } else {
             PointJacobi {
+                infinity : false,
                 curve : curve.clone(),
                 order : Some(order.as_ref().unwrap().clone()),
                 coords : (x.clone(),y.clone(),z.clone()),
@@ -338,6 +356,80 @@ impl PointJacobi {
         return (y * (&cz * &cz * &cz)) % p;
     }
 
+    fn _double_with_z_1(&self, X1 :&BigInt, Y1 :&BigInt,p :&BigInt, a :&BigInt) -> (BigInt,BigInt,BigInt) {
+        let XX :BigInt = (X1 * X1 ) % p;
+        let YY :BigInt = (Y1 * Y1) % p;
+        if YY == zero() {
+            return (zero(),zero(),one());
+        }
+        let YYYY :BigInt = (&YY * &YY) % p;
+        let S :BigInt = (((X1 + &YY) * (X1 + &YY) - &XX - &YYYY) * 2) % p;
+        let M :BigInt = (&XX * 3 ) + a;
+        let T :BigInt = (&M * &M - &S * 2) % p;
+        let Y3 :BigInt = (&M * (&S - &T) - &YYYY * 8) % p;
+        let Z3 :BigInt = (Y1 * 2) % p;
+        return (T, Y3 ,Z3);
+    }
+
+    fn _double(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,p :&BigInt, a :&BigInt) -> (BigInt,BigInt,BigInt) {
+        if  one::<BigInt>().eq(Z1)  {
+            return self._double_with_z_1(X1,Y1,p,a);
+        }
+        if zero::<BigInt>().eq(Y1) || zero::<BigInt>().eq(Z1) {
+            return (zero(),zero(),one());
+        }
+        let XX :BigInt = (X1 * X1 ) % p;
+        let YY :BigInt = (Y1 * Y1) % p;
+
+        if YY == zero() {
+            return (zero(),zero(),one());
+        }
+        let YYYY :BigInt = (&YY * &YY) % p;
+        let ZZ :BigInt = (Z1 * Z1) % p;
+        let S :BigInt = (((X1 + &YY) * (X1 + &YY) - &XX - &YYYY) * 2) % p;
+        let M :BigInt = ((&XX * 3 ) + (a * &ZZ *&ZZ)) % p;
+        let T :BigInt = (&M * &M - &S * 2) % p;
+        let Y3 :BigInt = (&M * (&S - &T) - &YYYY * 8) % p;
+        let Z3 :BigInt = ((Y1 + Z1) *(Y1 + Z1) - &YY - &ZZ ) % p;
+        return (T, Y3 ,Z3);
+    }
+
+    pub fn double(&self) -> PointJacobi {
+        let (X1,Y1,Z1) = self.coords.clone();
+        if Y1 == zero() {
+            return PointJacobi::infinity();
+        }
+        let p :BigInt = self.curve.p();
+        let a :BigInt = self.curve.a();
+        let (X3,Y3,Z3) = self._double(&X1,&Y1,&Z1,&p,&a);
+
+        if Y3 == zero() || Z3 == zero() {
+            return PointJacobi::infinity();
+        }
+
+        let mut oo :Option<BigInt> = None;
+        if self.order.is_some() {
+            oo = Some(self.order.as_ref().unwrap().clone());
+        }
+
+        return PointJacobi::new(&self.curve,&X3,&Y3,&Z3,oo,false);
+    }
+
+    pub fn scale(&mut self) -> PointJacobi {
+        let (x,y,z) = self.coords.clone();
+        if one::<BigInt>().eq(&z) {
+            return self.clone();
+        }
+        let p :BigInt = self.curve.p();
+        let z_inv :BigInt = inverse_mod(&z,&p);
+        let zz_inv :BigInt = (&z_inv * &z_inv) % (&p);
+        let x1 :BigInt = ((&x) * &zz_inv) % (&p);
+        let y1 :BigInt = ((&y) * &zz_inv) % (&p);
+        let z1 :BigInt = one::<BigInt>();
+        self.coords = (x1.clone(),y1.clone(),z1.clone());
+        return self.clone();
+    }
+
     fn _maybe_precompute(&mut self) {
         if self.order.is_none() || self.precompute.len() == 0 {
             return;
@@ -352,7 +444,12 @@ impl PointJacobi {
         precompute.push((doubler.x(),doubler.y()));
         while i < order {
             i *= 2;
+            doubler = doubler.double().scale();
+            precompute.push((doubler.x(),doubler.y()));
         }
+        self.precompute = precompute;
         return;
     }
 }
+
+
