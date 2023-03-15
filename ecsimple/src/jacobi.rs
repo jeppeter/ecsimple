@@ -276,6 +276,13 @@ impl std::ops::Add for Point {
     }
 }
 
+impl std::ops::Mul<BigInt> for Point {
+    type Output = Self;
+    fn mul(self, other :BigInt) -> Self {
+        return (&self).multiply_int(&other);
+    }
+}
+
 
 #[derive(Clone,Debug)]
 pub struct PointJacobi {
