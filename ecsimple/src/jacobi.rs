@@ -148,6 +148,28 @@ impl Point {
         return Point::new(ocurve,Some(x3.clone()),Some(y3.clone()),None);
     }
 
+    pub fn x(&self) -> BigInt {
+        if self.x.is_none() {
+            return zero::<BigInt>();
+        }
+        return self.x.as_ref().unwrap().clone();
+    }
+
+    pub fn y(&self) -> BigInt {
+        if self.y.is_none() {
+            return zero::<BigInt>();
+        }
+        return self.y.as_ref().unwrap().clone();
+    }
+
+    pub fn curve(&self) -> CurveFp {
+        if self.curve.is_none() {
+            let zv :BigInt = zero::<BigInt>();
+            return CurveFp::new(&zv,&zv,&zv,&zv);
+        }
+        return self.curve.as_ref().unwrap().clone();
+    }
+
     pub fn add_point(&self, other :Self) -> Self {
         if other.infinity {
             return self.clone();
@@ -451,10 +473,8 @@ impl PointJacobi {
         self.precompute = precompute;
         return;
     }
-}
 
-impl std::cmp::PartialEq for PointJacobi {
-    fn eq(&self,other :&Self) -> bool {
+    pub fn eq_jacobipoint(&self, other :&PointJacobi) -> bool {
         let (x1,y1,z1) = self.coords.clone();
         if other.infinity {
             let retval :bool = zero::<BigInt>().eq(&z1) || zero::<BigInt>().eq(&y1);
@@ -478,10 +498,57 @@ impl std::cmp::PartialEq for PointJacobi {
         if !zero::<BigInt>().eq(&yres) {
             retval = false;
         }
-        return retval;
+        return retval;        
+    }
+
+    pub fn eq_point(&self, other :&Point) -> bool {
+        let (x1,y1,z1) = self.coords.clone();
+        if other.infinity {
+            let retval :bool = zero::<BigInt>().eq(&z1) || zero::<BigInt>().eq(&y1);
+            return retval;
+        }
+        let x2 :BigInt = other.x();
+        let y2 :BigInt = other.y();
+        let z2 :BigInt = one::<BigInt>();
+        if self.curve != other.curve() {
+            return false;
+        }
+        let p :BigInt = self.curve.p();
+        let zz1 :BigInt = ((&z1) * (&z1)) % (&p);
+        let zz2 :BigInt = ((&z2) * (&z2)) % (&p);
+
+        let mut retval = true;
+        let xres :BigInt = ((&x1) * (&zz2) - (&x2) * (&zz1)) % (&p);
+        if !zero::<BigInt>().eq(&xres) {
+            retval = false;
+        }
+
+        let yres :BigInt = ((&y1) * (&zz2) * (&z2) - (&y2) * (&zz1) * (&z1)) % (&p);
+        if !zero::<BigInt>().eq(&yres) {
+            retval = false;
+        }
+        return retval;        
+    }
+
+}
+
+impl std::cmp::PartialEq<PointJacobi> for PointJacobi {
+    fn eq(&self,other :&Self) -> bool {
+        return self.eq_jacobipoint(other);
     }
 
     fn ne(&self, other :&Self) -> bool {
+        return  !self.eq(other);
+    }
+}
+
+
+impl std::cmp::PartialEq<Point> for PointJacobi {
+    fn eq(&self,other :&Point) -> bool {
+        return self.eq_point(other);
+    }
+
+    fn ne(&self, other :&Point) -> bool {
         return  !self.eq(other);
     }
 }
