@@ -25,3 +25,11 @@ pub fn inverse_mod(a :&BigInt,m :&BigInt) -> BigInt {
     }
     return lm % m;
 }
+
+pub fn leftmost_bit(x :&BigInt) -> BigInt {
+    let mut result :BigInt = one::<BigInt>();
+    while result <= x.clone() {
+        result *= 2;
+    }
+    return result / 2;
+}

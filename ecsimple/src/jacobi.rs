@@ -61,6 +61,110 @@ impl CurveFp {
     }
 }
 
+#[derive(Clone,Debug)]
+pub struct Point {
+    infinity : bool,
+    curve : Option<CurveFp>,
+    x :Option<BigInt>,
+    y :Option<BigInt>,
+    order :Option<BigInt>,
+}
+
+impl Point {
+    pub fn new(curve :Option<CurveFp>, x :Option<BigInt>,y :Option<BigInt>, order :Option<BigInt>) -> Self {
+        let retv :Point;
+        if curve.is_some()  && x.is_some() && y.is_some()  {
+            let cv :CurveFp = curve.as_ref().unwrap().clone();
+            let xv :BigInt = x.as_ref().unwrap().clone();
+            let yv :BigInt = y.as_ref().unwrap().clone();
+            assert!(cv.constains_point(&xv,&yv));
+            retv = Point {
+                infinity : false,
+                curve :Some(curve.as_ref().unwrap().clone()),
+                x : Some(x.as_ref().unwrap().clone()),
+                y : Some(y.as_ref().unwrap().clone()),
+                order :order,
+            };
+        } else {
+            retv = Point {
+                infinity : true,
+                curve : None,
+                x : None,
+                y : None,
+                order : None,
+            };
+        }
+
+        return retv;
+    }
+
+    pub fn infinity() -> Point {
+        let retv = Point {
+            infinity : true,
+            curve  : None,
+            x : None,
+            y : None,
+            order : None,
+        };
+        return retv;
+    }
+
+    pub fn multiply_int(&self, order :&BigInt) -> Self {
+        let e :BigInt = order.clone();
+        let mut corder :BigInt = zero();
+        if self.order.is_some() {
+            corder = self.order.as_ref().unwrap().clone();
+        }
+        if e == zero() || (self.order.is_some() &&  (&e % &corder) == zero() ) {
+            return Point::infinity();
+        }
+        if self.infinity {
+            return Point::infinity();
+        }
+        if e < zero() {
+
+        }
+        return Point::infinity();
+    }
+}
+
+impl PartialEq for Point {
+    fn eq(&self, other :&Self) -> bool {
+        if self.infinity && self.infinity == other.infinity {
+            return true;
+        } else if self.infinity != other.infinity {
+            return false;
+        }
+        let sv :&CurveFp = self.curve.as_ref().unwrap();
+        let ov :&CurveFp = other.curve.as_ref().unwrap();
+
+        if !sv.eq(ov) { 
+            return false;
+        }
+
+        let sx :&BigInt = self.x.as_ref().unwrap();
+        let ox :&BigInt = other.x.as_ref().unwrap();
+        if sx != ox {
+            return false;
+        }
+
+        let sy :&BigInt = self.y.as_ref().unwrap();
+        let oy :&BigInt = other.y.as_ref().unwrap();
+        if sy != oy {
+            return false;
+        }
+
+        let so :&BigInt = self.order.as_ref().unwrap();
+        let oo :&BigInt = other.order.as_ref().unwrap();
+        if so != oo {
+            return false;
+        }
+
+
+        return true;
+    }
+}
+
 
 #[derive(Clone,Debug)]
 pub struct PointJacobi {
