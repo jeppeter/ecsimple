@@ -430,6 +430,7 @@ impl PointJacobi {
         return self.clone();
     }
 
+
     fn _maybe_precompute(&mut self) {
         if self.order.is_none() || self.precompute.len() == 0 {
             return;
@@ -452,4 +453,35 @@ impl PointJacobi {
     }
 }
 
+impl std::cmp::PartialEq for PointJacobi {
+    fn eq(&self,other :&Self) -> bool {
+        let (x1,y1,z1) = self.coords.clone();
+        if other.infinity {
+            let retval :bool = zero::<BigInt>().eq(&z1) || zero::<BigInt>().eq(&y1);
+            return retval;
+        }
+        let (x2,y2,z2) = other.coords.clone();
+        if self.curve != other.curve {
+            return false;
+        }
+        let p :BigInt = self.curve.p();
+        let zz1 :BigInt = ((&z1) * (&z1)) % (&p);
+        let zz2 :BigInt = ((&z2) * (&z2)) % (&p);
 
+        let mut retval = true;
+        let xres :BigInt = ((&x1) * (&zz2) - (&x2) * (&zz1)) % (&p);
+        if !zero::<BigInt>().eq(&xres) {
+            retval = false;
+        }
+
+        let yres :BigInt = ((&y1) * (&zz2) * (&z2) - (&y2) * (&zz1) * (&z1)) % (&p);
+        if !zero::<BigInt>().eq(&yres) {
+            retval = false;
+        }
+        return retval;
+    }
+
+    fn ne(&self, other :&Self) -> bool {
+        return  !self.eq(other);
+    }
+}
