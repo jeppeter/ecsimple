@@ -746,6 +746,83 @@ impl PointJacobi {
         return PointJacobi::new(&self.curve,&X3,&Y3,&Z3,oo,false);
     }
 
+    fn _naf(&self,m3 :&BigInt) -> Vec<i32> {
+        let mut retv :Vec<i32> = Vec::new();
+        let zv :BigInt = zero::<BigInt>();
+        let ov :BigInt = one::<BigInt>();
+        let fv :BigInt = (&ov) + (&ov) + (&ov) + (&ov);
+        let mut mult :BigInt = m3.clone();
+
+        while !zv.eq(&mult) {
+            if !zv.eq(&((&mult) % 2)) {
+                let ndb :BigInt = (&mult) % (&fv);
+                let (_, vecs) = ndb.to_bytes_be();
+                let vl :usize = vecs.len();
+                let mut nd :i32 = vecs[vl - 1] as i32;
+                if nd >= 2 {
+                    nd -= 4;
+                }
+                retv.push(nd);
+                mult -= nd;
+            } else {
+                retv.push(0);
+            }
+            mult /= 2;
+        }
+        return retv;
+    }
+
+    pub fn mul_int(&mut self,o3 :&BigInt) -> PointJacobi {
+        let zv :BigInt = zero::<BigInt>();
+        let ov :BigInt = one::<BigInt>();
+        let mut ordv :BigInt = zv.clone();
+        let mut other :BigInt = o3.clone();
+        if self.infinity || zv.eq(&other) {
+            return PointJacobi::infinity();
+        }
+        if ov.eq(&other) {
+            return self.clone();
+        }
+
+        if self.order.is_some() {
+            ordv = self.order.as_ref().unwrap().clone();
+        }
+
+        if !zv.eq(&ordv) {
+            other = (&other) % ((&ordv) * 2);
+        }
+
+        if self.precompute.len() > 0 {
+            return self._mul_precompute(&other);
+        }
+        let _ = self.scale();
+        let (X2,Y2,_)  = self.coords.clone();
+        let (mut X3,mut Y3,mut Z3) = (zv.clone(),zv.clone(),ov.clone());
+        let (p,a) = (self.curve.p(),self.curve.a());
+        let mut nafvecs :Vec<i32> = self._naf(&other);
+        let negY2 :BigInt = - (&Y2);
+        nafvecs.reverse();
+        for i in nafvecs {
+            (X3,Y3,Z3) = self._double(&X3,&Y3,&Z3,&p,&a);
+            if i < 0 {
+                (X3,Y3,Z3) = self._add(&X3, &Y3, &Z3, &X2, &negY2, &ov, &p);
+            } else {
+                (X3,Y3,Z3) = self._add(&X3, &Y3, &Z3, &X2, &Y2, &ov, &p);
+            } 
+        }
+
+        if zv.eq(&Y3) || zv.eq(&Z3) {
+            return PointJacobi::infinity();
+        }
+
+        let mut oo :Option<BigInt>= None;
+        if self.order.is_some() {
+            oo = Some(self.order.as_ref().unwrap().clone());
+        }
+
+        return PointJacobi::new(&self.curve,&X3,&Y3,&Z3,oo,false);
+    }
+
 }
 
 impl std::cmp::PartialEq<PointJacobi> for PointJacobi {
