@@ -712,6 +712,40 @@ impl PointJacobi {
         return self._add_with_other(&other);
     }
 
+    fn _mul_precompute(&self,o3 :&BigInt) -> PointJacobi {
+        let zv :BigInt = zero::<BigInt>();
+        let ov :BigInt = one::<BigInt>();
+        let tv :BigInt = (&ov) + (&ov);
+        let mut other :BigInt = o3.clone();
+        let (mut X3,mut Y3,mut Z3) : (BigInt,BigInt,BigInt) = (zv.clone(),zv.clone(),ov.clone());
+        let p :BigInt = self.curve.p();
+        for (X2,Y2) in self.precompute.iter() {
+            let negY2 :BigInt = - Y2;
+            if zv.ne(&((&other) % 2)) {
+                if ((&other) % 4 ) >= tv {
+                    other = (&other + 1) / 2;
+                    (X3,Y3,Z3) = self._add(&X3,&Y3,&Z3,X2,&negY2,&ov,&p);
+                } else {
+                    other = (&other - 1) / 2;
+                    (X3,Y3,Z3) = self._add(&X3,&Y3,&Z3,X2,Y2,&ov,&p);
+                }
+            } else {
+                other /= 2;
+            }
+        }
+
+        if zv.eq(&Y3) || zv.eq(&Z3) {
+            return PointJacobi::infinity();
+        }
+
+        let mut oo :Option<BigInt> = None;
+        if self.order.is_some() {
+            oo = Some(self.order.as_ref().unwrap().clone());
+        }
+
+        return PointJacobi::new(&self.curve,&X3,&Y3,&Z3,oo,false);
+    }
+
 }
 
 impl std::cmp::PartialEq<PointJacobi> for PointJacobi {
