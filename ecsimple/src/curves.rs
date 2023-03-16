@@ -67,8 +67,8 @@ fn create_jacobi() -> HashMap<String,PointJacobi> {
 	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
 	v8 = Vec::from_hex("DB7C2ABF62E35E7628DFAC6561C5").unwrap();
 	r = BigInt::from_bytes_be(Sign::Plus,&v8);
-	v8 = Vec::from_hex("1").unwrap();
-	h = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("01").unwrap();
+	h = ov.clone();
 
 	curve = CurveFp::new(&p,&a,&b,&h);
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),false);
@@ -88,8 +88,9 @@ fn create_jacobi() -> HashMap<String,PointJacobi> {
 	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
 	v8 = Vec::from_hex("36DF0AAFD8B8D7597CA10520D04B").unwrap();
 	r = BigInt::from_bytes_be(Sign::Plus,&v8);
-	v8 = Vec::from_hex("4").unwrap();
-	h = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("4").unwrap();
+	//h = BigInt::from_bytes_be(Sign::Plus,&v8);
+	h = (&ov) + (&ov) + (&ov) + (&ov);
 
 	curve = CurveFp::new(&p,&a,&b,&h);
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),true);
