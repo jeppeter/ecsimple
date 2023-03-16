@@ -70,6 +70,7 @@ pub struct Point {
     order :Option<BigInt>,
 }
 
+#[allow(dead_code)]
 impl Point {
     pub fn new(curve :Option<CurveFp>, x :Option<BigInt>,y :Option<BigInt>, order :Option<BigInt>) -> Self {
         let retv :Point;
@@ -170,6 +171,13 @@ impl Point {
         return self.curve.as_ref().unwrap().clone();
     }
 
+    pub fn order(&self) -> BigInt {
+        if self.order.is_none() {
+            return zero::<BigInt>();
+        }
+        return self.order.as_ref().unwrap().clone();
+    }
+
     pub fn add_point(&self, other :Self) -> Self {
         if other.infinity {
             return self.clone();
@@ -198,6 +206,10 @@ impl Point {
         let x3 :BigInt = (&l * &l - &sx - &ox ) % (&sp);
         let y3 :BigInt = ((&l) * (&sx - &x3) - &sy) % (&sp);
         return Point::new(Some(scurve.clone()),Some(x3.clone()),Some(y3.clone()), None);
+    }
+    
+    pub fn isinfinity(&self) -> bool {
+    	return self.infinity;
     }
 
     pub fn multiply_int(&self, order :&BigInt) -> Self {
@@ -452,6 +464,13 @@ impl PointJacobi {
         return self.clone();
     }
 
+    pub fn order(&self) -> BigInt {
+        if self.order.is_none() {
+            return zero::<BigInt>();
+        }
+        return self.order.as_ref().unwrap().clone();
+    }
+
 
     fn _maybe_precompute(&mut self) {
         if self.order.is_none() || self.precompute.len() == 0 {
@@ -528,6 +547,181 @@ impl PointJacobi {
             retval = false;
         }
         return retval;        
+    }
+
+    pub fn to_affine(&mut self) -> Point {
+        let (_ , y ,z) = self.coords.clone();
+        if zero::<BigInt>().eq(&y) || zero::<BigInt>().eq(&z) {
+            return Point::infinity();
+        }
+        let _ = self.scale();
+        let (x,y,_) = self.coords.clone();
+        let ocurve :Option<CurveFp> = Some(self.curve.clone());
+        let ox :Option<BigInt> = Some(x);
+        let oy :Option<BigInt> = Some(y);
+        let mut oo :Option<BigInt> = None;
+        if self.order.is_some() {
+            oo = Some(self.order());
+        }
+        return Point::new(ocurve,ox,oy,oo);
+    }
+
+
+    pub fn from_affine(pt :&Point,generator :bool) -> PointJacobi {
+        let z :BigInt = one::<BigInt>();
+        let oo :Option<BigInt> = Some(pt.order());
+        return PointJacobi::new(&(pt.curve()),&(pt.x()),&(pt.y()),&z,oo,generator);
+    }
+
+    /*http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#addition-mmadd-2007-bl*/
+    fn _add_with_z_1(&self,X1 :&BigInt, Y1 :&BigInt,X2 :&BigInt, Y2 :&BigInt,p :&BigInt) -> (BigInt,BigInt,BigInt) {
+        let H :BigInt = X2 - X1;
+        let HH :BigInt = (&H) * (&H);
+        let I :BigInt = (&HH * 4) % p;
+        let J :BigInt = (&H) * (&I);
+        let r :BigInt = (Y2 - Y1) * 2;
+        if zero::<BigInt>().eq(&H) || zero::<BigInt>().eq(&r) {
+            return self._double_with_z_1(X1,Y1,p,&(self.curve.a()));
+        }
+        let V :BigInt = X1 * (&I);
+        let X3 :BigInt = ((&r) * (&r) - &J - (&V) * 2) % p;
+        let Y3 :BigInt = ((&r) * (&V - &X3) - Y1 * (&J) * 2) % p;
+        let Z3 :BigInt = ((&H) *2) % p;
+        return (X3,Y3,Z3);
+    }
+
+    /*http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#addition-zadd-2007-m*/
+    fn _add_with_z_eq(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,X2 :&BigInt,Y2 :&BigInt , p :&BigInt) -> (BigInt,BigInt,BigInt) {
+        let A :BigInt = ((X2 - X1 ) * (X2 - X1)) % p;
+        let B :BigInt = (X1 * (&A)) % p;
+        let C :BigInt = X2 * (&A);
+        let D :BigInt = ((Y2 - Y1) * (Y2 - Y1)) % p;
+        if zero::<BigInt>().eq(&A) || zero::<BigInt>().eq(&D) {
+            return self._double(X1,Y1,Z1,p,&(self.curve.a()));
+        } 
+        let X3 :BigInt = ((&D) - (&B) - (&C)) % p;
+        let Y3 :BigInt = ((Y2 - Y1) * ((&B) - (&X3)) - Y1 * ((&C) - (&B))) % p;
+        let Z3 :BigInt = (Z1 * (X2 - X1)) % p;
+        return (X3, Y3,Z3);
+    }
+
+    fn _add_with_z2_1(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,X2 :&BigInt,Y2 :&BigInt , p :&BigInt) -> (BigInt,BigInt,BigInt) {
+        let Z1Z1 :BigInt = (Z1 * Z1) % p;
+        let (U2,S2) :(BigInt,BigInt) = ((X2 * &(Z1Z1))% p , (Y2 * Z1 * (&Z1Z1)) % p);
+        let H :BigInt = ((&U2) - X1) % p;
+        let HH :BigInt = ((&H) * (&H)) % p;
+        let I :BigInt = ((&HH) * 4) % p;
+        let J :BigInt = (&H) * (&I);
+        let r :BigInt = ((&S2) - Y1) % p;
+        if zero::<BigInt>().eq(&r) || zero::<BigInt>().eq(&H) {
+            return self._double_with_z_1(X2,Y2,p,&(self.curve.a()));
+        }
+
+        let V :BigInt = X1 * (&I);
+        let X3 :BigInt = ((&r) * (&r) - &J - &V * 2) % p;
+        let Y3 :BigInt = ((&r) * (&V - &X3) - Y1 * (&J) * 2) % p;
+        let Z3 :BigInt = ((Z1 + (&H)) * (Z1 + (&H)) - &Z1Z1 - &HH) % p;
+        return (X3,Y3,Z3);
+    }
+
+    fn _add_with_z_ne(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,X2 :&BigInt,Y2 :&BigInt ,Z2 :&BigInt , p :&BigInt) -> (BigInt,BigInt,BigInt) {
+        let Z1Z1 :BigInt = (Z1 * Z1) % p;
+        let Z2Z2 :BigInt = (Z2 * Z2) % p;
+        let U1 :BigInt = (X1 * (&Z2Z2)) % p;
+        let U2 :BigInt = (X2 * (&Z1Z1)) % p;
+        let S1 :BigInt = (Y1 * Z2 * (&Z2Z2)) % p;
+        let S2 :BigInt = (Y2 * Z1 * (&Z1Z1)) % p;
+        let H :BigInt = (&U2) - (&U1);
+        let I :BigInt = ((&H) * (&H) * 4) % p;
+        let J :BigInt = ((&H) * (&I)) % p;
+        let r :BigInt = (((&S2) - (&S1)) * 2) % p;
+        if zero::<BigInt>().eq(&r) || zero::<BigInt>().eq(&H) {
+            return self._double(X1,Y1,Z1,p,&(self.curve.a()));   
+        }
+        let V :BigInt = (&U1) * (&I);
+        let X3 :BigInt = ((&r) * (&r) - (&J) - (&V) * 2) % p;
+        let Y3 :BigInt = (((&r) * (&V - &X3)) - (&S1) * (&J) * 2) % p;
+        let Z3 :BigInt = ((Z1 + Z2) * (Z1 + Z2) - &Z1Z1 - &Z2Z2) % p;
+        return (X3,Y3,Z3);
+    }
+
+    fn _add(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,X2 :&BigInt,Y2 :&BigInt ,Z2 :&BigInt , p :&BigInt) -> (BigInt,BigInt,BigInt) {
+        let zv :BigInt = zero::<BigInt>();
+        let ov :BigInt = one::<BigInt>();
+        if zv.eq(Y1) || zv.eq(Z1) {
+            return (X2.clone(),Y2.clone(),Z2.clone());
+        }
+        if zv.eq(Y2) || zv.eq(Z2) {
+            return (X1.clone(),Y1.clone(),Z1.clone());
+        }
+
+        if Z1 == Z2 {
+            if ov.eq(Z1) {
+                return self._add_with_z_1(X1,Y1,X2,Y2,p);
+            }
+            return self._add_with_z_eq(X1,Y1,Z1,X2,Y2,p);
+        }
+        if ov.eq(Z1) {
+            return self._add_with_z2_1(X2, Y2, Z2, X1, Y1, p);
+        }
+
+        if ov.eq(Z2) {
+            return self._add_with_z2_1(X1, Y1, Z1, X2, Y2, p);
+        }
+
+        return self._add_with_z_ne(X1, Y1, Z1, X2, Y2, Z2, p);
+    }
+
+    pub fn add_jacobi(&self,other :&PointJacobi) -> PointJacobi {
+        let ov :BigInt = zero::<BigInt>();
+        if self.infinity {
+            return other.clone();
+        }
+        if other.infinity {
+            return self.clone();
+        }
+
+        assert!(self.curve.eq(&(other.curve)));
+        let p :BigInt = self.curve.p();
+        let (X1,Y1,Z1) = self.coords.clone();
+        let (X2,Y2,Z2) = other.coords.clone();
+
+        let (X3,Y3,Z3) = self._add(&X1, &Y1, &Z1, &X2, &Y2, &Z2, &p);
+        if ov.eq(&Y3) || ov.eq(&Z3) {
+            return PointJacobi::infinity();
+        }
+        let mut oo :Option<BigInt> = None;
+        if self.order.is_some() {
+            oo = Some(self.order.as_ref().unwrap().clone());
+        }
+        return PointJacobi::new(&(self.curve),&X3,&Y3,&Z3,oo,false);
+    }
+
+    pub fn add_point(&self,opoint :&Point) -> PointJacobi {
+        let ov :BigInt = zero::<BigInt>();
+        if self.infinity {
+            return PointJacobi::from_affine(&opoint,false);
+        }
+        if opoint.isinfinity() {
+            return self.clone();
+        }
+
+        let other :PointJacobi = PointJacobi::from_affine(&opoint,false);
+
+        assert!(self.curve.eq(&(other.curve)));
+        let p :BigInt = self.curve.p();
+        let (X1,Y1,Z1) = self.coords.clone();
+        let (X2,Y2,Z2) = other.coords.clone();
+
+        let (X3,Y3,Z3) = self._add(&X1, &Y1, &Z1, &X2, &Y2, &Z2, &p);
+        if ov.eq(&Y3) || ov.eq(&Z3) {
+            return PointJacobi::infinity();
+        }
+        let mut oo :Option<BigInt> = None;
+        if self.order.is_some() {
+            oo = Some(self.order.as_ref().unwrap().clone());
+        }
+        return PointJacobi::new(&(self.curve),&X3,&Y3,&Z3,oo,false);
     }
 
 }
