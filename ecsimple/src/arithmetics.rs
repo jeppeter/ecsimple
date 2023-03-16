@@ -26,6 +26,17 @@ pub fn inverse_mod(a :&BigInt,m :&BigInt) -> BigInt {
     return lm % m;
 }
 
+pub fn mod_with_sign(a :&BigInt, m :&BigInt) -> BigInt {
+    let mut retv :BigInt;
+    let ov :BigInt = zero::<BigInt>();
+    retv = a % m;
+    while retv < ov {
+        retv += m;
+    }
+    return retv;
+
+}
+
 pub fn leftmost_bit(x :&BigInt) -> BigInt {
     let mut result :BigInt = one::<BigInt>();
     let tv :i32 = 2;

@@ -2,6 +2,7 @@
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use crate::arithmetics::*;
+use crate::logger::*;
 
 #[derive(Clone)]
 pub struct CurveFp {
@@ -459,24 +460,33 @@ impl PointJacobi {
 
     fn _double(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,p :&BigInt, a :&BigInt) -> (BigInt,BigInt,BigInt) {
         if  one::<BigInt>().eq(Z1)  {
+            ecsimple_log_trace!(" ");
             return self._double_with_z_1(X1,Y1,p,a);
         }
         if zero::<BigInt>().eq(Y1) || zero::<BigInt>().eq(Z1) {
+            ecsimple_log_trace!(" ");
             return (zero(),zero(),one());
         }
         let XX :BigInt = (X1 * X1 ) % p;
         let YY :BigInt = (Y1 * Y1) % p;
 
         if YY == zero() {
+            ecsimple_log_trace!(" ");
             return (zero(),zero(),one());
         }
         let YYYY :BigInt = (&YY * &YY) % p;
         let ZZ :BigInt = (Z1 * Z1) % p;
-        let S :BigInt = (((X1 + &YY) * (X1 + &YY) - &XX - &YYYY) * 2) % p;
-        let M :BigInt = ((&XX * 3 ) + (a * &ZZ *&ZZ)) % p;
-        let T :BigInt = (&M * &M - &S * 2) % p;
-        let Y3 :BigInt = (&M * (&S - &T) - &YYYY * 8) % p;
-        let Z3 :BigInt = ((Y1 + Z1) *(Y1 + Z1) - &YY - &ZZ ) % p;
+        let _S :BigInt = (((X1 + &YY) * (X1 + &YY) - &XX - &YYYY) * 2) % p;
+        let S :BigInt = mod_with_sign(&_S,p);
+        let _M :BigInt = ((&XX * 3 ) + (a * &ZZ *&ZZ)) % p;
+        let M :BigInt = mod_with_sign(&_M,p);
+        let _T :BigInt = (&M * &M - &S * 2) % p;
+        let T :BigInt = mod_with_sign(&_T,p);
+        let _Y3 :BigInt = (&M * (&S - &T) - &YYYY * 8) % p;
+        let Y3 :BigInt = mod_with_sign(&_Y3,p);
+        let _Z3 :BigInt = ((Y1 + Z1) *(Y1 + Z1) - &YY - &ZZ ) % p;
+        let Z3 :BigInt = mod_with_sign(&_Z3,p);
+        ecsimple_log_trace!(" ");
         return (T, Y3 ,Z3);
     }
 
@@ -701,26 +711,33 @@ impl PointJacobi {
         let zv :BigInt = zero::<BigInt>();
         let ov :BigInt = one::<BigInt>();
         if zv.eq(Y1) || zv.eq(Z1) {
+            ecsimple_log_trace!(" ");
             return (X2.clone(),Y2.clone(),Z2.clone());
         }
         if zv.eq(Y2) || zv.eq(Z2) {
+            ecsimple_log_trace!(" ");
             return (X1.clone(),Y1.clone(),Z1.clone());
         }
 
         if Z1 == Z2 {
             if ov.eq(Z1) {
+                ecsimple_log_trace!(" ");
                 return self._add_with_z_1(X1,Y1,X2,Y2,p);
             }
+            ecsimple_log_trace!(" ");
             return self._add_with_z_eq(X1,Y1,Z1,X2,Y2,p);
         }
         if ov.eq(Z1) {
+            ecsimple_log_trace!(" ");
             return self._add_with_z2_1(X2, Y2, Z2, X1, Y1, p);
         }
 
         if ov.eq(Z2) {
+            ecsimple_log_trace!(" ");
             return self._add_with_z2_1(X1, Y1, Z1, X2, Y2, p);
         }
 
+        ecsimple_log_trace!(" ");
         return self._add_with_z_ne(X1, Y1, Z1, X2, Y2, Z2, p);
     }
 
@@ -849,18 +866,24 @@ impl PointJacobi {
         }
         let _ = self.scale();
         let (X2,Y2,_)  = self.coords.clone();
+        ecsimple_log_trace!("X2 0x{:x} Y2 0x{:x}", X2,Y2);
         let (mut X3,mut Y3,mut Z3) = (zv.clone(),zv.clone(),ov.clone());
         let (p,a) = (self.curve.p(),self.curve.a());
         let mut nafvecs :Vec<i32> = self._naf(&other);
         let negY2 :BigInt = - (&Y2);
+        let mut idx :i32 = 0;
         nafvecs.reverse();
         for i in nafvecs {
+            ecsimple_log_trace!("[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ",idx, i, X3,Y3,Z3);
             (X3,Y3,Z3) = self._double(&X3,&Y3,&Z3,&p,&a);
+            ecsimple_log_trace!("after[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ",idx, i, X3,Y3,Z3);
             if i < 0 {
                 (X3,Y3,Z3) = self._add(&X3, &Y3, &Z3, &X2, &negY2, &ov, &p);
-            } else {
+            } else if i > 0 {
                 (X3,Y3,Z3) = self._add(&X3, &Y3, &Z3, &X2, &Y2, &ov, &p);
-            } 
+            }
+            ecsimple_log_trace!("last[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ", idx,i, X3,Y3,Z3);
+            idx += 1;
         }
 
         if zv.eq(&Y3) || zv.eq(&Z3) {
