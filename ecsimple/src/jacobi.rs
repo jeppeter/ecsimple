@@ -75,7 +75,7 @@ impl CurveFp {
 }
 
 #[derive(Clone)]
-pub struct Point {
+pub struct ECCPoint {
     infinity : bool,
     curve : Option<CurveFp>,
     x :Option<BigInt>,
@@ -83,10 +83,10 @@ pub struct Point {
     order :Option<BigInt>,
 }
 
-impl std::fmt::Debug for Point {
+impl std::fmt::Debug for ECCPoint {
     fn fmt(&self,f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut s :String = "".to_string();
-        s.push_str("Point(");
+        s.push_str("ECCPoint(");
         if self.infinity {
             s.push_str("infinity");
         } else {
@@ -104,15 +104,15 @@ impl std::fmt::Debug for Point {
     }
 }
 
-impl Point {
+impl ECCPoint {
     pub fn new(curve :Option<CurveFp>, x :Option<BigInt>,y :Option<BigInt>, order :Option<BigInt>) -> Self {
-        let retv :Point;
+        let retv :ECCPoint;
         if curve.is_some()  && x.is_some() && y.is_some()  {
             let cv :CurveFp = curve.as_ref().unwrap().clone();
             let xv :BigInt = x.as_ref().unwrap().clone();
             let yv :BigInt = y.as_ref().unwrap().clone();
             assert!(cv.constains_point(&xv,&yv));
-            retv = Point {
+            retv = ECCPoint {
                 infinity : false,
                 curve :Some(curve.as_ref().unwrap().clone()),
                 x : Some(x.as_ref().unwrap().clone()),
@@ -120,7 +120,7 @@ impl Point {
                 order :order,
             };
         } else {
-            retv = Point {
+            retv = ECCPoint {
                 infinity : true,
                 curve : None,
                 x : None,
@@ -132,8 +132,8 @@ impl Point {
         return retv;
     }
 
-    pub fn infinity() -> Point {
-        let retv = Point {
+    pub fn infinity() -> ECCPoint {
+        let retv = ECCPoint {
             infinity : true,
             curve  : None,
             x : None,
@@ -143,7 +143,7 @@ impl Point {
         return retv;
     }
 
-    pub fn negative(&self) -> Point {
+    pub fn negative(&self) -> ECCPoint {
         let mut ocurve :Option<CurveFp> = None;
         let mut ox :Option<BigInt> = None;
         let mut oy :Option<BigInt> = None;
@@ -161,12 +161,12 @@ impl Point {
             let cp :BigInt = self.curve.as_ref().unwrap().p();
             oy = Some(cp - &yy);
         }
-        return Point::new(ocurve,ox,oy,oo);
+        return ECCPoint::new(ocurve,ox,oy,oo);
     }
 
-    pub fn double(&self) -> Point {
+    pub fn double(&self) -> ECCPoint {
         if self.infinity {
-            return Point::infinity();
+            return ECCPoint::infinity();
         }
         let ocurve :Option<CurveFp> = Some(self.curve.as_ref().unwrap().clone());
         let p :BigInt = self.curve.as_ref().unwrap().p();
@@ -179,7 +179,7 @@ impl Point {
         let x3 :BigInt = (&l * &l - &x * (2)) % (&p);
         let y3 :BigInt = (&l * (&x - &x3) - &y) % (&p);
 
-        return Point::new(ocurve,Some(x3.clone()),Some(y3.clone()),None);
+        return ECCPoint::new(ocurve,Some(x3.clone()),Some(y3.clone()),None);
     }
 
     pub fn x(&self) -> BigInt {
@@ -228,7 +228,7 @@ impl Point {
         let sp :BigInt = scurve.p();
         if sx == ox {
             if ((sy + &oy) % (&sp)) == zero() {
-                return Point::infinity();
+                return ECCPoint::infinity();
             } else {
                 return self.double();
             }
@@ -238,7 +238,7 @@ impl Point {
 
         let x3 :BigInt = (&l * &l - &sx - &ox ) % (&sp);
         let y3 :BigInt = ((&l) * (&sx - &x3) - &sy) % (&sp);
-        return Point::new(Some(scurve.clone()),Some(x3.clone()),Some(y3.clone()), None);
+        return ECCPoint::new(Some(scurve.clone()),Some(x3.clone()),Some(y3.clone()), None);
     }
     
     pub fn isinfinity(&self) -> bool {
@@ -252,10 +252,10 @@ impl Point {
             corder = self.order.as_ref().unwrap().clone();
         }
         if e == zero() || (self.order.is_some() &&  (&e % &corder) == zero() ) {
-            return Point::infinity();
+            return ECCPoint::infinity();
         }
         if self.infinity {
-            return Point::infinity();
+            return ECCPoint::infinity();
         }
         if e < zero() {
             let nege :BigInt = -e;
@@ -271,11 +271,11 @@ impl Point {
         if self.order.is_some() {
             oo = Some(self.order.as_ref().unwrap().clone());
         }
-        let negative_self :Point = Point::new(ocurve,ox,oy,oo);
+        let negative_self :ECCPoint = ECCPoint::new(ocurve,ox,oy,oo);
 
         let mut ileft :BigInt = leftmost_bit(&e3) / 2;
 
-        let mut result :Point = self.clone();
+        let mut result :ECCPoint = self.clone();
 
 
         while ileft > one() {
@@ -303,7 +303,7 @@ impl Point {
     }
 }
 
-impl PartialEq for Point {
+impl PartialEq for ECCPoint {
     fn eq(&self, other :&Self) -> bool {
         if self.infinity && self.infinity == other.infinity {
             return true;
@@ -340,14 +340,14 @@ impl PartialEq for Point {
     }
 }
 
-impl std::ops::Add for Point {
+impl std::ops::Add for ECCPoint {
     type Output = Self;
     fn add(self, other :Self) -> Self {
         return (&self).add_point(other);
     }
 }
 
-impl std::ops::Mul<BigInt> for Point {
+impl std::ops::Mul<BigInt> for ECCPoint {
     type Output = Self;
     fn mul(self, other :BigInt) -> Self {
         return (&self).multiply_int(&other);
@@ -572,7 +572,7 @@ impl PointJacobi {
         return retval;        
     }
 
-    pub fn eq_point(&self, other :&Point) -> bool {
+    pub fn eq_point(&self, other :&ECCPoint) -> bool {
         let (x1,y1,z1) = self.coords.clone();
         if other.infinity {
             let retval :bool = zero::<BigInt>().eq(&z1) || zero::<BigInt>().eq(&y1);
@@ -601,10 +601,10 @@ impl PointJacobi {
         return retval;        
     }
 
-    pub fn to_affine(&mut self) -> Point {
+    pub fn to_affine(&mut self) -> ECCPoint {
         let (_ , y ,z) = self.coords.clone();
         if zero::<BigInt>().eq(&y) || zero::<BigInt>().eq(&z) {
-            return Point::infinity();
+            return ECCPoint::infinity();
         }
         let _ = self.scale();
         let (x,y,_) = self.coords.clone();
@@ -615,11 +615,11 @@ impl PointJacobi {
         if self.order.is_some() {
             oo = Some(self.order());
         }
-        return Point::new(ocurve,ox,oy,oo);
+        return ECCPoint::new(ocurve,ox,oy,oo);
     }
 
 
-    pub fn from_affine(pt :&Point,generator :bool) -> PointJacobi {
+    pub fn from_affine(pt :&ECCPoint,generator :bool) -> PointJacobi {
         let z :BigInt = one::<BigInt>();
         let oo :Option<BigInt> = Some(pt.order());
         return PointJacobi::new(&(pt.curve()),&(pt.x()),&(pt.y()),&z,oo,generator);
@@ -752,7 +752,7 @@ impl PointJacobi {
         return self._add_with_other(other);
     }
 
-    pub fn add_point(&self,opoint :&Point) -> PointJacobi {
+    pub fn add_point(&self,opoint :&ECCPoint) -> PointJacobi {
         if self.infinity {
             return PointJacobi::from_affine(&opoint,false);
         }
@@ -888,12 +888,12 @@ impl std::cmp::PartialEq<PointJacobi> for PointJacobi {
 }
 
 
-impl std::cmp::PartialEq<Point> for PointJacobi {
-    fn eq(&self,other :&Point) -> bool {
+impl std::cmp::PartialEq<ECCPoint> for PointJacobi {
+    fn eq(&self,other :&ECCPoint) -> bool {
         return self.eq_point(other);
     }
 
-    fn ne(&self, other :&Point) -> bool {
+    fn ne(&self, other :&ECCPoint) -> bool {
         return  !self.eq(other);
     }
 }
@@ -906,9 +906,9 @@ impl std::ops::Add for PointJacobi {
 }
 
 
-impl std::ops::Add<Point> for PointJacobi {
+impl std::ops::Add<ECCPoint> for PointJacobi {
     type Output = Self;
-    fn add(self, other :Point) -> Self {
+    fn add(self, other :ECCPoint) -> Self {
         return (&self).add_point(&other);
     }
 }
