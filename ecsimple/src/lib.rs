@@ -3,4 +3,5 @@
 mod logger;
 mod arithmetics;
 //mod affine;
-mod jacobi;
+pub mod jacobi;
+pub mod curves;

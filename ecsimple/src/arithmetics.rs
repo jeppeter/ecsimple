@@ -28,8 +28,9 @@ pub fn inverse_mod(a :&BigInt,m :&BigInt) -> BigInt {
 
 pub fn leftmost_bit(x :&BigInt) -> BigInt {
     let mut result :BigInt = one::<BigInt>();
+    let tv :i32 = 2;
     while result <= x.clone() {
-        result *= 2;
+        result *= tv;
     }
-    return result / 2;
+    return result / tv;
 }

@@ -3,12 +3,25 @@ use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use crate::arithmetics::*;
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct CurveFp {
-    pub p :BigInt,
-    pub a :BigInt,
-    pub b :BigInt,
-    pub h :BigInt,
+    p :BigInt,
+    a :BigInt,
+    b :BigInt,
+    h :BigInt,
+}
+
+impl std::fmt::Debug for CurveFp {
+    fn fmt(&self,f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s :String = "".to_string();
+        s.push_str("CurveFp(");
+        s.push_str(&format!("p=0x{:x};",self.p));
+        s.push_str(&format!("a=0x{:x};",self.a));
+        s.push_str(&format!("b=0x{:x};",self.b));
+        s.push_str(&format!("h=0x{:x};",self.h));
+        s.push_str(")");
+        write!(f,"{}",&s)
+    }
 }
 
 impl PartialEq  for CurveFp {
@@ -61,7 +74,7 @@ impl CurveFp {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct Point {
     infinity : bool,
     curve : Option<CurveFp>,
@@ -70,7 +83,27 @@ pub struct Point {
     order :Option<BigInt>,
 }
 
-#[allow(dead_code)]
+impl std::fmt::Debug for Point {
+    fn fmt(&self,f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s :String = "".to_string();
+        s.push_str("Point(");
+        if self.infinity {
+            s.push_str("infinity");
+        } else {
+            s.push_str(&(format!("curve : {:?};",self.curve.as_ref().unwrap().clone())));
+            s.push_str(&(format!("x : 0x{:x};", self.x())));
+            s.push_str(&(format!("y : 0x{:x};", self.y())));
+            if self.order.is_none() {
+                s.push_str(&(format!("order : none;")));
+            } else {
+                s.push_str(&(format!("order : 0x{:x};",self.order.as_ref().unwrap().clone())));
+            }
+        }
+        s.push_str(")");
+        write!(f,"{}",&s)
+    }
+}
+
 impl Point {
     pub fn new(curve :Option<CurveFp>, x :Option<BigInt>,y :Option<BigInt>, order :Option<BigInt>) -> Self {
         let retv :Point;
@@ -141,9 +174,9 @@ impl Point {
         let x :BigInt = self.x.as_ref().unwrap().clone();
         let y :BigInt = self.y.as_ref().unwrap().clone();
 
-        let l :BigInt = ((&x * &x * 3 + &a ) * inverse_mod(&(&y * 2),&p) ) % (&p);
+        let l :BigInt = ((&x * &x * (3) + &a ) * inverse_mod(&(&y * (2)),&p) ) % (&p);
 
-        let x3 :BigInt = (&l * &l - &x * 2) % (&p);
+        let x3 :BigInt = (&l * &l - &x * (2)) % (&p);
         let y3 :BigInt = (&l * (&x - &x3) - &y) % (&p);
 
         return Point::new(ocurve,Some(x3.clone()),Some(y3.clone()),None);
@@ -322,8 +355,7 @@ impl std::ops::Mul<BigInt> for Point {
 }
 
 
-#[allow(dead_code)]
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct PointJacobi {
     infinity : bool,
     curve :CurveFp,
@@ -333,8 +365,28 @@ pub struct PointJacobi {
     precompute : Vec<(BigInt,BigInt)>,
 }
 
+impl std::fmt::Debug for PointJacobi {
+    fn fmt(&self,f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut s :String = "".to_string();
+        s.push_str("PointJacobi(");
+        if self.infinity {
+            s.push_str("infinity");
+        } else {
+            s.push_str(&(format!("curve : {:?};",self.curve)));
+            s.push_str(&(format!("coords (0x{:x},0x{:x},0x{:x});",self.coords.0,self.coords.1,self.coords.2)));
+            if self.order.is_none() {
+                s.push_str("order : none;");
+            } else {
+                s.push_str(&(format!("order : 0x{:x};",self.order.as_ref().unwrap().clone())));
+            }
+            s.push_str(&(format!("generator : {:?}",self.generator)));
+        }
+        s.push_str(")");
+        write!(f,"{}",&s)
+    }
+}
+
 #[allow(non_snake_case)]
-#[allow(dead_code)]
 impl PointJacobi {
     pub fn infinity() -> Self {
         let zv :BigInt = zero();
