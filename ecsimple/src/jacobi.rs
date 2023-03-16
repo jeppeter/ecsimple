@@ -672,15 +672,8 @@ impl PointJacobi {
         return self._add_with_z_ne(X1, Y1, Z1, X2, Y2, Z2, p);
     }
 
-    pub fn add_jacobi(&self,other :&PointJacobi) -> PointJacobi {
+    fn _add_with_other(&self,other :&PointJacobi) -> PointJacobi {
         let ov :BigInt = zero::<BigInt>();
-        if self.infinity {
-            return other.clone();
-        }
-        if other.infinity {
-            return self.clone();
-        }
-
         assert!(self.curve.eq(&(other.curve)));
         let p :BigInt = self.curve.p();
         let (X1,Y1,Z1) = self.coords.clone();
@@ -694,11 +687,20 @@ impl PointJacobi {
         if self.order.is_some() {
             oo = Some(self.order.as_ref().unwrap().clone());
         }
-        return PointJacobi::new(&(self.curve),&X3,&Y3,&Z3,oo,false);
+        return PointJacobi::new(&(self.curve),&X3,&Y3,&Z3,oo,false);        
+    }
+
+    pub fn add_jacobi(&self,other :&PointJacobi) -> PointJacobi {
+        if self.infinity {
+            return other.clone();
+        }
+        if other.infinity {
+            return self.clone();
+        }
+        return self._add_with_other(other);
     }
 
     pub fn add_point(&self,opoint :&Point) -> PointJacobi {
-        let ov :BigInt = zero::<BigInt>();
         if self.infinity {
             return PointJacobi::from_affine(&opoint,false);
         }
@@ -707,21 +709,7 @@ impl PointJacobi {
         }
 
         let other :PointJacobi = PointJacobi::from_affine(&opoint,false);
-
-        assert!(self.curve.eq(&(other.curve)));
-        let p :BigInt = self.curve.p();
-        let (X1,Y1,Z1) = self.coords.clone();
-        let (X2,Y2,Z2) = other.coords.clone();
-
-        let (X3,Y3,Z3) = self._add(&X1, &Y1, &Z1, &X2, &Y2, &Z2, &p);
-        if ov.eq(&Y3) || ov.eq(&Z3) {
-            return PointJacobi::infinity();
-        }
-        let mut oo :Option<BigInt> = None;
-        if self.order.is_some() {
-            oo = Some(self.order.as_ref().unwrap().clone());
-        }
-        return PointJacobi::new(&(self.curve),&X3,&Y3,&Z3,oo,false);
+        return self._add_with_other(&other);
     }
 
 }
@@ -744,5 +732,20 @@ impl std::cmp::PartialEq<Point> for PointJacobi {
 
     fn ne(&self, other :&Point) -> bool {
         return  !self.eq(other);
+    }
+}
+
+impl std::ops::Add for PointJacobi {
+    type Output = Self;
+    fn add(self, other :Self) -> Self {
+        return (&self).add_jacobi(&other);
+    }
+}
+
+
+impl std::ops::Add<Point> for PointJacobi {
+    type Output = Self;
+    fn add(self, other :Point) -> Self {
+        return (&self).add_point(&other);
     }
 }
