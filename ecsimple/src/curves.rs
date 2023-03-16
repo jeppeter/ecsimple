@@ -1,11 +1,15 @@
 
 use hex::FromHex;
 use crate::jacobi::{PointJacobi,CurveFp};
+use crate::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use num_bigint::{BigInt,Sign};
 use num_traits::{one};
 
+use std::error::Error;
+
+ecsimple_error_class!{EcSimpleCurveError}
 
 /*
 _p = int(remove_whitespace("DB7C 2ABF62E3 5E668076 BEAD208B"), 16)
@@ -101,5 +105,16 @@ lazy_static ! {
 		create_jacobi()	
 	};
 
+}
+
+pub fn get_ecc_by_name(name :&str) -> Result<PointJacobi,Box<dyn Error>> {
+	match ECC_CURVES.get(name) {
+		Some(pv) => {
+			return Ok(pv.clone());
+		},
+		_ => {
+			ecsimple_new_error!{EcSimpleCurveError,"can not find [{}]",name}
+		}
+	}
 }
 
