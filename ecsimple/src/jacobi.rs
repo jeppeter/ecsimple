@@ -704,6 +704,7 @@ impl PointJacobi {
         let _r :BigInt = (((&S2) - Y1)*2) % p;
         let r :BigInt = mod_with_sign(&_r,p);
         if zero::<BigInt>().eq(&r) || zero::<BigInt>().eq(&H) {
+            ecsimple_log_trace!("r or H == 0");
             return self._double_with_z_1(X2,Y2,p,&(self.curve.a()));
         }
 
@@ -728,10 +729,12 @@ impl PointJacobi {
         let S2 :BigInt = (Y2 * Z1 * (&Z1Z1)) % p;
         let H :BigInt = (&U2) - (&U1);
         let I :BigInt = ((&H) * (&H) * 4) % p;
-        let J :BigInt = ((&H) * (&I)) % p;
+        let _J :BigInt = ((&H) * (&I)) % p;
+        let J :BigInt = mod_with_sign(&_J,p);
         let _r :BigInt = (((&S2) - (&S1)) * 2) % p;
         let r :BigInt = mod_with_sign(&_r,p);
         if zero::<BigInt>().eq(&r) || zero::<BigInt>().eq(&H) {
+            ecsimple_log_trace!("not H r");
             return self._double(X1,Y1,Z1,p,&(self.curve.a()));   
         }
         let V :BigInt = (&U1) * (&I);
@@ -739,8 +742,12 @@ impl PointJacobi {
         let X3 :BigInt = mod_with_sign(&_X3,p);
         let _Y3 :BigInt = (((&r) * (&V - &X3)) - (&S1) * (&J) * 2) % p;
         let Y3 :BigInt = mod_with_sign(&_Y3,p);
-        let _Z3 :BigInt = ((Z1 + Z2) * (Z1 + Z2) - &Z1Z1 - &Z2Z2) % p;
+        let _Z3 :BigInt = (((Z1 + Z2) * (Z1 + Z2) - &Z1Z1 - &Z2Z2) * &H) % p;
         let Z3 :BigInt = mod_with_sign(&_Z3,p);
+        ecsimple_log_trace!("Z1Z1 0x{:x} Z2Z2 0x{:x} U1 0x{:x} U2 0x{:x}",Z1Z1,Z2Z2,U1,U2);
+        ecsimple_log_trace!("S1 0x{:x} S2 0x{:x} H 0x{:x} I 0x{:x}",S1,S2,H,I);
+        ecsimple_log_trace!("J 0x{:x} r 0x{:x} V 0x{:x}",J,r,V);
+        ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
         return (X3,Y3,Z3);
     }
 
@@ -784,8 +791,10 @@ impl PointJacobi {
         let p :BigInt = self.curve.p();
         let (X1,Y1,Z1) = self.coords.clone();
         let (X2,Y2,Z2) = other.coords.clone();
+        ecsimple_log_trace!("X1 0x{:x} Y1 0x{:x} Z1 0x{:x} X2 0x{:x} Y2 0x{:x} Z2 0x{:x} p 0x{:x}",X1,Y1,Z1,X2,Y2,Z2,p);
 
         let (X3,Y3,Z3) = self._add(&X1, &Y1, &Z1, &X2, &Y2, &Z2, &p);
+        ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
         if ov.eq(&Y3) || ov.eq(&Z3) {
             return PointJacobi::infinity();
         }
