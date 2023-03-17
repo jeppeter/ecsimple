@@ -70,7 +70,8 @@ impl CurveFp {
     }
 
     pub fn constains_point(&self,x :&BigInt, y :&BigInt) -> bool {
-        let val :BigInt = (y * y - ((x * x + &self.a) * x  + &self.b)) % &self.p;
+        let _val :BigInt = (y * y - ((x * x + &self.a) * x  + &self.b)) % &self.p;
+        let val :BigInt = mod_with_sign(&_val,&self.p);
         return val == zero();
     }
 }
@@ -177,8 +178,10 @@ impl ECCPoint {
 
         let l :BigInt = ((&x * &x * (3) + &a ) * inverse_mod(&(&y * (2)),&p) ) % (&p);
 
-        let x3 :BigInt = (&l * &l - &x * (2)) % (&p);
-        let y3 :BigInt = (&l * (&x - &x3) - &y) % (&p);
+        let _x3 :BigInt = (&l * &l - &x * (2)) % (&p);
+        let x3 :BigInt = mod_with_sign(&_x3,&p);
+        let _y3 :BigInt = (&l * (&x - &x3) - &y) % (&p);
+        let y3 :BigInt = mod_with_sign(&_y3,&p);
 
         return ECCPoint::new(ocurve,Some(x3.clone()),Some(y3.clone()),None);
     }
@@ -235,10 +238,13 @@ impl ECCPoint {
             }
         }
 
-        let l :BigInt = ((oy - &sy ) * inverse_mod(&((&ox) - (&sx)),&sp)) % (&sp);
+        let _l :BigInt = ((oy - &sy ) * inverse_mod(&((&ox) - (&sx)),&sp)) % (&sp);
+        let l :BigInt = mod_with_sign(&_l,&sp);
 
-        let x3 :BigInt = (&l * &l - &sx - &ox ) % (&sp);
-        let y3 :BigInt = ((&l) * (&sx - &x3) - &sy) % (&sp);
+        let _x3 :BigInt = (&l * &l - &sx - &ox ) % (&sp);
+        let x3 :BigInt = mod_with_sign(&_x3,&sp);
+        let _y3 :BigInt = ((&l) * (&sx - &x3) - &sy) % (&sp);
+        let y3 :BigInt = mod_with_sign(&_y3,&sp);
         return ECCPoint::new(Some(scurve.clone()),Some(x3.clone()),Some(y3.clone()), None);
     }
     
@@ -450,10 +456,13 @@ impl PointJacobi {
             return (zero(),zero(),one());
         }
         let YYYY :BigInt = (&YY * &YY) % p;
-        let S :BigInt = (((X1 + &YY) * (X1 + &YY) - &XX - &YYYY) * 2) % p;
+        let _S :BigInt = (((X1 + &YY) * (X1 + &YY) - &XX - &YYYY) * 2) % p;
+        let S :BigInt = mod_with_sign(&_S,p);
         let M :BigInt = (&XX * 3 ) + a;
-        let T :BigInt = (&M * &M - &S * 2) % p;
-        let Y3 :BigInt = (&M * (&S - &T) - &YYYY * 8) % p;
+        let _T :BigInt = (&M * &M - &S * 2) % p;
+        let T :BigInt = mod_with_sign(&_T,p);
+        let _Y3 :BigInt = (&M * (&S - &T) - &YYYY * 8) % p;
+        let Y3 :BigInt = mod_with_sign(&_Y3,p);
         let Z3 :BigInt = (Y1 * 2) % p;
         return (T, Y3 ,Z3);
     }
@@ -570,12 +579,14 @@ impl PointJacobi {
         let zz2 :BigInt = ((&z2) * (&z2)) % (&p);
 
         let mut retval = true;
-        let xres :BigInt = ((&x1) * (&zz2) - (&x2) * (&zz1)) % (&p);
+        let _xres :BigInt = ((&x1) * (&zz2) - (&x2) * (&zz1)) % (&p);
+        let xres :BigInt = mod_with_sign(&_xres,&p);
         if !zero::<BigInt>().eq(&xres) {
             retval = false;
         }
 
-        let yres :BigInt = ((&y1) * (&zz2) * (&z2) - (&y2) * (&zz1) * (&z1)) % (&p);
+        let _yres :BigInt = ((&y1) * (&zz2) * (&z2) - (&y2) * (&zz1) * (&z1)) % (&p);
+        let yres :BigInt = mod_with_sign(&_yres,&p);
         if !zero::<BigInt>().eq(&yres) {
             retval = false;
         }
@@ -599,12 +610,14 @@ impl PointJacobi {
         let zz2 :BigInt = ((&z2) * (&z2)) % (&p);
 
         let mut retval = true;
-        let xres :BigInt = ((&x1) * (&zz2) - (&x2) * (&zz1)) % (&p);
+        let _xres :BigInt = ((&x1) * (&zz2) - (&x2) * (&zz1)) % (&p);
+        let xres :BigInt = mod_with_sign(&_xres,&p);
         if !zero::<BigInt>().eq(&xres) {
             retval = false;
         }
 
-        let yres :BigInt = ((&y1) * (&zz2) * (&z2) - (&y2) * (&zz1) * (&z1)) % (&p);
+        let _yres :BigInt = ((&y1) * (&zz2) * (&z2) - (&y2) * (&zz1) * (&z1)) % (&p);
+        let yres :BigInt = mod_with_sign(&_yres,&p);
         if !zero::<BigInt>().eq(&yres) {
             retval = false;
         }
@@ -646,43 +659,57 @@ impl PointJacobi {
             return self._double_with_z_1(X1,Y1,p,&(self.curve.a()));
         }
         let V :BigInt = X1 * (&I);
-        let X3 :BigInt = ((&r) * (&r) - &J - (&V) * 2) % p;
-        let Y3 :BigInt = ((&r) * (&V - &X3) - Y1 * (&J) * 2) % p;
+        let _X3 :BigInt = ((&r) * (&r) - &J - (&V) * 2) % p;
+        let X3 :BigInt = mod_with_sign(&_X3,p);
+        let _Y3 :BigInt = ((&r) * (&V - &X3) - Y1 * (&J) * 2) % p;
+        let Y3 :BigInt = mod_with_sign(&_Y3,p);
         let Z3 :BigInt = ((&H) *2) % p;
         return (X3,Y3,Z3);
     }
 
     /*http://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#addition-zadd-2007-m*/
     fn _add_with_z_eq(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,X2 :&BigInt,Y2 :&BigInt , p :&BigInt) -> (BigInt,BigInt,BigInt) {
-        let A :BigInt = ((X2 - X1 ) * (X2 - X1)) % p;
+        let _A :BigInt = ((X2 - X1 ) * (X2 - X1)) % p;
+        let A :BigInt = mod_with_sign(&_A,p);
         let B :BigInt = (X1 * (&A)) % p;
         let C :BigInt = X2 * (&A);
-        let D :BigInt = ((Y2 - Y1) * (Y2 - Y1)) % p;
+        let _D :BigInt = ((Y2 - Y1) * (Y2 - Y1)) % p;
+        let D :BigInt = mod_with_sign(&_D,p);
         if zero::<BigInt>().eq(&A) || zero::<BigInt>().eq(&D) {
             return self._double(X1,Y1,Z1,p,&(self.curve.a()));
         } 
-        let X3 :BigInt = ((&D) - (&B) - (&C)) % p;
-        let Y3 :BigInt = ((Y2 - Y1) * ((&B) - (&X3)) - Y1 * ((&C) - (&B))) % p;
-        let Z3 :BigInt = (Z1 * (X2 - X1)) % p;
+        let _X3 :BigInt = ((&D) - (&B) - (&C)) % p;
+        let X3 :BigInt = mod_with_sign(&_X3,p);
+        let _Y3 :BigInt = ((Y2 - Y1) * ((&B) - (&X3)) - Y1 * ((&C) - (&B))) % p;
+        let Y3 :BigInt = mod_with_sign(&_Y3,p);
+        let _Z3 :BigInt = (Z1 * (X2 - X1)) % p;
+        let Z3 :BigInt = mod_with_sign(&_Z3,p);
         return (X3, Y3,Z3);
     }
 
     fn _add_with_z2_1(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,X2 :&BigInt,Y2 :&BigInt , p :&BigInt) -> (BigInt,BigInt,BigInt) {
         let Z1Z1 :BigInt = (Z1 * Z1) % p;
         let (U2,S2) :(BigInt,BigInt) = ((X2 * &(Z1Z1))% p , (Y2 * Z1 * (&Z1Z1)) % p);
-        let H :BigInt = ((&U2) - X1) % p;
+        let _H :BigInt = ((&U2) - X1) % p;
+        let H :BigInt = mod_with_sign(&_H,p);
         let HH :BigInt = ((&H) * (&H)) % p;
         let I :BigInt = ((&HH) * 4) % p;
         let J :BigInt = (&H) * (&I);
-        let r :BigInt = ((&S2) - Y1) % p;
+        let _r :BigInt = (((&S2) - Y1)*2) % p;
+        let r :BigInt = mod_with_sign(&_r,p);
         if zero::<BigInt>().eq(&r) || zero::<BigInt>().eq(&H) {
             return self._double_with_z_1(X2,Y2,p,&(self.curve.a()));
         }
 
         let V :BigInt = X1 * (&I);
-        let X3 :BigInt = ((&r) * (&r) - &J - &V * 2) % p;
-        let Y3 :BigInt = ((&r) * (&V - &X3) - Y1 * (&J) * 2) % p;
-        let Z3 :BigInt = ((Z1 + (&H)) * (Z1 + (&H)) - &Z1Z1 - &HH) % p;
+        let _X3 :BigInt = ((&r) * (&r) - &J - &V * 2) % p;
+        let X3 :BigInt = mod_with_sign(&_X3,p);
+        let _Y3 :BigInt = ((&r) * (&V - &X3) - Y1 * (&J) * 2) % p;
+        let Y3 :BigInt = mod_with_sign(&_Y3,p);
+        let _Z3 :BigInt = ((Z1 + (&H)) * (Z1 + (&H)) - &Z1Z1 - &HH) % p;
+        let Z3 :BigInt = mod_with_sign(&_Z3,p);
+        ecsimple_log_trace!("H 0x{:x} HH 0x{:x} I 0x{:x} J 0x{:x} r 0x{:x}",H,HH,I,J,r);
+        ecsimple_log_trace!("V 0x{:x} X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",V,X3,Y3,Z3);
         return (X3,Y3,Z3);
     }
 
@@ -696,14 +723,18 @@ impl PointJacobi {
         let H :BigInt = (&U2) - (&U1);
         let I :BigInt = ((&H) * (&H) * 4) % p;
         let J :BigInt = ((&H) * (&I)) % p;
-        let r :BigInt = (((&S2) - (&S1)) * 2) % p;
+        let _r :BigInt = (((&S2) - (&S1)) * 2) % p;
+        let r :BigInt = mod_with_sign(&_r,p);
         if zero::<BigInt>().eq(&r) || zero::<BigInt>().eq(&H) {
             return self._double(X1,Y1,Z1,p,&(self.curve.a()));   
         }
         let V :BigInt = (&U1) * (&I);
-        let X3 :BigInt = ((&r) * (&r) - (&J) - (&V) * 2) % p;
-        let Y3 :BigInt = (((&r) * (&V - &X3)) - (&S1) * (&J) * 2) % p;
-        let Z3 :BigInt = ((Z1 + Z2) * (Z1 + Z2) - &Z1Z1 - &Z2Z2) % p;
+        let _X3 :BigInt = ((&r) * (&r) - (&J) - (&V) * 2) % p;
+        let X3 :BigInt = mod_with_sign(&_X3,p);
+        let _Y3 :BigInt = (((&r) * (&V - &X3)) - (&S1) * (&J) * 2) % p;
+        let Y3 :BigInt = mod_with_sign(&_Y3,p);
+        let _Z3 :BigInt = ((Z1 + Z2) * (Z1 + Z2) - &Z1Z1 - &Z2Z2) % p;
+        let Z3 :BigInt = mod_with_sign(&_Z3,p);
         return (X3,Y3,Z3);
     }
 

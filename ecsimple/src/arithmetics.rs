@@ -2,6 +2,17 @@
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 
+pub fn mod_with_sign(a :&BigInt, m :&BigInt) -> BigInt {
+    let mut retv :BigInt;
+    let ov :BigInt = zero::<BigInt>();
+    retv = a % m;
+    while retv < ov {
+        retv += m;
+    }
+    return retv;
+}
+
+
 pub fn inverse_mod(a :&BigInt,m :&BigInt) -> BigInt {
     if  zero::<BigInt>().eq(a) {
         return zero::<BigInt>();
@@ -23,19 +34,9 @@ pub fn inverse_mod(a :&BigInt,m :&BigInt) -> BigInt {
         hm = tmplm.clone();
         high = tmplow.clone();
     }
-    return lm % m;
+    return mod_with_sign(&lm,&m);
 }
 
-pub fn mod_with_sign(a :&BigInt, m :&BigInt) -> BigInt {
-    let mut retv :BigInt;
-    let ov :BigInt = zero::<BigInt>();
-    retv = a % m;
-    while retv < ov {
-        retv += m;
-    }
-    return retv;
-
-}
 
 pub fn leftmost_bit(x :&BigInt) -> BigInt {
     let mut result :BigInt = one::<BigInt>();
