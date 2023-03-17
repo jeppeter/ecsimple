@@ -507,8 +507,10 @@ impl PointJacobi {
         let p :BigInt = self.curve.p();
         let a :BigInt = self.curve.a();
         let (X3,Y3,Z3) = self._double(&X1,&Y1,&Z1,&p,&a);
+        ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
 
         if Y3 == zero() || Z3 == zero() {
+            ecsimple_log_trace!("INFINITY");
             return PointJacobi::infinity();
         }
 
@@ -529,9 +531,10 @@ impl PointJacobi {
         let z_inv :BigInt = inverse_mod(&z,&p);
         let zz_inv :BigInt = (&z_inv * &z_inv) % (&p);
         let x1 :BigInt = ((&x) * &zz_inv) % (&p);
-        let y1 :BigInt = ((&y) * &zz_inv) % (&p);
+        let y1 :BigInt = ((&y) * &zz_inv * &z_inv) % (&p);
         let z1 :BigInt = one::<BigInt>();
         self.coords = (x1.clone(),y1.clone(),z1.clone());
+        ecsimple_log_trace!("z_inv 0x{:x} zz_inv 0x{:x} x 0x{:x} y 0x{:x} p 0x{:x}",z_inv,zz_inv,x1,y1,p);
         return self.clone();
     }
 
@@ -544,9 +547,10 @@ impl PointJacobi {
 
 
     fn _maybe_precompute(&mut self) {
-        if self.order.is_none() || self.precompute.len() == 0 {
+        if !self.generator || self.precompute.len() > 0 {
             return;
         }
+        assert!(self.order.is_some());
         let mut order :BigInt = self.order.as_ref().unwrap().clone();
         let mut precompute :Vec<(BigInt,BigInt)> = Vec::new();
         let mut i :BigInt = one::<BigInt>();
@@ -554,10 +558,12 @@ impl PointJacobi {
         let (x,y,z) = self.coords.clone();
         let mut doubler :PointJacobi = PointJacobi::new(&self.curve,&x,&y,&z,Some(order.clone()),false);
         order *= 2;
+        ecsimple_log_trace!("[{}] x 0x{:x} y 0x{:x}",precompute.len(), doubler.x(),doubler.y());
         precompute.push((doubler.x(),doubler.y()));
         while i < order {
             i *= 2;
             doubler = doubler.double().scale();
+            ecsimple_log_trace!("[{}] x 0x{:x} y 0x{:x}",precompute.len(), doubler.x(),doubler.y());
             precompute.push((doubler.x(),doubler.y()));
         }
         self.precompute = precompute;
@@ -892,6 +898,7 @@ impl PointJacobi {
             other = (&other) % ((&ordv) * 2);
         }
 
+        let _ = self._maybe_precompute();
         if self.precompute.len() > 0 {
             return self._mul_precompute(&other);
         }
