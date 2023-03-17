@@ -407,6 +407,10 @@ impl PointJacobi {
         }
     }
 
+    pub fn curve(&self) -> CurveFp {
+        return self.curve.clone();
+    }
+
     pub fn new(curve :&CurveFp, x :&BigInt, y :&BigInt, z :&BigInt,order :Option<BigInt>,generator :bool) -> Self {
         if order.is_none() {
             PointJacobi {

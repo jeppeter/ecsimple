@@ -11,6 +11,25 @@ use std::error::Error;
 
 ecsimple_error_class!{EcSimpleCurveError}
 
+#[derive(Clone,Debug)]
+pub struct ECCCurve {
+	pub generator :PointJacobi,
+	pub name :String,
+	pub order :BigInt,
+	pub curve :CurveFp,
+}
+
+impl ECCCurve {
+	pub fn new(name :&str,generator :&PointJacobi) -> ECCCurve {
+		ECCCurve {
+			generator : generator.clone(),
+			name : name.to_string(),
+			order : generator.order(),
+			curve :generator.curve(),
+		}
+	}
+}
+
 /*
 _p = int(remove_whitespace("DB7C 2ABF62E3 5E668076 BEAD208B"), 16)
 # s = 00F50B02 8E4D696E 67687561 51752904 72783FB1
@@ -41,8 +60,8 @@ generator_112r2 = ellipticcurve.PointJacobi(
 
 */
 
-fn create_jacobi() -> HashMap<String,PointJacobi> {
-	let mut retv :HashMap<String,PointJacobi> = HashMap::new();
+fn create_jacobi() -> HashMap<String,ECCCurve> {
+	let mut retv :HashMap<String,ECCCurve> = HashMap::new();
 	let mut p :BigInt;
 	let mut a :BigInt;
 	let mut b :BigInt;
@@ -73,7 +92,7 @@ fn create_jacobi() -> HashMap<String,PointJacobi> {
 	curve = CurveFp::new(&p,&a,&b,&h);
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),false);
 
-	retv.insert("SECP112r1".to_string(),japt.clone());
+	retv.insert("SECP112r1".to_string(),ECCCurve::new("SECP112r1",&japt));
 
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
@@ -95,20 +114,20 @@ fn create_jacobi() -> HashMap<String,PointJacobi> {
 	curve = CurveFp::new(&p,&a,&b,&h);
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),true);
 
-	retv.insert("SECP112r2".to_string(),japt.clone());
+	retv.insert("SECP112r2".to_string(),ECCCurve::new("SECP112r2",&japt));
 
 
 	retv
 }
 
 lazy_static ! {
-	static ref ECC_CURVES :HashMap<String,PointJacobi> = {
+	static ref ECC_CURVES :HashMap<String,ECCCurve> = {
 		create_jacobi()	
 	};
 
 }
 
-pub fn get_ecc_by_name(name :&str) -> Result<PointJacobi,Box<dyn Error>> {
+pub fn get_ecc_by_name(name :&str) -> Result<ECCCurve,Box<dyn Error>> {
 	match ECC_CURVES.get(name) {
 		Some(pv) => {
 			return Ok(pv.clone());
