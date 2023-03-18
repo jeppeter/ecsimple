@@ -46,3 +46,17 @@ pub fn leftmost_bit(x :&BigInt) -> BigInt {
     }
     return result / tv;
 }
+
+pub (crate) fn bit_length(num :BigInt) -> usize {
+    let mut retv : usize = 0;
+    let (_ , vecs) = num.to_bytes_be();
+    if vecs.len() > 0 {
+        let mut uv = vecs[0];
+        retv = (vecs.len() - 1) * 8;
+        while uv > 0 {
+            retv += 1;
+            uv >>= 1;
+        }
+    }
+    return retv;
+}
