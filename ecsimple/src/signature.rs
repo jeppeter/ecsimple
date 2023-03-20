@@ -1,5 +1,8 @@
-use num_bigint::{BigInt,Sign};
-use num_bigint::{BigUint};
+extern crate num_bigint_dig as bigint2;
+
+use bigint2::{BigInt,Sign};
+use num_bigint::BigUint as BaseBigUint;
+
 #[allow(unused_imports)]
 use asn1obj_codegen::{asn1_choice,asn1_obj_selector,asn1_sequence,asn1_int_choice};
 use asn1obj::complex::*;
@@ -45,7 +48,9 @@ impl ECCSignature {
 		let mut sigasn1 :Asn1ECCSignature = Asn1ECCSignature::init_asn1();
 		let mut sigelemasn1 :Asn1ECCSignatureElem = Asn1ECCSignatureElem::init_asn1();
 		let (_ , vecs) = self.r.to_bytes_be();
-		sigelemasn1.r.val = BigUint::from_bytes_be(&vecs);
+		sigelemasn1.r.val = BaseBigUint::from_bytes_be(&vecs);
+		let (_ , vecs) = self.s.to_bytes_be();
+		sigelemasn1.s.val = BaseBigUint::from_bytes_be(&vecs);
 		sigasn1.elem.val.push(sigelemasn1);
 		return sigasn1.encode_asn1();
 	}

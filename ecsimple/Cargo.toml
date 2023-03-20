@@ -17,15 +17,7 @@ rand = "^0.8.5"
 serde_json = "^1.0.42"
 asn1obj = { path = "../../asn1obj/asn1obj"}
 asn1obj_codegen = { path = "../../asn1obj/asn1obj_codegen"}
+num-bigint-dig = {version = "0.8.1", features = [    "i128",    "u64_digit",    "prime",    "zeroize"], default-features = false}
 
+num-bigint = "^0.4.3"
 
-[dependencies.num-bigint]
-version = "0.8.1"
-features = [
-    "i128",
-    "u64_digit",
-    "prime",
-    "zeroize",
-]
-default-features = false
-package = "num-bigint-dig"
