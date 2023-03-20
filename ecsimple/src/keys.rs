@@ -1,7 +1,7 @@
 extern crate num_bigint_dig as num_bigint2;
 
 use crate::*;
-use num_bigint2::{BigInt,Sign};
+use num_bigint::{BigInt,Sign};
 use crate::arithmetics::*;
 use crate::utils::*;
 use crate::jacobi::{PointJacobi,ECCPoint};

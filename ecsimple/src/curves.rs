@@ -5,7 +5,7 @@ use crate::jacobi::{PointJacobi,CurveFp};
 use crate::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use num_bigint2::{BigInt,Sign};
+use num_bigint::{BigInt,Sign};
 use num_traits::{one};
 
 use std::error::Error;

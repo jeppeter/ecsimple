@@ -1,6 +1,6 @@
 extern crate num_bigint_dig as num_bigint2;
 
-use num_bigint2::{BigInt};
+use num_bigint::{BigInt};
 use num_traits::{zero,one};
 
 pub fn mod_with_sign(a :&BigInt, m :&BigInt) -> BigInt {

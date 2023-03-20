@@ -1,6 +1,6 @@
 extern crate num_bigint_dig as bigint2;
 
-use bigint2::{BigInt,Sign};
+use num_bigint::{BigInt,Sign};
 use num_bigint::BigUint as BaseBigUint;
 
 #[allow(unused_imports)]
