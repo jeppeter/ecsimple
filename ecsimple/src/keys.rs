@@ -5,7 +5,9 @@ use crate::arithmetics::*;
 use crate::utils::*;
 use crate::jacobi::{PointJacobi,ECCPoint};
 use crate::curves::*;
+use crate::signature::*;
 use std::error::Error;
+use num_traits::{zero};
 //use rand::RngCore;
 
 ecsimple_error_class!{EccKeyError}
@@ -84,7 +86,34 @@ impl PrivateKey {
 			})
 	}
 
+	pub fn sign(&self, hashcode :&[u8], randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
+		let n :BigInt;
+		let mut G :PointJacobi = self.curve.generator.clone();
+		n = G.order();
+		let k :BigInt = randkey % (&n);
+		let ks :BigInt = &k + &n;
+		let kt :BigInt = &ks + &n;
+		let p1 :PointJacobi;
+		let r :BigInt;
+		let s :BigInt;
+		let hash :BigInt = BigInt::from_bytes_be(Sign::Plus,hashcode);
 
+		if bit_length(&ks) == bit_length(&n) {
+			p1 = G.mul_int(&kt);
+		} else {
+			p1 = G.mul_int(&ks);
+		}
+
+		r = p1.x() % (&n);
+		if r == zero() {
+			ecsimple_new_error!{EccKeyError,"randkey [{}] r zeroized", randkey}
+		}
+		s = inverse_mod(&k,&n) * (((&hash) + &(self.keynum) * &r) % (&n) ) ;
+		if s == zero() {
+			ecsimple_new_error!{EccKeyError,"randkey [{}] s zeroized", randkey}
+		}
+		Ok (ECCSignature::new(&r,&s))
+	}
 
 	pub fn get_public_key(&self) -> PublicKey {
 		PublicKey {
