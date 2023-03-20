@@ -32,11 +32,18 @@ pub struct PrivateKey {
 	curve :ECCCurve,
 	keynum :BigInt,
 	pubkey :PointJacobi,
+	fname :Option<String>,
 }
 
 impl PrivateKey {
 	pub fn generate(curve :&ECCCurve,fname :Option<String>) -> Result<Self,Box<dyn Error>> {
-		let mut rdops = RandOps::new(fname)?;
+		let mut bname :Option<String> = None;
+		let mut sname :Option<String> = None;
+		if fname.is_some() {
+			bname = Some(format!("{}",fname.as_ref().unwrap()));
+			sname = Some(format!("{}",fname.as_ref().unwrap()));
+		}
+		let mut rdops = RandOps::new(bname)?;
 		let bitlen :usize = bit_length(&curve.order);
 		let bs :usize = (bitlen + 7) / 8;
 		let vecs = rdops.get_bytes(bs)?;
@@ -47,6 +54,7 @@ impl PrivateKey {
 			curve : curve.clone(),
 			keynum : knum.clone(),
 			pubkey : pubkey,
+			fname : sname,
 		})
 	}
 
@@ -72,8 +80,11 @@ impl PrivateKey {
 				curve : curve.clone(),
 				keynum : secnum.clone(),
 				pubkey : pubkey,
+				fname : None,
 			})
 	}
+
+
 
 	pub fn get_public_key(&self) -> PublicKey {
 		PublicKey {
