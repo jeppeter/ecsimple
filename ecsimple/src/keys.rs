@@ -3,7 +3,7 @@ use crate::*;
 use num_bigint::{BigInt,Sign};
 use crate::arithmetics::*;
 use crate::utils::*;
-use crate::jacobi::PointJacobi;
+use crate::jacobi::{PointJacobi,ECCPoint};
 use crate::curves::*;
 use std::error::Error;
 //use rand::RngCore;
@@ -13,12 +13,23 @@ ecsimple_error_class!{EccKeyError}
 
 #[derive(Clone)]
 pub struct PublicKey {
+	curve :ECCCurve,
 	pubkey :PointJacobi,
+}
+
+impl PublicKey {
+	pub fn new(curve :&ECCCurve, pt :&ECCPoint) -> Result<Self,Box<dyn Error>> {
+		Ok(PublicKey {
+			curve :curve.clone(),
+			pubkey : PointJacobi::from_affine(pt,false),
+		})
+	}
 }
 
 
 #[derive(Clone)]
 pub struct PrivateKey {
+	curve :ECCCurve,
 	keynum :BigInt,
 	pubkey :PointJacobi,
 }
@@ -33,6 +44,7 @@ impl PrivateKey {
 		let mut bptr :PointJacobi = curve.generator.clone();
 		let pubkey :PointJacobi = bptr.mul_int(&knum);
 		Ok(PrivateKey {
+			curve : curve.clone(),
 			keynum : knum.clone(),
 			pubkey : pubkey,
 		})
@@ -57,6 +69,7 @@ impl PrivateKey {
 		let mut gen :PointJacobi = curve.generator.clone();
 		let pubkey :PointJacobi = gen.mul_int(&secnum);
 		Ok (PrivateKey {
+				curve : curve.clone(),
 				keynum : secnum.clone(),
 				pubkey : pubkey,
 			})
@@ -64,6 +77,7 @@ impl PrivateKey {
 
 	pub fn get_public_key(&self) -> PublicKey {
 		PublicKey {
+			curve : self.curve.clone(),
 			pubkey : self.pubkey.clone(),
 		}
 	}
