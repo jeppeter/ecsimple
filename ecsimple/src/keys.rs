@@ -7,7 +7,7 @@ use crate::jacobi::{PointJacobi,ECCPoint};
 use crate::curves::*;
 use crate::signature::*;
 use std::error::Error;
-use num_traits::{zero};
+use num_traits::{zero,one};
 //use rand::RngCore;
 
 ecsimple_error_class!{EccKeyError}
@@ -19,12 +19,41 @@ pub struct PublicKey {
 	pubkey :PointJacobi,
 }
 
+#[allow(non_snake_case)]
 impl PublicKey {
 	pub fn new(curve :&ECCCurve, pt :&ECCPoint) -> Result<Self,Box<dyn Error>> {
 		Ok(PublicKey {
 			curve :curve.clone(),
 			pubkey : PointJacobi::from_affine(pt,false),
 		})
+	}
+
+	pub fn verify(&self,hashcode :&[u8],sig :&ECCSignature) -> bool {
+		let mut G :PointJacobi = self.curve.generator.clone();
+		let n :BigInt = G.order();
+		let r :BigInt = sig.r.clone();
+		let s :BigInt = sig.s.clone();
+		let hash :BigInt = BigInt::from_bytes_be(Sign::Plus,hashcode);
+		let mut pubkey :PointJacobi = self.pubkey.clone();
+
+		if r < one() || r >= n {
+			return false;
+		}
+
+		if s < one() || s >= n {
+			return false;
+		}
+		let c :BigInt = inverse_mod(&s,&n);
+		let u1 :BigInt = ((&hash) * (&c)) % (&n);
+		let u2 :BigInt = ((&r) * (&c)) % (&n);
+		let u1g :PointJacobi = G.mul_int(&u1);
+		let u2g :PointJacobi = pubkey.mul_int(&u2);
+		let xy :PointJacobi = u1g.add_jacobi(&u2g);
+		let v :BigInt = xy.x() % (&n);
+		if v == r {
+			return true;
+		}
+		return false;
 	}
 }
 
@@ -34,16 +63,14 @@ pub struct PrivateKey {
 	curve :ECCCurve,
 	keynum :BigInt,
 	pubkey :PointJacobi,
-	fname :Option<String>,
 }
 
+#[allow(non_snake_case)]
 impl PrivateKey {
 	pub fn generate(curve :&ECCCurve,fname :Option<String>) -> Result<Self,Box<dyn Error>> {
 		let mut bname :Option<String> = None;
-		let mut sname :Option<String> = None;
 		if fname.is_some() {
 			bname = Some(format!("{}",fname.as_ref().unwrap()));
-			sname = Some(format!("{}",fname.as_ref().unwrap()));
 		}
 		let mut rdops = RandOps::new(bname)?;
 		let bitlen :usize = bit_length(&curve.order);
@@ -56,7 +83,6 @@ impl PrivateKey {
 			curve : curve.clone(),
 			keynum : knum.clone(),
 			pubkey : pubkey,
-			fname : sname,
 		})
 	}
 
@@ -82,7 +108,6 @@ impl PrivateKey {
 				curve : curve.clone(),
 				keynum : secnum.clone(),
 				pubkey : pubkey,
-				fname : None,
 			})
 	}
 

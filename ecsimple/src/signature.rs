@@ -1,8 +1,8 @@
-use num_bigint::{BigInt,Sign};
-use std::error::Error;
+use num_bigint::{BigInt};
+//use std::error::Error;
 //use rand::RngCore;
 
-ecsimple_error_class!{EccSignatureError}
+//ecsimple_error_class!{EccSignatureError}
 
 
 #[derive(Clone)]
