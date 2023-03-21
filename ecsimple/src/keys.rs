@@ -1,4 +1,3 @@
-extern crate num_bigint_dig as num_bigint2;
 
 use crate::*;
 use num_bigint::{BigInt,Sign};
@@ -10,15 +9,26 @@ use crate::signature::*;
 use std::error::Error;
 use num_traits::{zero,one};
 use crate::logger::*;
+
 //use rand::RngCore;
+
+#[allow(unused_imports)]
+use asn1obj_codegen::{asn1_choice,asn1_obj_selector,asn1_sequence,asn1_int_choice};
+use asn1obj::complex::*;
+use asn1obj::strop::*;
+use asn1obj::base::*;
+use asn1obj::*;
+use asn1obj::asn1impl::*;
+use std::io::Write;
+
 
 ecsimple_error_class!{EccKeyError}
 
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct PublicKey {
-	curve :ECCCurve,
-	pubkey :PointJacobi,
+	pub curve :ECCCurve,
+	pub pubkey :PointJacobi,
 }
 
 #[allow(non_snake_case)]
@@ -27,6 +37,38 @@ impl PublicKey {
 		Ok(PublicKey {
 			curve :curve.clone(),
 			pubkey : PointJacobi::from_affine(pt,false),
+		})
+	}
+
+	fn _to_der_compressed(&self) -> Result<Vec<u8>,Box<dyn Error>> {
+		Ok(Vec::new())
+	}
+
+	fn _to_der_uncompressed(&self) -> Result<Vec<u8>,Box<dyn Error>> {
+		Ok(Vec::new())
+	}
+
+	fn _to_der_hybrid(&self) -> Result<Vec<u8>,Box<dyn Error>> {
+		Ok(Vec::new())
+	}
+
+	pub fn to_der(&self,types :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		if types == "compressed" {
+			return self._to_der_compressed();
+		} else if types == "uncompressed" {
+			return self._to_der_uncompressed();
+		} else if types == "hybrid" {
+			return self._to_der_hybrid();
+		} 
+		ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}		
+	}
+
+	pub fn from_der(v8 :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let mut curveb :ECCCurve = get_ecc_by_name("SECP112r1")?;
+		let ov :BigInt = one();
+		Ok(PublicKey {
+			curve : curveb.clone(),
+			pubkey : curveb.generator.mul_int(&ov),
 		})
 	}
 
@@ -107,10 +149,10 @@ impl PrivateKey {
 		let mut gen :PointJacobi = curve.generator.clone();
 		let pubkey :PointJacobi = gen.mul_int(&secnum);
 		Ok (PrivateKey {
-				curve : curve.clone(),
-				keynum : secnum.clone(),
-				pubkey : pubkey,
-			})
+			curve : curve.clone(),
+			keynum : secnum.clone(),
+			pubkey : pubkey,
+		})
 	}
 
 	pub fn sign(&self, hashcode :&[u8], randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {

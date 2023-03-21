@@ -116,8 +116,6 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),true);
 
 	retv.insert("SECP112r2".to_string(),ECCCurve::new("SECP112r2",&japt));
-
-
 	retv
 }
 
