@@ -138,25 +138,43 @@ impl PublicKey {
 		})
 	}
 
-	fn _to_der_compressed(&self) -> Result<Vec<u8>,Box<dyn Error>> {
-		Ok(Vec::new())
+	fn _to_der_compressed(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut retv :Vec<u8> = Vec::new();
+		let zv :BigInt = zero();
+		if (y & 1) != 0 {
+			
+		}
+
+		Ok(retv)
 	}
 
-	fn _to_der_uncompressed(&self) -> Result<Vec<u8>,Box<dyn Error>> {
-		Ok(Vec::new())
+	fn _to_der_uncompressed(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut retv :Vec<u8> = Vec::new();
+		retv.push(0x4);
+		let (_,vecs) = x.to_bytes_be();
+		retv.extend(vecs);
+		let (_,vecs) = y.to_bytes_be();
+		retv.extend(vecs);
+		Ok(retv)
 	}
 
-	fn _to_der_hybrid(&self) -> Result<Vec<u8>,Box<dyn Error>> {
+	fn _to_der_hybrid(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
 		Ok(Vec::new())
 	}
 
 	pub fn to_der(&self,types :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut curveasn1 :ECPublicKeyChoice = ECPublicKeyChoice::init_asn1();
+		let mut curveelem :ECPublicKeyChoiceElem = ECPublicKeyChoiceElem::init_asn1();
+		let x :BigInt = self.pubkey.x();
+		let y :BigInt = self.pubkey.y();
+		let mut bitdata :Asn1BitData = Asn1BitData::init_asn1();
+
 		if types == "compressed" {
-			return self._to_der_compressed();
+			bitdata.data =  self._to_der_compressed(&x,&y)?;
 		} else if types == "uncompressed" {
-			return self._to_der_uncompressed();
+			bitdata.data =  self._to_der_uncompressed(&x,&y)?;
 		} else if types == "hybrid" {
-			return self._to_der_hybrid();
+			bitdata.data = self._to_der_hybrid(&x,&y)?;
 		} 
 		ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}		
 	}

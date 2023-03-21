@@ -12,6 +12,13 @@ use std::error::Error;
 
 ecsimple_error_class!{EcSimpleCurveError}
 
+const SECP112r1_NAME :&str = "SECP112r1";
+const SECP112r2_NAME :&str = "SECP112r2";
+
+
+const SECP112r1_OID :&str = "1.3.132.0.6";
+const SECP112r2_OID :&str = "1.3.132.0.6";
+
 #[derive(Clone,Debug)]
 pub struct ECCCurve {
 	pub generator :PointJacobi,
@@ -93,7 +100,7 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 	curve = CurveFp::new(&p,&a,&b,&h);
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),false);
 
-	retv.insert("SECP112r1".to_string(),ECCCurve::new("SECP112r1",&japt));
+	retv.insert(SECP112r1_NAME.to_string(),ECCCurve::new(SECP112r1_NAME,&japt));
 
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
@@ -115,7 +122,15 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 	curve = CurveFp::new(&p,&a,&b,&h);
 	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),true);
 
-	retv.insert("SECP112r2".to_string(),ECCCurve::new("SECP112r2",&japt));
+	retv.insert(SECP112r2_NAME.to_string(),ECCCurve::new(SECP112r2_NAME,&japt));
+	retv
+}
+
+fn create_curve_oid() -> HashMap<String,String> {
+	let mut retv :HashMap<String,String> = HashMap::new();
+	retv.insert(SECP112r1_NAME.to_string(),SECP112r1_OID.to_string());
+	retv.insert(SECP112r2_NAME.to_string(),SECP112r2_OID.to_string());
+
 	retv
 }
 
@@ -124,6 +139,9 @@ lazy_static ! {
 		create_jacobi()	
 	};
 
+	static ref ECC_CURVE_OIDS :HashMap<String,String> = {
+		create_curve_oid()
+	};
 }
 
 pub fn get_ecc_by_name(name :&str) -> Result<ECCCurve,Box<dyn Error>> {
@@ -133,6 +151,17 @@ pub fn get_ecc_by_name(name :&str) -> Result<ECCCurve,Box<dyn Error>> {
 		},
 		_ => {
 			ecsimple_new_error!{EcSimpleCurveError,"can not find [{}]",name}
+		}
+	}
+}
+
+pub fn get_oid_by_name(name :&str) -> Result<String,Box<dyn Error>> {
+	match ECC_CURVE_OIDS.get(name) {
+		Some(pv) => {
+			return Ok(format!("{}",pv));
+		}
+		_ => {
+			ecsimple_new_error!{EcSimpleCurveError,"can not find [{}]", name}
 		}
 	}
 }
