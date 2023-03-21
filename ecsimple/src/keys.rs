@@ -24,6 +24,99 @@ use std::io::Write;
 
 ecsimple_error_class!{EccKeyError}
 
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyObjElem {
+	pub types :Asn1Object,
+	pub ectypes :Asn1Object,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyObj {
+	pub elem :Asn1Seq<ECPublicKeyObjElem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAbbrevElem {
+	pub types :ECPublicKeyObj,
+	pub coords :Asn1BitData,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAbbrev {
+	pub elem :Asn1Seq<ECPublicKeyAbbrevElem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyFieldIDElem {
+	pub types :Asn1Object,
+	pub primenum :Asn1BigNum,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyFieldID {
+	pub elem :Asn1Seq<ECPublicKeyFieldIDElem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyCurveElem {
+	pub a :Asn1BigNum,
+	pub b :Asn1BigNum,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyCurve {
+	pub elem :Asn1Seq<ECPublicKeyCurveElem>,
+}
+
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyParamsElem {
+	pub version :Asn1Integer,
+	pub fieldid :ECPublicKeyFieldID,
+	pub curve :ECPublicKeyCurve,
+	pub basecoords :Asn1OctData,
+	pub order :Asn1BigNum,
+	pub cofactor :Asn1BigNum,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyParams {
+	pub elem :Asn1Seq<ECPublicKeyParamsElem>,
+}
+
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyTotalElem {
+	pub types :Asn1Object,
+	pub ecparams :ECPublicKeyParams,
+	pub coords :Asn1BitData,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyTotal {
+	pub elem :Asn1Seq<ECPublicKeyTotalElem>,
+}
+
+#[derive(Clone)]
+#[asn1_int_choice(selector=typei,abbrev=1,total=2)]
+pub struct ECPublicKeyChoice {
+	pub typei :i32,
+	pub abbrev :ECPublicKeyAbbrev,
+	pub total :ECPublicKeyTotal,
+}
+
 
 #[derive(Clone,Debug)]
 pub struct PublicKey {

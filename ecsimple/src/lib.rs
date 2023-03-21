@@ -10,4 +10,3 @@ pub mod jacobi;
 pub mod curves;
 pub mod signature;
 pub mod keys;
-pub mod ecdsa;
