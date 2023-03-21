@@ -9,6 +9,7 @@ use crate::curves::*;
 use crate::signature::*;
 use std::error::Error;
 use num_traits::{zero,one};
+use crate::logger::*;
 //use rand::RngCore;
 
 ecsimple_error_class!{EccKeyError}
@@ -134,10 +135,11 @@ impl PrivateKey {
 		if r == zero() {
 			ecsimple_new_error!{EccKeyError,"randkey [{}] r zeroized", randkey}
 		}
-		s = inverse_mod(&k,&n) * (((&hash) + &(self.keynum) * &r) % (&n) ) ;
+		s = (inverse_mod(&k,&n) * (((&hash) + &(self.keynum) * &r) % (&n) ) ) % (&n);
 		if s == zero() {
 			ecsimple_new_error!{EccKeyError,"randkey [{}] s zeroized", randkey}
 		}
+		ecsimple_log_trace!("r 0x{:x} s 0x{:x}",r, s);
 		Ok (ECCSignature::new(&r,&s))
 	}
 
