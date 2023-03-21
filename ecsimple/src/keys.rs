@@ -141,9 +141,14 @@ impl PublicKey {
 	fn _to_der_compressed(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
 		let zv :BigInt = zero();
-		if (y & 1) != 0 {
-			
+		let ov :BigInt = one();
+		if (y & &ov) != zv {
+			retv.push(0x3);
+		} else {
+			retv.push(0x2);
 		}
+		let (_,vecs) = x.to_bytes_be();
+		retv.extend(vecs);
 
 		Ok(retv)
 	}
@@ -159,7 +164,19 @@ impl PublicKey {
 	}
 
 	fn _to_der_hybrid(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
-		Ok(Vec::new())
+		let mut retv :Vec<u8> = Vec::new();
+		let zv :BigInt = zero();
+		let ov :BigInt = one();
+		if (y & &ov) != zv {
+			retv.push(0x7);
+		} else {
+			retv.push(0x6);
+		}
+		let vecs = self._to_der_uncompressed(x,y)?;
+		retv.extend(vecs);
+
+		Ok(retv)
+		
 	}
 
 	pub fn to_der(&self,types :&str) -> Result<Vec<u8>,Box<dyn Error>> {
