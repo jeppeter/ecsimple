@@ -111,12 +111,17 @@ pub struct ECPublicKeyTotal {
 
 #[derive(Clone)]
 #[asn1_int_choice(selector=typei,abbrev=1,total=2)]
-pub struct ECPublicKeyChoice {
+pub struct ECPublicKeyChoiceElem {
 	pub typei :i32,
 	pub abbrev :ECPublicKeyAbbrev,
 	pub total :ECPublicKeyTotal,
 }
 
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyChoice {
+	pub elem :Asn1Seq<ECPublicKeyChoiceElem>,
+}
 
 #[derive(Clone,Debug)]
 pub struct PublicKey {
