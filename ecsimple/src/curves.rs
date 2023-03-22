@@ -3,6 +3,7 @@ extern crate num_bigint_dig as num_bigint2;
 use hex::FromHex;
 use crate::jacobi::{PointJacobi,CurveFp};
 use crate::*;
+use crate::consts::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use num_bigint::{BigInt,Sign};
@@ -11,16 +12,6 @@ use num_traits::{one};
 use std::error::Error;
 
 ecsimple_error_class!{EcSimpleCurveError}
-
-const SECP112r1_NAME :&str = "SECP112r1";
-const SECP112r2_NAME :&str = "SECP112r2";
-
-
-const SECP112r1_OID :&str = "1.3.132.0.6";
-const SECP112r2_OID :&str = "1.3.132.0.6";
-
-pub (crate) const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
-pub (crate) const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
 
 #[derive(Clone,Debug)]
 pub struct ECCCurve {
