@@ -139,6 +139,68 @@ impl PublicKey {
 		})
 	}
 
+	fn _from_der_x_y_uncompressed(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+		Ok((zero(),zero()))
+	}
+
+	fn _from_der_x_y_hybrid(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+		Ok((zero(),zero()))
+	}
+
+
+	fn _from_der_x_y_compressed(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+		Ok((zero(),zero()))
+	}
+
+	fn _from_der_x_y(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+		if data.len() < 1 {
+			ecsimple_new_error!{EccKeyError,"data len [{}] < 1" , data.len()}
+		}
+		if data[0] == 0x4 {
+			return self._from_der_x_y_uncompressed(data);
+		} else if data[0] == 0x2 || data[0] == 0x3 {
+			return self._from_der_x_y_compressed(data);
+		} else if data[0] == 0x7 || data[0] == 0x6 {
+			return self._from_der_x_y_hybrid(data);
+		}
+		ecsimple_new_error!{EccKeyError,"not supported type [0x{:x}]", data[0]}
+	}
+
+	pub fn from_der(buf :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let mut curveasn1 :ECPublicKeyChoice = ECPublicKeyChoice::init_asn1();
+		let _ = curveasn1.decode_asn1(buf)?;
+		let curveelem :ECPublicKeyChoiceElem;
+		if curveasn1.elem.val.len() != 1 {
+			ecsimple_new_error!{EccKeyError,"not element [{}] != 1" , curveasn1.elem.val.len()}
+		}
+		let mut curve :ECCCurve;
+		let mut pubkey :PointJacobi;
+		curveelem = curveasn1.elem.val[0].clone();
+		if curveelem.typei == 1 {
+			let abbrevelem :ECPublicKeyAbbrevElem ;
+			let objelem :ECPublicKeyObjElem;
+			if curveelem.abbrev.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"not abbrev [{}] != 1" , curveelem.abbrev.elem.val.len()}
+			}
+			abbrevelem = curveelem.abbrev.elem.val[0].clone();
+			if abbrevelem.types.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"not abbrev [{}] != 1" , abbrevelem.types.elem.val.len()}	
+			}
+			objelem = abbrevelem.types.elem.val[0].clone();
+
+			let oids = objelem.types.get_value();
+			let types = get_ecc_name_by_oid(&oids)?;
+			curve = get_ecc_curve_by_name(&types)?;			
+		} else {
+
+		}
+
+		Ok(PublicKey {
+			curve : get_ecc_curve_by_name(SECP112r1_NAME)?,
+			pubkey : PointJacobi::infinity(),
+		})
+	}
+
 	fn _to_der_compressed(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
 		let zv :BigInt = zero();
