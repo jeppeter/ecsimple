@@ -19,6 +19,8 @@ const SECP112r2_NAME :&str = "SECP112r2";
 const SECP112r1_OID :&str = "1.3.132.0.6";
 const SECP112r2_OID :&str = "1.3.132.0.6";
 
+pub (crate) const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
+
 #[derive(Clone,Debug)]
 pub struct ECCCurve {
 	pub generator :PointJacobi,
@@ -134,6 +136,14 @@ fn create_curve_oid() -> HashMap<String,String> {
 	retv
 }
 
+fn create_curve_name() -> HashMap<String,String> {
+	let mut retv :HashMap<String,String> = HashMap::new();
+	retv.insert(SECP112r1_OID.to_string(),SECP112r1_NAME.to_string());
+	retv.insert(SECP112r2_OID.to_string(),SECP112r2_NAME.to_string());
+
+	retv
+}
+
 lazy_static ! {
 	static ref ECC_CURVES :HashMap<String,ECCCurve> = {
 		create_jacobi()	
@@ -142,9 +152,13 @@ lazy_static ! {
 	static ref ECC_CURVE_OIDS :HashMap<String,String> = {
 		create_curve_oid()
 	};
+
+	static ref ECC_CURVE_NAMES :HashMap<String,String> = {
+		create_curve_name()
+	};
 }
 
-pub fn get_ecc_by_name(name :&str) -> Result<ECCCurve,Box<dyn Error>> {
+pub fn get_ecc_curve_by_name(name :&str) -> Result<ECCCurve,Box<dyn Error>> {
 	match ECC_CURVES.get(name) {
 		Some(pv) => {
 			return Ok(pv.clone());
@@ -155,13 +169,24 @@ pub fn get_ecc_by_name(name :&str) -> Result<ECCCurve,Box<dyn Error>> {
 	}
 }
 
-pub fn get_oid_by_name(name :&str) -> Result<String,Box<dyn Error>> {
+pub fn get_ecc_oid_by_name(name :&str) -> Result<String,Box<dyn Error>> {
 	match ECC_CURVE_OIDS.get(name) {
 		Some(pv) => {
 			return Ok(format!("{}",pv));
 		}
 		_ => {
 			ecsimple_new_error!{EcSimpleCurveError,"can not find [{}]", name}
+		}
+	}
+}
+
+pub fn get_ecc_name_by_oid(oid :&str) -> Result<String,Box<dyn Error>> {
+	match ECC_CURVE_NAMES.get(oid) {
+		Some(pv) => {
+			return Ok(format!("{}",pv));
+		}
+		_ => {
+			ecsimple_new_error!{EcSimpleCurveError,"can not find [{}]", oid}
 		}
 	}
 }

@@ -185,6 +185,21 @@ impl PublicKey {
 		let x :BigInt = self.pubkey.x();
 		let y :BigInt = self.pubkey.y();
 		let mut bitdata :Asn1BitData = Asn1BitData::init_asn1();
+		let oid :String;
+
+		let typeec :String = format!("{}",self.curve.name);
+		if typeec.len() != 0 {
+			oid = get_ecc_oid_by_name(&typeec)?;
+			curveelem.typei = 1;
+			let mut abbrevelem :ECPublicKeyAbbrevElem = ECPublicKeyAbbrevElem::init_asn1();
+			let mut objelem :ECPublicKeyObjElem = ECPublicKeyObjElem::init_asn1();
+			let _ = objelem.types.set_value(EC_PUBLIC_KEY_OID)?;
+			let _ = objelem.ectypes.set_value(&typeec)?;
+			abbrevelem.types.elem.val.push(objelem);
+			curveelem.abbrev.elem.val.push(abbrevelem);
+		} else {
+			/*now to give */
+		}
 
 		if types == "compressed" {
 			bitdata.data =  self._to_der_compressed(&x,&y)?;
@@ -196,14 +211,6 @@ impl PublicKey {
 		ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}		
 	}
 
-	pub fn from_der(v8 :&[u8]) -> Result<Self,Box<dyn Error>> {
-		let mut curveb :ECCCurve = get_ecc_by_name("SECP112r1")?;
-		let ov :BigInt = one();
-		Ok(PublicKey {
-			curve : curveb.clone(),
-			pubkey : curveb.generator.mul_int(&ov),
-		})
-	}
 
 	pub fn verify(&self,hashcode :&[u8],sig :&ECCSignature) -> bool {
 		let mut G :PointJacobi = self.curve.generator.clone();
