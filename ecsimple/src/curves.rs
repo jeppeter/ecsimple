@@ -20,6 +20,7 @@ const SECP112r1_OID :&str = "1.3.132.0.6";
 const SECP112r2_OID :&str = "1.3.132.0.6";
 
 pub (crate) const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
+pub (crate) const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
 
 #[derive(Clone,Debug)]
 pub struct ECCCurve {

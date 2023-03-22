@@ -1,6 +1,6 @@
 
 use crate::*;
-use num_bigint::{BigInt,Sign};
+use num_bigint::{BigInt,Sign,BigUint};
 use crate::arithmetics::*;
 use crate::utils::*;
 use crate::jacobi::{PointJacobi,ECCPoint};
@@ -175,16 +175,23 @@ impl PublicKey {
 		let vecs = self._to_der_uncompressed(x,y)?;
 		retv.extend(vecs);
 
-		Ok(retv)
-		
+		Ok(retv)		
+	}
+
+	fn _to_der_x_y(&self,types :&str,x :&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+		if types == "compressed" {
+			return  self._to_der_compressed(&x,&y);
+		} else if types == "uncompressed" {
+			return  self._to_der_uncompressed(&x,&y);
+		} else if types == "hybrid" {
+			return self._to_der_hybrid(&x,&y);
+		} 
+		ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}
 	}
 
 	pub fn to_der(&self,types :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut curveasn1 :ECPublicKeyChoice = ECPublicKeyChoice::init_asn1();
 		let mut curveelem :ECPublicKeyChoiceElem = ECPublicKeyChoiceElem::init_asn1();
-		let x :BigInt = self.pubkey.x();
-		let y :BigInt = self.pubkey.y();
-		let mut bitdata :Asn1BitData = Asn1BitData::init_asn1();
 		let oid :String;
 
 		let typeec :String = format!("{}",self.curve.name);
@@ -199,16 +206,28 @@ impl PublicKey {
 			curveelem.abbrev.elem.val.push(abbrevelem);
 		} else {
 			/*now to give */
+			let mut totalelem :ECPublicKeyTotalElem = ECPublicKeyTotalElem::init_asn1();
+			let mut ecparams :ECPublicKeyParamsElem = ECPublicKeyParamsElem::init_asn1();
+			let mut fieldid :ECPublicKeyFieldIDElem = ECPublicKeyFieldIDElem::init_asn1();
+			let mut pubk :ECPublicKeyCurveElem = ECPublicKeyCurveElem::init_asn1();
+			let _ = totalelem.types.set_value(EC_PUBLIC_KEY_OID)?;
+			curveelem.typei = 2;
+			ecparams.version.val = 1;
+			let _ = fieldid.types.set_value(ID_PRIME_FIELD_OID)?;
+			let (_ ,vecs) = self.curve.order.to_bytes_be();
+			fieldid.primenum.val = BigUint::from_bytes_be(&vecs);
+			ecparams.fieldid.elem.val.push(fieldid);
+			let (_, vecs) = self.curve.curve.a().to_bytes_be();
+			pubk.a.val = BigUint::from_bytes_be(&vecs);
+			let (_, vecs) = self.curve.curve.b().to_bytes_be();
+			pubk.b.val = BigUint::from_bytes_be(&vecs);
+			ecparams.curve.elem.val.push(pubk);
+			let vecs = self._to_der_x_y(types,&(self.curve.generator.x()),&(self.curve.generator.y()))?;
+			ecparams.basecoords.data = vecs.clone();
 		}
 
-		if types == "compressed" {
-			bitdata.data =  self._to_der_compressed(&x,&y)?;
-		} else if types == "uncompressed" {
-			bitdata.data =  self._to_der_uncompressed(&x,&y)?;
-		} else if types == "hybrid" {
-			bitdata.data = self._to_der_hybrid(&x,&y)?;
-		} 
-		ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}		
+		Ok(Vec::new())
+
 	}
 
 
