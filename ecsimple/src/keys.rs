@@ -25,24 +25,12 @@ use std::io::Write;
 
 ecsimple_error_class!{EccKeyError}
 
-#[derive(Clone)]
-#[asn1_sequence()]
-pub struct ECPublicKeyObjElem {
-	pub types :Asn1Object,
-	pub ectypes :Asn1Object,
-}
-
-#[derive(Clone)]
-#[asn1_sequence()]
-pub struct ECPublicKeyObj {
-	pub elem :Asn1Seq<ECPublicKeyObjElem>,
-}
 
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct ECPublicKeyAbbrevElem {
-	pub types :ECPublicKeyObj,
-	pub coords :Asn1BitData,
+	pub types :Asn1Object,
+	pub ectypes :Asn1Object,
 }
 
 #[derive(Clone)]
@@ -67,8 +55,8 @@ pub struct ECPublicKeyFieldID {
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct ECPublicKeyCurveElem {
-	pub a :Asn1BigNum,
-	pub b :Asn1BigNum,
+	pub a :Asn1OctData,
+	pub b :Asn1OctData,
 }
 
 #[derive(Clone)]
@@ -101,7 +89,6 @@ pub struct ECPublicKeyParams {
 pub struct ECPublicKeyTotalElem {
 	pub types :Asn1Object,
 	pub ecparams :ECPublicKeyParams,
-	pub coords :Asn1BitData,
 }
 
 #[derive(Clone)]
@@ -118,10 +105,18 @@ pub struct ECPublicKeyChoiceElem {
 	pub total :ECPublicKeyTotal,
 }
 
+
 #[derive(Clone)]
 #[asn1_sequence()]
-pub struct ECPublicKeyChoice {
-	pub elem :Asn1Seq<ECPublicKeyChoiceElem>,
+pub struct ECPublicKeyAsn1Elem {
+	pub params :ECPublicKeyChoiceElem,
+	pub coords :Asn1BitData,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAsn1 {
+	pub elem :Asn1Seq<ECPublicKeyAsn1Elem>,
 }
 
 #[derive(Clone,Debug)]
@@ -166,7 +161,6 @@ impl PublicKey {
 			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
 		}
 
-
 		let midlen :usize = (data.len() -1 ) / 2;
 		let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
 		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
@@ -203,9 +197,10 @@ impl PublicKey {
 		y = square_root_mod_prime(&y2,&p)?;
 
 
-		if data[0] == 0x3 && ((&y) & (&tv)) != ov {
+		ecsimple_log_trace!(" data[0] 0x{:x} x 0x{:x} y 0x{:x}", data[0],x,y);
+		if data[0] == 0x3 && (((&y) % (&tv)) != ov ){
 			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
-		} else if data[0] == 0x2 && ((&y) & (&tv)) == ov {
+		} else if data[0] == 0x2 && (((&y) % (&tv)) == ov ) {
 			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
 		}
 
@@ -227,31 +222,28 @@ impl PublicKey {
 	}
 
 	pub fn from_der(buf :&[u8]) -> Result<Self,Box<dyn Error>> {
-		let mut curveasn1 :ECPublicKeyChoice = ECPublicKeyChoice::init_asn1();
-		let _ = curveasn1.decode_asn1(buf)?;
+		let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+		let _ = pubkasn1.decode_asn1(buf)?;
 		let curveelem :ECPublicKeyChoiceElem;
 		let mut pubk :PointJacobi;
-		if curveasn1.elem.val.len() != 1 {
-			ecsimple_new_error!{EccKeyError,"not element [{}] != 1" , curveasn1.elem.val.len()}
+		if pubkasn1.elem.val.len() != 1 {
+			ecsimple_new_error!{EccKeyError,"not pubkasn1 [{}] != 1" , pubkasn1.elem.val.len()}
 		}
+		let pubkelem = pubkasn1.elem.val[0].clone();
+
 		let curve :ECCCurve;
-		curveelem = curveasn1.elem.val[0].clone();
+		curveelem = pubkelem.params.clone();
 		if curveelem.typei == 1 {
 			let abbrevelem :ECPublicKeyAbbrevElem ;
-			let objelem :ECPublicKeyObjElem;
 			if curveelem.abbrev.elem.val.len() != 1 {
 				ecsimple_new_error!{EccKeyError,"not abbrev [{}] != 1" , curveelem.abbrev.elem.val.len()}
 			}
 			abbrevelem = curveelem.abbrev.elem.val[0].clone();
-			if abbrevelem.types.elem.val.len() != 1 {
-				ecsimple_new_error!{EccKeyError,"not abbrev [{}] != 1" , abbrevelem.types.elem.val.len()}	
-			}
-			objelem = abbrevelem.types.elem.val[0].clone();
 
-			let oids = objelem.types.get_value();
+			let oids = abbrevelem.ectypes.get_value();
 			let types = get_ecc_name_by_oid(&oids)?;
 			curve = get_ecc_curve_by_name(&types)?;
-			let (x,y) = Self::_from_der_x_y(&(curve.curve),&abbrevelem.coords.data)?;
+			let (x,y) = Self::_from_der_x_y(&(curve.curve),&pubkelem.coords.data)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
 		} else {
@@ -288,9 +280,9 @@ impl PublicKey {
 				ecsimple_new_error!{EccKeyError,"curve  [{}] != 1" , ecparams.curve.elem.val.len()}
 			}
 			curveparamelem = ecparams.curve.elem.val[0].clone();
-			let vecs :Vec<u8> = curveparamelem.a.val.to_bytes_be();
+			let vecs :Vec<u8> = curveparamelem.a.data.clone();
 			let a :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
-			let vecs :Vec<u8> = curveparamelem.b.val.to_bytes_be();
+			let vecs :Vec<u8> = curveparamelem.b.data.clone();
 			let b :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
 			let vecs :Vec<u8> = ecparams.order.val.to_bytes_be();
 			let order :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
@@ -301,7 +293,7 @@ impl PublicKey {
 			let oo :Option<BigInt> = Some(order.clone());
 			let njacobi :PointJacobi = PointJacobi::new(&ncurve,&x,&y,&cofactor,oo,false);
 			 curve = ECCCurve::new("",&njacobi);
-			let (x,y) = Self::_from_der_x_y(&ncurve,&totalelem.coords.data)?;
+			let (x,y) = Self::_from_der_x_y(&ncurve,&pubkelem.coords.data)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
 		}
@@ -316,6 +308,7 @@ impl PublicKey {
 		let mut retv :Vec<u8> = Vec::new();
 		let zv :BigInt = zero();
 		let ov :BigInt = one();
+		ecsimple_log_trace!("x 0x{:x} y 0x{:x}", x,y);
 		if (y & &ov) != zv {
 			retv.push(0x3);
 		} else {
@@ -364,22 +357,21 @@ impl PublicKey {
 	}
 
 	pub fn to_der(&self,types :&str,paramstype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut curveasn1 :ECPublicKeyChoice = ECPublicKeyChoice::init_asn1();
 		let mut curveelem :ECPublicKeyChoiceElem = ECPublicKeyChoiceElem::init_asn1();
+		let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
+		let mut pubkasn1  :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+		let coordvecs :Vec<u8>;
 		let oid :String;
 		let typeec :String = format!("{}",self.curve.name);
 		if typeec.len() != 0 && paramstype != EC_PARAMS_EXLICIT {
 			oid = get_ecc_oid_by_name(&typeec)?;
 			curveelem.typei = 1;
 			let mut abbrevelem :ECPublicKeyAbbrevElem = ECPublicKeyAbbrevElem::init_asn1();
-			let mut objelem :ECPublicKeyObjElem = ECPublicKeyObjElem::init_asn1();
-			let _ = objelem.types.set_value(EC_PUBLIC_KEY_OID)?;
-			let _ = objelem.ectypes.set_value(&oid)?;
-			abbrevelem.types.elem.val.push(objelem);
+			let _ = abbrevelem.types.set_value(EC_PUBLIC_KEY_OID)?;
+			let _ = abbrevelem.ectypes.set_value(&oid)?;
 			let x = self.pubkey.x();
 			let y = self.pubkey.y();
-			let vecs = self._to_der_x_y(types,&x,&y)?;
-			abbrevelem.coords.data = vecs.clone();
+			coordvecs = self._to_der_x_y(types,&x,&y)?;
 			curveelem.abbrev.elem.val.push(abbrevelem);
 		} else {
 			/*now to give */
@@ -397,9 +389,9 @@ impl PublicKey {
 			fieldid.primenum.val = BigUint::from_bytes_be(&vecs);
 			ecparams.fieldid.elem.val.push(fieldid);
 			let (_, vecs) = self.curve.curve.a().to_bytes_be();
-			pubk.a.val = BigUint::from_bytes_be(&vecs);
+			pubk.a.data = vecs.clone();
 			let (_, vecs) = self.curve.curve.b().to_bytes_be();
-			pubk.b.val = BigUint::from_bytes_be(&vecs);
+			pubk.b.data = vecs.clone();
 			ecparams.curve.elem.val.push(pubk);
 			let vecs = self._to_der_x_y(types,&x,&y)?;
 			ecparams.basecoords.data = vecs.clone();
@@ -409,13 +401,16 @@ impl PublicKey {
 			ecparams.cofactor.val = BigUint::from_bytes_be(&vecs);
 			let x = self.pubkey.x();
 			let y = self.pubkey.y();
-			let vecs = self._to_der_x_y(types,&x,&y)?;
-			totalelem.coords.data = vecs.clone();
+			coordvecs = self._to_der_x_y(types,&x,&y)?;
 			totalelem.ecparams.elem.val.push(ecparams);
 			curveelem.total.elem.val.push(totalelem);
 		}
-		curveasn1.elem.val.push(curveelem);
-		return curveasn1.encode_asn1();
+
+		pubkasn1elem.params = curveelem.clone();
+		pubkasn1elem.coords.data = coordvecs.clone();
+		pubkasn1.elem.val.push(pubkasn1elem);
+
+		return pubkasn1.encode_asn1();
 	}
 
 
