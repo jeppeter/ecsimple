@@ -69,13 +69,138 @@ pub (crate) fn bit_length(num :&BigInt) -> usize {
     return retv;
 }
 
-fn jacobi_get(a :&BigInt,p :&BigInt) -> BigInt {
-    return one();
+fn polynomial_reduce_mod(_poly :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Vec<BigInt> {
+    let ov :BigInt = one();
+    let zv :BigInt = zero();
+    let mut poly :Vec<BigInt> = _poly.to_vec().clone();
+    let mut lasti :usize;
+    let mut lastj :usize;
+    let mut lastk :usize;
+    if polymod.len() > 0 {
+        lasti = polymod.len() - 1;
+        assert!(polymod[lasti] == (- ov));
+    }
+    assert!(polymod.len() > 1);
+
+    while poly.len() >= polymod.len() {
+        lasti = poly.len() - 1;
+        if poly[lasti] != zv {
+            for i in 2..(polymod.len() + 1) {
+                lasti = poly.len() - i;
+                lastj = polymod.len() - i;
+                lastk = poly.len() - 1;
+                poly[lasti] = (&poly[lasti] - &poly[lastk] * &polymod[lastj]) % p;
+            }
+        }
+        lasti = poly.len() - 1;
+        poly = poly[0..lasti].to_vec().clone();
+    }
+    return poly;
+
+
 }
 
-fn polynomial_exp_mod(cf :&[BigInt],pb :&BigInt,f :&[BigInt],p :&BigInt) -> Vec<BigInt> {
-    return Vec::new();
+fn polynomial_multiply_mod(m1 :&[BigInt],m2 :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Vec<BigInt> {
+    let zv :BigInt = zero();
+    let mut prod :Vec<BigInt> = Vec::new();
+    let mut idx :usize = 0;
+    while idx < (m1.len() + m2.len() - 1) {
+        prod.push(zv.clone());
+        idx += 1;
+    }
+
+    for i in 0..m1.len() {
+        for j in 0..m2.len() {
+            prod[i + j] = (&prod[i+j] + &(m1[i]) * &(m2[j])) % p;
+        }
+    }
+
+    return polynomial_reduce_mod(&prod,polymod,p);
 }
+
+#[allow(non_snake_case)]
+fn polynomial_exp_mod(base :&[BigInt],exponent :&BigInt,polymod :&[BigInt],p :&BigInt) -> Vec<BigInt> {
+    let zv :BigInt = zero();
+    let ov :BigInt = one();
+    let tv :BigInt = &ov + &ov;
+    let mut G :Vec<BigInt>;
+    let mut k :BigInt;
+    let mut s :Vec<BigInt>;
+    assert!(exponent < p);
+    if exponent.eq(&zv) {
+        s = vec![ov.clone()];
+        return s;
+    }
+
+    G = base.to_vec().clone();
+    k = exponent.clone();
+
+    if ((&k) % &tv) == ov {
+        s = G.clone();
+    } else {
+        s = vec![ov.clone()];
+    }
+
+    while k > ov {
+        k /= &tv;
+        G = polynomial_multiply_mod(&G,&G,polymod,p);
+        if ((&k) % &tv) == ov {
+            s = polynomial_multiply_mod(&G,&s,polymod,p);
+        }
+    }
+    return s;
+
+}
+
+fn jacobi_get(_a :&BigInt,n :&BigInt) -> Result<BigInt,Box<dyn Error>> {
+    let ov :BigInt = one();
+    let zv :BigInt = zero();
+    let tv :BigInt = &ov + &ov;
+    let threev :BigInt = &tv + &ov;
+    let fourv :BigInt = &tv + &tv;
+    let eightv :BigInt = &fourv + &fourv;
+    let sevenv :BigInt = &eightv - &ov;
+    if !(n >= &threev) {
+        ecsimple_new_error!{EccArithmeticError,"n [{}] < 3",n}
+    }
+
+    if (n % &tv) != ov {
+        ecsimple_new_error!{EccArithmeticError,"n [{}] even",n}
+    }
+    let a :BigInt = mod_with_sign(&_a,n);
+    if a == zv {
+        return Ok(zv.clone());
+    }
+    if a == ov {
+        return Ok(ov.clone());
+    }
+    let mut a1 :BigInt = a.clone();
+    let mut e :BigInt = zv.clone();
+    while (&a1 % &tv) == zv {
+        a1 = a1 / &tv;
+        e += &ov;
+    }
+
+    let mut s :BigInt;
+
+    if (e % &tv) == zv  || (n % &eightv) == ov || ( n % &eightv)  == sevenv {
+        s = ov.clone();
+    } else{
+        s = - ov.clone();
+    }
+
+    if a1 == ov {
+        return Ok(s.clone());
+    }
+
+    if (n % &fourv) == threev && ( (&a1) % &fourv) == threev {
+        s = - s.clone();
+    }
+    let nd :BigInt = mod_with_sign(n,&a1);
+    let curv :BigInt = jacobi_get(&nd,&a1)?;
+    return Ok(s * &curv);
+}
+
 
 pub (crate) fn square_root_mod_prime(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
     let a :BigInt = mod_with_sign(ac,p);
@@ -93,7 +218,7 @@ pub (crate) fn square_root_mod_prime(ac :&BigInt,p :&BigInt) -> Result<BigInt,Bo
     if p.eq(&tv) {
         return Ok(a.clone());
     }
-    let jac :BigInt = jacobi_get(&a,p);
+    let jac :BigInt = jacobi_get(&a,p)?;
 
     if jac == nov {
         ecsimple_new_error!{EccArithmeticError,"a [{}:0x{:x}] p [{}:0x{:x}] not square modulo", ac,ac,p,p}
@@ -122,7 +247,7 @@ pub (crate) fn square_root_mod_prime(ac :&BigInt,p :&BigInt) -> Result<BigInt,Bo
     b = tv.clone();
     while b < basep {
         let bb4a :BigInt = &b * &b - &a * 4;
-        let cd = jacobi_get(&bb4a,p);
+        let cd = jacobi_get(&bb4a,p)?;
         if cd == nov {
             let f :Vec<BigInt> = vec![a.clone(),- b.clone(),ov.clone()];
             let cf :Vec<BigInt> = vec![zv.clone(),ov.clone()];
