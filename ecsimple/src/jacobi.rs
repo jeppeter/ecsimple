@@ -4,6 +4,7 @@ use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use crate::arithmetics::*;
 use crate::logger::*;
+use std::error::Error;
 
 #[derive(Clone)]
 pub struct CurveFp {
@@ -410,6 +411,12 @@ impl PointJacobi {
 
     pub fn curve(&self) -> CurveFp {
         return self.curve.clone();
+    }
+
+    pub fn set_x_y(&mut self, x:&BigInt,y :&BigInt) -> Result<(),Box<dyn Error>> {
+        /*now check for the coding */
+        self.coords = (x.clone(),y.clone(),one());
+        Ok(())
     }
 
     pub fn new(curve :&CurveFp, x :&BigInt, y :&BigInt, z :&BigInt,order :Option<BigInt>,generator :bool) -> Self {

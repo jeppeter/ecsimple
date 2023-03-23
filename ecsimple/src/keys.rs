@@ -139,17 +139,77 @@ impl PublicKey {
 		})
 	}
 
-	fn _from_der_x_y_uncompressed(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		Ok((zero(),zero()))
+	fn _from_der_x_y_uncompressed(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+		let x :BigInt;
+		let y :BigInt;
+
+		if data.len() < 2 {
+			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
+		}
+
+
+		let midlen :usize = (data.len() -1 ) / 2;
+		let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
+		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
+		let vecs :Vec<u8> = data[(1+midlen)..].to_vec().clone();
+		y = BigInt::from_bytes_be(Sign::Plus,&vecs);
+		Ok((x,y))
 	}
 
-	fn _from_der_x_y_hybrid(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		Ok((zero(),zero()))
+	fn _from_der_x_y_hybrid(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+		let x :BigInt;
+		let y :BigInt;
+		let ov :BigInt = one();
+		let tv :BigInt = &ov + &ov;
+
+		if data.len() < 2 {
+			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
+		}
+
+
+		let midlen :usize = (data.len() -1 ) / 2;
+		let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
+		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
+		let vecs :Vec<u8> = data[(1+midlen)..].to_vec().clone();
+		y = BigInt::from_bytes_be(Sign::Plus,&vecs);
+
+		if data[0] == 0x7 && ((&y) & (&tv)) != ov {
+			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
+		} else if data[0] == 0x6 && ((&y) & (&tv)) == ov {
+			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
+		}
+
+		Ok((x,y))
 	}
 
 
 	fn _from_der_x_y_compressed(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		Ok((zero(),zero()))
+		let x :BigInt;
+		let y :BigInt;
+		let ov :BigInt = one();
+		let tv :BigInt = &ov + &ov;
+		let threev :BigInt = &tv + &ov;
+
+		if data.len() < 2 {
+			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
+		}
+		
+		let vecs :Vec<u8> = data[1..data.len()].to_vec().clone();
+		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
+		let p = curve.p();
+		let a = curve.a();
+		let b = curve.b();
+		let y2 = ((x.modpow(&threev,&p) + (&a) * (&x)) + (&b)) % (&p);
+		y = square_root_mod_prime(&y2,&p)?;
+
+
+		if data[0] == 0x3 && ((&y) & (&tv)) != ov {
+			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
+		} else if data[0] == 0x2 && ((&y) & (&tv)) == ov {
+			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
+		}
+
+		Ok((x,y))
 	}
 
 	fn _from_der_x_y(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
@@ -170,11 +230,11 @@ impl PublicKey {
 		let mut curveasn1 :ECPublicKeyChoice = ECPublicKeyChoice::init_asn1();
 		let _ = curveasn1.decode_asn1(buf)?;
 		let curveelem :ECPublicKeyChoiceElem;
+		let mut pubk :PointJacobi;
 		if curveasn1.elem.val.len() != 1 {
 			ecsimple_new_error!{EccKeyError,"not element [{}] != 1" , curveasn1.elem.val.len()}
 		}
-		let mut curve :ECCCurve;
-		let mut pubkey :PointJacobi;
+		let curve :ECCCurve;
 		curveelem = curveasn1.elem.val[0].clone();
 		if curveelem.typei == 1 {
 			let abbrevelem :ECPublicKeyAbbrevElem ;
@@ -190,14 +250,65 @@ impl PublicKey {
 
 			let oids = objelem.types.get_value();
 			let types = get_ecc_name_by_oid(&oids)?;
-			curve = get_ecc_curve_by_name(&types)?;			
+			curve = get_ecc_curve_by_name(&types)?;
+			let (x,y) = Self::_from_der_x_y(&(curve.curve),&abbrevelem.coords.data)?;
+			pubk = curve.generator.clone();
+			let _ = pubk.set_x_y(&x,&y)?;
 		} else {
-
+			let totalelem :ECPublicKeyTotalElem;
+			if curveelem.total.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"not total [{}] != 1" , curveelem.total.elem.val.len()}	
+			}
+			totalelem = curveelem.total.elem.val[0].clone();
+			let oids = totalelem.types.get_value();
+			if oids != EC_PUBLIC_KEY_OID {
+				ecsimple_new_error!{EccKeyError,"type oid [{}] != EC_PUBLIC_KEY_OID [{}]", oids,EC_PUBLIC_KEY_OID}
+			}
+			let ecparams :ECPublicKeyParamsElem;
+			if totalelem.ecparams.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"ecparams  [{}] != 1" , totalelem.ecparams.elem.val.len()}		
+			}
+			ecparams = totalelem.ecparams.elem.val[0].clone();
+			if ecparams.version.val != 1 {
+				ecsimple_new_error!{EccKeyError,"version [{}] != 1",ecparams.version.val}
+			}
+			let fieldidelem :ECPublicKeyFieldIDElem;
+			if ecparams.fieldid.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"fieldid  [{}] != 1" , ecparams.fieldid.elem.val.len()}
+			}
+			fieldidelem = ecparams.fieldid.elem.val[0].clone();
+			let oids = fieldidelem.types.get_value();
+			if oids != ID_PRIME_FIELD_OID {
+				ecsimple_new_error!{EccKeyError,"type oid [{}] != ID_PRIME_FIELD_OID [{}]", oids,ID_PRIME_FIELD_OID}	
+			}
+			let vecs :Vec<u8> = fieldidelem.primenum.val.to_bytes_be();
+			let p :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+			let curveparamelem :ECPublicKeyCurveElem;
+			if ecparams.curve.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"curve  [{}] != 1" , ecparams.curve.elem.val.len()}
+			}
+			curveparamelem = ecparams.curve.elem.val[0].clone();
+			let vecs :Vec<u8> = curveparamelem.a.val.to_bytes_be();
+			let a :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+			let vecs :Vec<u8> = curveparamelem.b.val.to_bytes_be();
+			let b :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+			let vecs :Vec<u8> = ecparams.order.val.to_bytes_be();
+			let order :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+			let vecs :Vec<u8> = ecparams.cofactor.val.to_bytes_be();
+			let cofactor :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+			let ncurve :CurveFp = CurveFp::new(&p,&a,&b,&cofactor);
+			let (x,y) = Self::_from_der_x_y(&ncurve,&(ecparams.basecoords.data))?;
+			let oo :Option<BigInt> = Some(order.clone());
+			let njacobi :PointJacobi = PointJacobi::new(&ncurve,&x,&y,&cofactor,oo,false);
+			 curve = ECCCurve::new("",&njacobi);
+			let (x,y) = Self::_from_der_x_y(&ncurve,&totalelem.coords.data)?;
+			pubk = curve.generator.clone();
+			let _ = pubk.set_x_y(&x,&y)?;
 		}
 
 		Ok(PublicKey {
-			curve : get_ecc_curve_by_name(SECP112r1_NAME)?,
-			pubkey : PointJacobi::infinity(),
+			curve : curve.clone(),
+			pubkey : pubk.clone(),
 		})
 	}
 

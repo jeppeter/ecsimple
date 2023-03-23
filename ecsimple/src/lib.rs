@@ -4,8 +4,8 @@ pub mod consts;
 mod logger;
 mod utils;
 #[macro_use]
-pub mod errors;
-mod arithmetics;
+mod errors;
+pub mod arithmetics;
 //mod affine;
 pub mod jacobi;
 pub mod curves;

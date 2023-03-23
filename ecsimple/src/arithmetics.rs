@@ -202,7 +202,7 @@ fn jacobi_get(_a :&BigInt,n :&BigInt) -> Result<BigInt,Box<dyn Error>> {
 }
 
 
-pub (crate) fn square_root_mod_prime(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
+pub fn square_root_mod_prime(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
     let a :BigInt = mod_with_sign(ac,p);
     let zv :BigInt = zero();
     let ov :BigInt = one();
