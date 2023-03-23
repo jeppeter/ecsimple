@@ -4,7 +4,7 @@ use num_bigint::{BigInt,Sign,BigUint};
 use crate::consts::*;
 use crate::arithmetics::*;
 use crate::utils::*;
-use crate::jacobi::{PointJacobi,ECCPoint};
+use crate::jacobi::{PointJacobi,ECCPoint,CurveFp};
 use crate::curves::*;
 use crate::signature::*;
 use std::error::Error;
@@ -139,29 +139,29 @@ impl PublicKey {
 		})
 	}
 
-	fn _from_der_x_y_uncompressed(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	fn _from_der_x_y_uncompressed(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		Ok((zero(),zero()))
 	}
 
-	fn _from_der_x_y_hybrid(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	fn _from_der_x_y_hybrid(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		Ok((zero(),zero()))
 	}
 
 
-	fn _from_der_x_y_compressed(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	fn _from_der_x_y_compressed(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		Ok((zero(),zero()))
 	}
 
-	fn _from_der_x_y(&self,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	fn _from_der_x_y(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		if data.len() < 1 {
 			ecsimple_new_error!{EccKeyError,"data len [{}] < 1" , data.len()}
 		}
 		if data[0] == 0x4 {
-			return self._from_der_x_y_uncompressed(data);
+			return Self::_from_der_x_y_uncompressed(curve,data);
 		} else if data[0] == 0x2 || data[0] == 0x3 {
-			return self._from_der_x_y_compressed(data);
+			return Self::_from_der_x_y_compressed(curve,data);
 		} else if data[0] == 0x7 || data[0] == 0x6 {
-			return self._from_der_x_y_hybrid(data);
+			return Self::_from_der_x_y_hybrid(curve,data);
 		}
 		ecsimple_new_error!{EccKeyError,"not supported type [0x{:x}]", data[0]}
 	}
