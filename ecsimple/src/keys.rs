@@ -453,14 +453,17 @@ pub struct PrivateKey {
 	curve :ECCCurve,
 	keynum :BigInt,
 	pubkey :PointJacobi,
+	randname :Option<String>,
 }
 
 #[allow(non_snake_case)]
 impl PrivateKey {
 	pub fn generate(curve :&ECCCurve,fname :Option<String>) -> Result<Self,Box<dyn Error>> {
 		let mut bname :Option<String> = None;
+		let mut rname :Option<String> = None;
 		if fname.is_some() {
 			bname = Some(format!("{}",fname.as_ref().unwrap()));
+			rname = Some(format!("{}",fname.as_ref().unwrap()));
 		}
 		let mut rdops = RandOps::new(bname)?;
 		let bitlen :usize = bit_length(&curve.order);
@@ -469,14 +472,20 @@ impl PrivateKey {
 		let knum :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
 		let mut bptr :PointJacobi = curve.generator.clone();
 		let pubkey :PointJacobi = bptr.mul_int(&knum);
+
 		Ok(PrivateKey {
 			curve : curve.clone(),
 			keynum : knum.clone(),
 			pubkey : pubkey,
+			randname : rname,
 		})
 	}
 
-	pub fn new(curve :&ECCCurve, secnum :&BigInt) -> Result<Self,Box<dyn Error >> {
+	pub fn new(curve :&ECCCurve, secnum :&BigInt,fname :Option<String>) -> Result<Self,Box<dyn Error >> {
+		let mut rname :Option<String> = None;
+		if fname.is_some() {
+			rname = Some(format!("{}",fname.as_ref().unwrap()));
+		}
 		let bitlen :usize = bit_length(&curve.order);
 		let (_ ,vecs) = secnum.to_bytes_be();
 		let mut vlen :usize = 0;
@@ -498,8 +507,10 @@ impl PrivateKey {
 			curve : curve.clone(),
 			keynum : secnum.clone(),
 			pubkey : pubkey,
+			randname : rname,
 		})
 	}
+
 
 	pub fn sign_base(&self, hashcode :&[u8], randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
 		let n :BigInt;
@@ -530,6 +541,7 @@ impl PrivateKey {
 		ecsimple_log_trace!("r 0x{:x} s 0x{:x}",r, s);
 		Ok (ECCSignature::new(&r,&s))
 	}
+
 
 	pub fn get_public_key(&self) -> PublicKey {
 		PublicKey {
