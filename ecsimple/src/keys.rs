@@ -243,6 +243,7 @@ impl PublicKey {
 			let oids = abbrevelem.ectypes.get_value();
 			let types = get_ecc_name_by_oid(&oids)?;
 			curve = get_ecc_curve_by_name(&types)?;
+			ecsimple_log_trace!("[{}] curve generator {:?}", types, curve.generator);
 			let (x,y) = Self::_from_der_x_y(&(curve.curve),&pubkelem.coords.data)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
@@ -422,11 +423,14 @@ impl PublicKey {
 		let hash :BigInt = BigInt::from_bytes_be(Sign::Plus,hashcode);
 		let mut pubkey :PointJacobi = self.pubkey.clone();
 
+		ecsimple_log_trace!("G {:?}",G);
 		if r < one() || r >= n {
+			ecsimple_log_trace!("r 0x{:x} n 0x{:x}", r, n);
 			return false;
 		}
 
 		if s < one() || s >= n {
+			ecsimple_log_trace!(" ");
 			return false;
 		}
 		let c :BigInt = inverse_mod(&s,&n);

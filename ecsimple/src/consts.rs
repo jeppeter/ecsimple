@@ -5,7 +5,7 @@ pub const SECP112r2_NAME :&str = "SECP112r2";
 
 
 pub const SECP112r1_OID :&str = "1.3.132.0.6";
-pub const SECP112r2_OID :&str = "1.3.132.0.6";
+pub const SECP112r2_OID :&str = "1.3.132.0.7";
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
 pub const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
