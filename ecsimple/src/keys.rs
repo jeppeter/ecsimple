@@ -414,6 +414,10 @@ impl PublicKey {
 		return pubkasn1.encode_asn1();
 	}
 
+	pub fn verify_digest(&self,hashcode :&[u8],sig :&ECCSignature) -> bool {
+		return self.verify_base(hashcode,sig);
+	}
+
 
 	pub fn verify_base(&self,hashcode :&[u8],sig :&ECCSignature) -> bool {
 		let mut G :PointJacobi = self.curve.generator.clone();
@@ -489,6 +493,7 @@ impl PrivateKey {
 		return;
 	}
 
+
 	pub fn new(curve :&ECCCurve, secnum :&BigInt) -> Result<Self,Box<dyn Error >> {
 		let bitlen :usize = bit_length(&curve.order);
 		let (_ ,vecs) = secnum.to_bytes_be();
@@ -513,6 +518,19 @@ impl PrivateKey {
 			pubkey : pubkey,
 			randname : None,
 		})
+	}
+
+	pub fn sign_digest(&self, digestcode :&[u8]) -> Result<ECCSignature,Box<dyn Error>> {
+		let mut bname :Option<String> = None;
+		if self.randname.is_some() {
+			bname = Some(format!("{}", self.randname.as_ref().unwrap()));
+		}
+		let mut rdops = RandOps::new(bname)?;
+		let bitsize :usize = bit_length(&self.curve.generator.clone().order());
+		let bs :usize = bitsize / 8;
+		let vecs = rdops.get_bytes(bs)?;
+		let randkey :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+		return self.sign_base(digestcode,&randkey);
 	}
 
 
