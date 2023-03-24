@@ -481,11 +481,15 @@ impl PrivateKey {
 		})
 	}
 
-	pub fn new(curve :&ECCCurve, secnum :&BigInt,fname :Option<String>) -> Result<Self,Box<dyn Error >> {
-		let mut rname :Option<String> = None;
+	pub fn set_rand_file(&mut self, fname :Option<String>) {		
+		self.randname = None;
 		if fname.is_some() {
-			rname = Some(format!("{}",fname.as_ref().unwrap()));
+			self.randname = Some(format!("{}",fname.as_ref().unwrap()));
 		}
+		return;
+	}
+
+	pub fn new(curve :&ECCCurve, secnum :&BigInt) -> Result<Self,Box<dyn Error >> {
 		let bitlen :usize = bit_length(&curve.order);
 		let (_ ,vecs) = secnum.to_bytes_be();
 		let mut vlen :usize = 0;
@@ -507,7 +511,7 @@ impl PrivateKey {
 			curve : curve.clone(),
 			keynum : secnum.clone(),
 			pubkey : pubkey,
-			randname : rname,
+			randname : None,
 		})
 	}
 
