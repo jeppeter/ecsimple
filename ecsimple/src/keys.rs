@@ -415,7 +415,7 @@ impl PublicKey {
 	}
 
 
-	pub fn verify(&self,hashcode :&[u8],sig :&ECCSignature) -> bool {
+	pub fn verify_base(&self,hashcode :&[u8],sig :&ECCSignature) -> bool {
 		let mut G :PointJacobi = self.curve.generator.clone();
 		let n :BigInt = G.order();
 		let r :BigInt = sig.r.clone();
@@ -501,7 +501,7 @@ impl PrivateKey {
 		})
 	}
 
-	pub fn sign(&self, hashcode :&[u8], randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
+	pub fn sign_base(&self, hashcode :&[u8], randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
 		let n :BigInt;
 		let mut G :PointJacobi = self.curve.generator.clone();
 		n = G.order();
