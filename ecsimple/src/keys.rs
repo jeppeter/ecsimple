@@ -105,6 +105,15 @@ pub struct ECPublicKeyChoiceElem {
 	pub total :ECPublicKeyTotal,
 }
 
+#[derive(Clone)]
+#[asn1_int_choice(selector=typei,simple=1,total=2)]
+pub struct ECPublicKeySimpChoiceElem {
+	pub typei :i32,
+	pub simple :Asn1Object,
+	pub total :ECPublicKeyParams,
+}
+
+
 
 #[derive(Clone)]
 #[asn1_sequence()]
@@ -119,11 +128,169 @@ pub struct ECPublicKeyAsn1 {
 	pub elem :Asn1Seq<ECPublicKeyAsn1Elem>,
 }
 
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPrivateKeyAsn1Elem {
+	pub version :Asn1Integer,
+	pub privkey :Asn1OctData,
+	pub pubkey :Asn1Imp<ECPublicKeySimpChoiceElem,0>,
+	pub pubdata :Asn1Imp<Asn1BitData,1>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPrivateKeyAsn1 {
+	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
+}
+
 #[derive(Clone,Debug)]
 pub struct PublicKey {
 	pub curve :ECCCurve,
 	pub pubkey :PointJacobi,
 }
+
+
+fn _from_der_x_y_uncompressed(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	let x :BigInt;
+	let y :BigInt;
+
+	if data.len() < 2 {
+		ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
+	}
+
+
+	let midlen :usize = (data.len() -1 ) / 2;
+	let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
+	x = BigInt::from_bytes_be(Sign::Plus,&vecs);
+	let vecs :Vec<u8> = data[(1+midlen)..].to_vec().clone();
+	y = BigInt::from_bytes_be(Sign::Plus,&vecs);
+	Ok((x,y))
+}
+
+fn _from_der_x_y_hybrid(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	let x :BigInt;
+	let y :BigInt;
+	let ov :BigInt = one();
+	let tv :BigInt = &ov + &ov;
+
+	if data.len() < 2 {
+		ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
+	}
+
+	let midlen :usize = (data.len() -1 ) / 2;
+	let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
+	x = BigInt::from_bytes_be(Sign::Plus,&vecs);
+	let vecs :Vec<u8> = data[(1+midlen)..].to_vec().clone();
+	y = BigInt::from_bytes_be(Sign::Plus,&vecs);
+
+	if data[0] == 0x7 && ((&y) & (&tv)) != ov {
+		ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
+	} else if data[0] == 0x6 && ((&y) & (&tv)) == ov {
+		ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
+	}
+
+	Ok((x,y))
+}
+
+fn _from_der_x_y_compressed(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	let x :BigInt;
+	let y :BigInt;
+	let ov :BigInt = one();
+	let tv :BigInt = &ov + &ov;
+	let threev :BigInt = &tv + &ov;
+
+	if data.len() < 2 {
+		ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
+	}
+
+	let vecs :Vec<u8> = data[1..data.len()].to_vec().clone();
+	x = BigInt::from_bytes_be(Sign::Plus,&vecs);
+	let p = curve.p();
+	let a = curve.a();
+	let b = curve.b();
+	let y2 = ((x.modpow(&threev,&p) + (&a) * (&x)) + (&b)) % (&p);
+	y = square_root_mod_prime(&y2,&p)?;
+
+
+	ecsimple_log_trace!(" data[0] 0x{:x} x 0x{:x} y 0x{:x}", data[0],x,y);
+	if data[0] == 0x3 && (((&y) % (&tv)) != ov ){
+		ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
+	} else if data[0] == 0x2 && (((&y) % (&tv)) == ov ) {
+		ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
+	}
+
+	Ok((x,y))
+}
+
+
+fn _from_der_x_y(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
+	if data.len() < 1 {
+		ecsimple_new_error!{EccKeyError,"data len [{}] < 1" , data.len()}
+	}
+	if data[0] == 0x4 {
+		return _from_der_x_y_uncompressed(curve,data);
+	} else if data[0] == 0x2 || data[0] == 0x3 {
+		return _from_der_x_y_compressed(curve,data);
+	} else if data[0] == 0x7 || data[0] == 0x6 {
+		return _from_der_x_y_hybrid(curve,data);
+	}
+	ecsimple_new_error!{EccKeyError,"not supported type [0x{:x}]", data[0]}
+}
+
+
+fn _to_der_compressed(x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+	let mut retv :Vec<u8> = Vec::new();
+	let zv :BigInt = zero();
+	let ov :BigInt = one();
+	ecsimple_log_trace!("x 0x{:x} y 0x{:x}", x,y);
+	if (y & &ov) != zv {
+		retv.push(0x3);
+	} else {
+		retv.push(0x2);
+	}
+	let (_,vecs) = x.to_bytes_be();
+	retv.extend(vecs);
+
+	Ok(retv)
+}
+
+
+fn _to_der_uncompressed(x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+	let mut retv :Vec<u8> = Vec::new();
+	retv.push(0x4);
+	let (_,vecs) = x.to_bytes_be();
+	retv.extend(vecs);
+	let (_,vecs) = y.to_bytes_be();
+	retv.extend(vecs);
+	Ok(retv)
+}
+
+fn _to_der_hybrid(x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+	let mut retv :Vec<u8> = Vec::new();
+	let zv :BigInt = zero();
+	let ov :BigInt = one();
+	if (y & &ov) != zv {
+		retv.push(0x7);
+	} else {
+		retv.push(0x6);
+	}
+	let vecs = _to_der_uncompressed(x,y)?;
+	retv.extend(vecs);
+
+	Ok(retv)		
+}
+
+fn _to_der_x_y(types :&str,x :&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+	if types == EC_COMPRESSED {
+		return  _to_der_compressed(&x,&y);
+	} else if types == EC_UNCOMPRESSED {
+		return  _to_der_uncompressed(&x,&y);
+	} else if types == EC_HYBRID {
+		return _to_der_hybrid(&x,&y);
+	} 
+	ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}
+}
+
 
 #[allow(non_snake_case)]
 impl PublicKey {
@@ -134,92 +301,6 @@ impl PublicKey {
 		})
 	}
 
-	fn _from_der_x_y_uncompressed(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		let x :BigInt;
-		let y :BigInt;
-
-		if data.len() < 2 {
-			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
-		}
-
-
-		let midlen :usize = (data.len() -1 ) / 2;
-		let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
-		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
-		let vecs :Vec<u8> = data[(1+midlen)..].to_vec().clone();
-		y = BigInt::from_bytes_be(Sign::Plus,&vecs);
-		Ok((x,y))
-	}
-
-	fn _from_der_x_y_hybrid(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		let x :BigInt;
-		let y :BigInt;
-		let ov :BigInt = one();
-		let tv :BigInt = &ov + &ov;
-
-		if data.len() < 2 {
-			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
-		}
-
-		let midlen :usize = (data.len() -1 ) / 2;
-		let vecs :Vec<u8> = data[1..(1 + midlen)].to_vec().clone();
-		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
-		let vecs :Vec<u8> = data[(1+midlen)..].to_vec().clone();
-		y = BigInt::from_bytes_be(Sign::Plus,&vecs);
-
-		if data[0] == 0x7 && ((&y) & (&tv)) != ov {
-			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
-		} else if data[0] == 0x6 && ((&y) & (&tv)) == ov {
-			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
-		}
-
-		Ok((x,y))
-	}
-
-
-	fn _from_der_x_y_compressed(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		let x :BigInt;
-		let y :BigInt;
-		let ov :BigInt = one();
-		let tv :BigInt = &ov + &ov;
-		let threev :BigInt = &tv + &ov;
-
-		if data.len() < 2 {
-			ecsimple_new_error!{EccKeyError,"len [{}] < 2", data.len()}
-		}
-		
-		let vecs :Vec<u8> = data[1..data.len()].to_vec().clone();
-		x = BigInt::from_bytes_be(Sign::Plus,&vecs);
-		let p = curve.p();
-		let a = curve.a();
-		let b = curve.b();
-		let y2 = ((x.modpow(&threev,&p) + (&a) * (&x)) + (&b)) % (&p);
-		y = square_root_mod_prime(&y2,&p)?;
-
-
-		ecsimple_log_trace!(" data[0] 0x{:x} x 0x{:x} y 0x{:x}", data[0],x,y);
-		if data[0] == 0x3 && (((&y) % (&tv)) != ov ){
-			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not odd", y}
-		} else if data[0] == 0x2 && (((&y) % (&tv)) == ov ) {
-			ecsimple_new_error!{EccKeyError,"y [0x{:x}] not even", y}
-		}
-
-		Ok((x,y))
-	}
-
-	fn _from_der_x_y(curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		if data.len() < 1 {
-			ecsimple_new_error!{EccKeyError,"data len [{}] < 1" , data.len()}
-		}
-		if data[0] == 0x4 {
-			return Self::_from_der_x_y_uncompressed(curve,data);
-		} else if data[0] == 0x2 || data[0] == 0x3 {
-			return Self::_from_der_x_y_compressed(curve,data);
-		} else if data[0] == 0x7 || data[0] == 0x6 {
-			return Self::_from_der_x_y_hybrid(curve,data);
-		}
-		ecsimple_new_error!{EccKeyError,"not supported type [0x{:x}]", data[0]}
-	}
 
 	pub fn from_der(buf :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
@@ -244,7 +325,7 @@ impl PublicKey {
 			let types = get_ecc_name_by_oid(&oids)?;
 			curve = get_ecc_curve_by_name(&types)?;
 			ecsimple_log_trace!("[{}] curve generator {:?}", types, curve.generator);
-			let (x,y) = Self::_from_der_x_y(&(curve.curve),&pubkelem.coords.data)?;
+			let (x,y) = _from_der_x_y(&(curve.curve),&pubkelem.coords.data)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
 		} else {
@@ -290,11 +371,11 @@ impl PublicKey {
 			let vecs :Vec<u8> = ecparams.cofactor.val.to_bytes_be();
 			let cofactor :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
 			let ncurve :CurveFp = CurveFp::new(&p,&a,&b,&cofactor);
-			let (x,y) = Self::_from_der_x_y(&ncurve,&(ecparams.basecoords.data))?;
+			let (x,y) = _from_der_x_y(&ncurve,&(ecparams.basecoords.data))?;
 			let oo :Option<BigInt> = Some(order.clone());
 			let njacobi :PointJacobi = PointJacobi::new(&ncurve,&x,&y,&cofactor,oo,false);
-			 curve = ECCCurve::new("",&njacobi);
-			let (x,y) = Self::_from_der_x_y(&ncurve,&pubkelem.coords.data)?;
+			curve = ECCCurve::new("",&njacobi);
+			let (x,y) = _from_der_x_y(&ncurve,&pubkelem.coords.data)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
 		}
@@ -305,57 +386,7 @@ impl PublicKey {
 		})
 	}
 
-	fn _to_der_compressed(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut retv :Vec<u8> = Vec::new();
-		let zv :BigInt = zero();
-		let ov :BigInt = one();
-		ecsimple_log_trace!("x 0x{:x} y 0x{:x}", x,y);
-		if (y & &ov) != zv {
-			retv.push(0x3);
-		} else {
-			retv.push(0x2);
-		}
-		let (_,vecs) = x.to_bytes_be();
-		retv.extend(vecs);
 
-		Ok(retv)
-	}
-
-	fn _to_der_uncompressed(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut retv :Vec<u8> = Vec::new();
-		retv.push(0x4);
-		let (_,vecs) = x.to_bytes_be();
-		retv.extend(vecs);
-		let (_,vecs) = y.to_bytes_be();
-		retv.extend(vecs);
-		Ok(retv)
-	}
-
-	fn _to_der_hybrid(&self,x:&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut retv :Vec<u8> = Vec::new();
-		let zv :BigInt = zero();
-		let ov :BigInt = one();
-		if (y & &ov) != zv {
-			retv.push(0x7);
-		} else {
-			retv.push(0x6);
-		}
-		let vecs = self._to_der_uncompressed(x,y)?;
-		retv.extend(vecs);
-
-		Ok(retv)		
-	}
-
-	fn _to_der_x_y(&self,types :&str,x :&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
-		if types == EC_COMPRESSED {
-			return  self._to_der_compressed(&x,&y);
-		} else if types == EC_UNCOMPRESSED {
-			return  self._to_der_uncompressed(&x,&y);
-		} else if types == EC_HYBRID {
-			return self._to_der_hybrid(&x,&y);
-		} 
-		ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}
-	}
 
 	pub fn to_der(&self,types :&str,paramstype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut curveelem :ECPublicKeyChoiceElem = ECPublicKeyChoiceElem::init_asn1();
@@ -372,7 +403,7 @@ impl PublicKey {
 			let _ = abbrevelem.ectypes.set_value(&oid)?;
 			let x = self.pubkey.x();
 			let y = self.pubkey.y();
-			coordvecs = self._to_der_x_y(types,&x,&y)?;
+			coordvecs = _to_der_x_y(types,&x,&y)?;
 			curveelem.abbrev.elem.val.push(abbrevelem);
 		} else {
 			/*now to give */
@@ -394,7 +425,7 @@ impl PublicKey {
 			let (_, vecs) = self.curve.curve.b().to_bytes_be();
 			pubk.b.data = vecs.clone();
 			ecparams.curve.elem.val.push(pubk);
-			let vecs = self._to_der_x_y(types,&x,&y)?;
+			let vecs = _to_der_x_y(types,&x,&y)?;
 			ecparams.basecoords.data = vecs.clone();
 			let (_, vecs) = self.curve.order.to_bytes_be();
 			ecparams.order.val = BigUint::from_bytes_be(&vecs);
@@ -402,7 +433,7 @@ impl PublicKey {
 			ecparams.cofactor.val = BigUint::from_bytes_be(&vecs);
 			let x = self.pubkey.x();
 			let y = self.pubkey.y();
-			coordvecs = self._to_der_x_y(types,&x,&y)?;
+			coordvecs = _to_der_x_y(types,&x,&y)?;
 			totalelem.ecparams.elem.val.push(ecparams);
 			curveelem.total.elem.val.push(totalelem);
 		}
