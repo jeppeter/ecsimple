@@ -15,3 +15,6 @@ pub const EC_COMPRESSED :&str = "compressed";
 pub const EC_UNCOMPRESSED :&str = "uncompressed";
 pub const EC_HYBRID :&str = "hybrid";
 pub const EC_PARAMS_EXLICIT :&str = "explicit";
+
+pub const EC_SSLEAY_TYPE :&str = "ssleay";
+pub const EC_PKCS8_TYPE :&str = "pkcs8";

@@ -516,6 +516,44 @@ impl PrivateKey {
 		})
 	}
 
+	fn _get_ec_priv_simp(&self,types :&str,exps :&str) -> Result<ECPublicKeySimpChoiceElem,Box<dyn Error>> {
+		let mut simpelem :ECPublicKeySimpChoiceElem = ECPublicKeySimpChoiceElem::init_asn1();
+		if exps == EC_PARAMS_EXLICIT {
+			simpelem.typei = 2;
+
+
+
+
+		} else {
+			simpelem.typei = 1;
+			let oid = get_ecc_oid_by_name(&self.curve.name)?;
+			let _ = simpelem.simple.set_value(&oid)?;
+		}
+		Ok(simpelem)
+	}
+
+	pub fn to_der(&self, types :&str, asn1s :&str , exps :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
+		let mut privelem :ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
+		privelem.version.val = 1;
+		let (_, mut vecs) = self.keynum.to_bytes_be();
+		let bitsize = bit_length(&self.curve.generator.order());
+		let bs = (bitsize + 7 ) / 8;
+		while vecs.len() < bs {
+			vecs.insert(0,0 as u8);
+		}
+
+		privelem.privkey.data = vecs.clone();
+		let simpelem = self._get_ec_priv_simp(types,exps)?;
+
+		privkey.elem.val.push(privelem);
+		if asn1s == EC_SSLEAY_TYPE{
+			return privkey.encode_asn1();
+		} 
+
+		Ok(Vec::new())
+	}
+
 	pub fn set_rand_file(&mut self, fname :Option<String>) {		
 		self.randname = None;
 		if fname.is_some() {
