@@ -143,6 +143,34 @@ pub struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }
 
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPrivateKeySimpElem {
+	pub version :Asn1Integer,
+	pub secnum :Asn1OctData,
+	pub pubcoords :Asn1Imp<Asn1BitData,1>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPrivateKeySimp {
+	pub elem :Asn1Seq<ECPrivateKeySimpElem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPrivateKeyPkcs8Elem {
+	pub version :Asn1Integer,
+	pub pubkey :Asn1Seq<ECPublicKeySimpChoiceElem>,
+	pub privdata :Asn1OctData,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPrivateKeyPkcs8 {
+	pub elem :Asn1Seq<ECPrivateKeyPkcs8Elem>,
+}
+
 #[derive(Clone,Debug)]
 pub struct PublicKey {
 	pub curve :ECCCurve,
@@ -516,14 +544,32 @@ impl PrivateKey {
 		})
 	}
 
-	fn _get_ec_priv_simp(&self,types :&str,exps :&str) -> Result<ECPublicKeySimpChoiceElem,Box<dyn Error>> {
+	fn _get_ec_pub_simp(&self,types :&str,exps :&str) -> Result<ECPublicKeySimpChoiceElem,Box<dyn Error>> {
 		let mut simpelem :ECPublicKeySimpChoiceElem = ECPublicKeySimpChoiceElem::init_asn1();
 		if exps == EC_PARAMS_EXLICIT {
 			simpelem.typei = 2;
-
-
-
-
+			let mut pubkey :ECPublicKeyParamsElem = ECPublicKeyParamsElem::init_asn1();
+			let mut fieldid :ECPublicKeyFieldIDElem = ECPublicKeyFieldIDElem::init_asn1();
+			let mut  curveelem :ECPublicKeyCurveElem = ECPublicKeyCurveElem::init_asn1();
+			pubkey.version.val = 1;
+			let _ = fieldid.types.set_value(ID_PRIME_FIELD_OID)?;
+			let (_ ,vecs) = self.curve.generator.curve().p().to_bytes_be();
+			fieldid.primenum.val = BigUint::from_bytes_be(&vecs);
+			pubkey.fieldid.elem.val.push(fieldid);
+			let (_ ,vecs) = self.curve.generator.curve().a().to_bytes_be();
+			curveelem.a.data = vecs.clone();
+			let (_ ,vecs) = self.curve.generator.curve().b().to_bytes_be();
+			curveelem.b.data = vecs.clone();
+			pubkey.curve.elem.val.push(curveelem);
+			let x :BigInt = self.curve.generator.x();
+			let y :BigInt = self.curve.generator.y();
+			let vecs = _to_der_x_y(types,&x,&y)?;
+			pubkey.basecoords.data = vecs.clone();
+			let (_, vecs) = self.curve.order.to_bytes_be();
+			pubkey.order.val = BigUint::from_bytes_be(&vecs);
+			let vecs :Vec<u8> = vec![0x1];
+			pubkey.cofactor.val = BigUint::from_bytes_be(&vecs);
+			simpelem.total.elem.val.push(pubkey);
 		} else {
 			simpelem.typei = 1;
 			let oid = get_ecc_oid_by_name(&self.curve.name)?;
@@ -533,25 +579,54 @@ impl PrivateKey {
 	}
 
 	pub fn to_der(&self, types :&str, asn1s :&str , exps :&str) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
-		let mut privelem :ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
-		privelem.version.val = 1;
-		let (_, mut vecs) = self.keynum.to_bytes_be();
-		let bitsize = bit_length(&self.curve.generator.order());
-		let bs = (bitsize + 7 ) / 8;
-		while vecs.len() < bs {
-			vecs.insert(0,0 as u8);
+		if asn1s == EC_SSLEAY_TYPE {
+			let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
+			let mut privelem :ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
+			privelem.version.val = 1;
+			let (_, mut vecs) = self.keynum.to_bytes_be();
+			let bitsize = bit_length(&self.curve.generator.order());
+			let bs = (bitsize + 7 ) / 8;
+			let mut pubdata :Asn1BitData = Asn1BitData::init_asn1();
+			while vecs.len() < bs {
+				vecs.insert(0,0 as u8);
+			}
+
+			privelem.privkey.data = vecs.clone();
+			let simpelem = self._get_ec_pub_simp(types,exps)?;
+			privelem.pubkey.val = simpelem.clone();
+			let x = self.pubkey.x();
+			let y = self.pubkey.y();
+			let coordvecs = _to_der_x_y(types,&x,&y)?;
+			pubdata.data = coordvecs.clone();
+			privelem.pubdata.val = pubdata.clone();
+
+			privkey.elem.val.push(privelem);
+			return privkey.encode_asn1();
+		} else if asn1s == EC_PKCS8_TYPE {
+			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
+			let mut pkcs8elem :ECPrivateKeyPkcs8Elem = ECPrivateKeyPkcs8Elem::init_asn1();
+			pkcs8elem.version.val = 1;
+			let simpelem = self._get_ec_pub_simp(types,exps)?;
+			pkcs8elem.pubkey.val.push(simpelem);
+			let x = self.pubkey.x();
+			let y = self.pubkey.y();
+			let coordvecs = _to_der_x_y(types,&x,&y)?;
+			let mut privelem:ECPrivateKeySimpElem = ECPrivateKeySimpElem::init_asn1();
+			let mut privkey :ECPrivateKeySimp = ECPrivateKeySimp::init_asn1();
+			let mut pubcoords :Asn1BitData = Asn1BitData::init_asn1();
+			privelem.version.val = 1;
+			let (_,vecs) = self.keynum.to_bytes_be();
+			privelem.secnum.data = vecs.clone();
+			pubcoords.data = coordvecs.clone();
+			privelem.pubcoords.val = pubcoords.clone();
+			privkey.elem.val.push(privelem);
+			let rdata = privkey.encode_asn1()?;
+			pkcs8elem.privdata.data = rdata.clone();
+			pkcs8.elem.val.push(pkcs8elem);
+			return pkcs8.encode_asn1();
 		}
 
-		privelem.privkey.data = vecs.clone();
-		let simpelem = self._get_ec_priv_simp(types,exps)?;
-
-		privkey.elem.val.push(privelem);
-		if asn1s == EC_SSLEAY_TYPE{
-			return privkey.encode_asn1();
-		} 
-
-		Ok(Vec::new())
+		ecsimple_new_error!{EccKeyError,"not support asn1s [{}]", asn1s}
 	}
 
 	pub fn set_rand_file(&mut self, fname :Option<String>) {		
