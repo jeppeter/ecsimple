@@ -544,6 +544,27 @@ impl PrivateKey {
 		})
 	}
 
+	pub fn from_der(inv8 :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
+		let ores = privkey.decode_asn1(&inv8);
+		let mut knum :BigInt = zero();
+		let curve = get_ecc_curve_by_name(SECP112r1_NAME)?;
+		if ores.is_err() {
+			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
+			let _ = pkcs8.decode_asn1(&inv8)?;
+		} else {
+
+		}
+		let mut bptr :PointJacobi = curve.generator.clone();
+		let pubkey :PointJacobi = bptr.mul_int(&knum);
+		Ok(PrivateKey {
+			curve : curve.clone(),
+			keynum : knum.clone(),
+			pubkey : pubkey,
+			randname : None,
+		})
+	}
+
 	fn _get_ec_pub_simp(&self,types :&str,exps :&str) -> Result<ECPublicKeySimpChoiceElem,Box<dyn Error>> {
 		let mut simpelem :ECPublicKeySimpChoiceElem = ECPublicKeySimpChoiceElem::init_asn1();
 		if exps == EC_PARAMS_EXLICIT {
