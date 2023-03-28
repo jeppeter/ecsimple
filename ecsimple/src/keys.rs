@@ -133,8 +133,8 @@ pub struct ECPublicKeyAsn1 {
 pub struct ECPrivateKeyAsn1Elem {
 	pub version :Asn1Integer,
 	pub privkey :Asn1OctData,
-	pub pubkey :Asn1Imp<ECPublicKeySimpChoiceElem,0>,
-	pub pubdata :Asn1Imp<Asn1BitData,1>,
+	pub pubkey :Asn1ImpSet<ECPublicKeySimpChoiceElem,0>,
+	pub pubdata :Asn1ImpSet<Asn1BitData,1>,
 }
 
 #[derive(Clone)]
@@ -591,14 +591,16 @@ impl PrivateKey {
 				vecs.insert(0,0 as u8);
 			}
 
+			ecsimple_debug_buffer_trace!(vecs.as_ptr(),vecs.len(),"private key ");
+
 			privelem.privkey.data = vecs.clone();
 			let simpelem = self._get_ec_pub_simp(types,exps)?;
-			privelem.pubkey.val = simpelem.clone();
+			privelem.pubkey.val.push(simpelem);
 			let x = self.pubkey.x();
 			let y = self.pubkey.y();
 			let coordvecs = _to_der_x_y(types,&x,&y)?;
 			pubdata.data = coordvecs.clone();
-			privelem.pubdata.val = pubdata.clone();
+			privelem.pubdata.val.push(pubdata);
 
 			privkey.elem.val.push(privelem);
 			return privkey.encode_asn1();
@@ -615,7 +617,12 @@ impl PrivateKey {
 			let mut privkey :ECPrivateKeySimp = ECPrivateKeySimp::init_asn1();
 			let mut pubcoords :Asn1BitData = Asn1BitData::init_asn1();
 			privelem.version.val = 1;
-			let (_,vecs) = self.keynum.to_bytes_be();
+			let (_,mut vecs) = self.keynum.to_bytes_be();
+			let bitsize = bit_length(&self.curve.generator.order());
+			let bs = (bitsize + 7) / 8;
+			while vecs.len() < bs {
+				vecs.insert(0,0 as u8);
+			}
 			privelem.secnum.data = vecs.clone();
 			pubcoords.data = coordvecs.clone();
 			privelem.pubcoords.val = pubcoords.clone();
