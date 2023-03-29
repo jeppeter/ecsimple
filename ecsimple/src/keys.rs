@@ -536,6 +536,22 @@ pub struct PrivateKey {
 	randname :Option<String>,
 }
 
+impl std::fmt::Debug for PrivateKey {
+    fn fmt(&self,f :&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    	let mut s :String = "{".to_string();
+    	s.push_str(&(format!("curve : {:?},\n",self.curve)));
+    	s.push_str(&(format!("keynum : 0x{:x},\n",self.keynum)));
+    	s.push_str(&(format!("pubkey : {:?},\n",self.pubkey)));
+    	if self.randname.is_some() {
+    		s.push_str(&(format!("randname : {}", self.randname.as_ref().unwrap())));
+    	} else {
+    		s.push_str("randname : null");
+    	}
+    	s.push_str("}");
+    	write!(f,"{}",s)
+    }
+}
+
 impl PartialEq  for PrivateKey {
     fn eq(&self,other :&Self) -> bool {
         if self.curve != other.curve  || self.keynum != other.keynum {
