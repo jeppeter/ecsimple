@@ -21,7 +21,33 @@ pub struct ECCCurve {
 	pub curve :CurveFp,
 }
 
+
+impl std::cmp::PartialEq<ECCCurve> for ECCCurve {
+    fn eq(&self,other :&Self) -> bool {
+        return self.eq_curve(other);
+    }
+
+    fn ne(&self, other :&Self) -> bool {
+        return  !self.eq(other);
+    }	
+}
+
 impl ECCCurve {
+	fn eq_curve(&self,other :&ECCCurve) -> bool {
+		if self.generator != other.generator {
+			return false;
+		}
+
+		if self.order != other.order {
+			return false;
+		}
+
+		if self.curve != other.curve {
+			return false;
+		}
+		return true;
+	}
+
 	pub fn new(name :&str,generator :&PointJacobi) -> ECCCurve {
 		ECCCurve {
 			generator : generator.clone(),

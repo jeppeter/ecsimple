@@ -171,11 +171,6 @@ pub struct ECPrivateKeyPkcs8 {
 	pub elem :Asn1Seq<ECPrivateKeyPkcs8Elem>,
 }
 
-#[derive(Clone,Debug)]
-pub struct PublicKey {
-	pub curve :ECCCurve,
-	pub pubkey :PointJacobi,
-}
 
 
 fn _from_der_x_y_uncompressed(_curve :&CurveFp,data :&[u8]) -> Result<(BigInt,BigInt),Box<dyn Error>> {
@@ -319,6 +314,24 @@ fn _to_der_x_y(types :&str,x :&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Err
 	ecsimple_new_error!{EccKeyError,"not valid types [{}]",types}
 }
 
+#[derive(Clone,Debug)]
+pub struct PublicKey {
+	pub curve :ECCCurve,
+	pub pubkey :PointJacobi,
+}
+
+impl std::cmp::PartialEq<PublicKey> for PublicKey {
+    fn eq(&self,other :&Self) -> bool {
+        if self.curve != other.curve  || self.pubkey != other.pubkey  {
+            return false;
+        }
+        return true;
+    }
+
+    fn ne(&self, other :&Self) -> bool {
+        return  !self.eq(other);
+    }
+}
 
 #[allow(non_snake_case)]
 impl PublicKey {
@@ -518,6 +531,20 @@ pub struct PrivateKey {
 	randname :Option<String>,
 }
 
+impl PartialEq  for PrivateKey {
+    fn eq(&self,other :&Self) -> bool {
+        if self.curve != other.curve  || self.keynum != other.keynum {
+            return false;
+        }
+        return true;
+    }
+
+    fn ne(&self, other :&Self) -> bool {
+        return  !self.eq(other);
+    }
+}
+
+
 #[allow(non_snake_case)]
 impl PrivateKey {
 	pub fn generate(curve :&ECCCurve,fname :Option<String>) -> Result<Self,Box<dyn Error>> {
@@ -551,8 +578,33 @@ impl PrivateKey {
 		if ores.is_err() {
 			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
 			let _ = pkcs8.decode_asn1(&inv8)?;
+			/*now to give the pkcs8 values*/
+			if pkcs8.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"no pkcs8 elem [{}] != 1", pkcs8.elem.val.len()}
+			}
+			let pkcs8elem :ECPrivateKeyPkcs8Elem = pkcs8.elem.val[0].clone();
+			if pkcs8elem.version.val != 1 {
+				ecsimple_new_error!{EccKeyError,"version pkcs8 [{}] != 1",pkcs8elem.version.val}
+			}
+			let getpubkey :PublicKey;
+			let pubkeyelem :ECPublicKeyChoiceElem = pkcs8elem.pubkey.clone();
+			if pubkeyelem.typei == 1 {
+				if pubkeyelem.abbrev.elem.val.len() != 1 {
+					ecsimple_new_error!{EccKeyError,"abbrev elem [{}] != 1",pubkeyelem.abbrev.elem.val.len()}
+				}
+				let abbrevelem :ECPublicKeyAbbrevElem = pubkeyelem.abbrev.elem.val[0].clone();
+				if abbrevelem.types.get_value() != EC_PUBLIC_KEY_OID {
+					ecsimple_new_error!{EccKeyError,"abbrevelem type [{}] != [{}]",abbrevelem.types.get_value(), EC_PUBLIC_KEY_OID}
+				}
+
+			} else if pubkeyelem.typei == 2 {
+
+			}
+
+
 		} else {
 			
+
 		}
 		let mut bptr :PointJacobi = curve.generator.clone();
 		let pubkey :PointJacobi = bptr.mul_int(&knum);
