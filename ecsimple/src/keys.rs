@@ -148,7 +148,7 @@ pub struct ECPrivateKeyAsn1 {
 pub struct ECPrivateKeySimpElem {
 	pub version :Asn1Integer,
 	pub secnum :Asn1OctData,
-	pub pubcoords :Asn1Imp<Asn1BitData,1>,
+	pub pubcoords :Asn1ImpSet<Asn1BitData,1>,
 }
 
 #[derive(Clone)]
@@ -161,7 +161,7 @@ pub struct ECPrivateKeySimp {
 #[asn1_sequence()]
 pub struct ECPrivateKeyPkcs8Elem {
 	pub version :Asn1Integer,
-	pub pubkey :Asn1Seq<ECPublicKeySimpChoiceElem>,
+	pub pubkey :ECPublicKeyChoiceElem,
 	pub privdata :Asn1OctData,
 }
 
@@ -329,6 +329,48 @@ impl PublicKey {
 		})
 	}
 
+	pub fn get_ec_pub(&self,types :&str, exps :&str) -> Result<ECPublicKeyChoiceElem,Box<dyn Error>> {
+		let typeec :String = format!("{}",self.curve.name);
+		let mut curveelem :ECPublicKeyChoiceElem = ECPublicKeyChoiceElem::init_asn1();
+		let oid :String;
+		if typeec.len() != 0 && exps != EC_PARAMS_EXLICIT {
+			oid = get_ecc_oid_by_name(&typeec)?;
+			curveelem.typei = 1;
+			let mut abbrevelem :ECPublicKeyAbbrevElem = ECPublicKeyAbbrevElem::init_asn1();
+			let _ = abbrevelem.types.set_value(EC_PUBLIC_KEY_OID)?;
+			let _ = abbrevelem.ectypes.set_value(&oid)?;
+			curveelem.abbrev.elem.val.push(abbrevelem);
+		} else {
+			/*now to give */
+			let mut totalelem :ECPublicKeyTotalElem = ECPublicKeyTotalElem::init_asn1();
+			let mut ecparams :ECPublicKeyParamsElem = ECPublicKeyParamsElem::init_asn1();
+			let mut fieldid :ECPublicKeyFieldIDElem = ECPublicKeyFieldIDElem::init_asn1();
+			let mut pubk :ECPublicKeyCurveElem = ECPublicKeyCurveElem::init_asn1();
+			let _ = totalelem.types.set_value(EC_PUBLIC_KEY_OID)?;
+			let x :BigInt = self.curve.generator.x();
+			let y :BigInt = self.curve.generator.y();
+			curveelem.typei = 2;
+			ecparams.version.val = 1;
+			let _ = fieldid.types.set_value(ID_PRIME_FIELD_OID)?;
+			let (_ ,vecs) = self.curve.generator.curve().p().to_bytes_be();
+			fieldid.primenum.val = BigUint::from_bytes_be(&vecs);
+			ecparams.fieldid.elem.val.push(fieldid);
+			let (_, vecs) = self.curve.curve.a().to_bytes_be();
+			pubk.a.data = vecs.clone();
+			let (_, vecs) = self.curve.curve.b().to_bytes_be();
+			pubk.b.data = vecs.clone();
+			ecparams.curve.elem.val.push(pubk);
+			let vecs = _to_der_x_y(types,&x,&y)?;
+			ecparams.basecoords.data = vecs.clone();
+			let (_, vecs) = self.curve.order.to_bytes_be();
+			ecparams.order.val = BigUint::from_bytes_be(&vecs);
+			let vecs :Vec<u8> = vec![0x1];
+			ecparams.cofactor.val = BigUint::from_bytes_be(&vecs);
+			totalelem.ecparams.elem.val.push(ecparams);
+			curveelem.total.elem.val.push(totalelem);
+		}
+		Ok(curveelem)
+	}
 
 	pub fn from_der(buf :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
@@ -416,60 +458,17 @@ impl PublicKey {
 
 
 
-	pub fn to_der(&self,types :&str,paramstype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut curveelem :ECPublicKeyChoiceElem = ECPublicKeyChoiceElem::init_asn1();
+	pub fn to_der(&self,types :&str,exps :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
 		let mut pubkasn1  :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
-		let coordvecs :Vec<u8>;
-		let oid :String;
-		let typeec :String = format!("{}",self.curve.name);
-		if typeec.len() != 0 && paramstype != EC_PARAMS_EXLICIT {
-			oid = get_ecc_oid_by_name(&typeec)?;
-			curveelem.typei = 1;
-			let mut abbrevelem :ECPublicKeyAbbrevElem = ECPublicKeyAbbrevElem::init_asn1();
-			let _ = abbrevelem.types.set_value(EC_PUBLIC_KEY_OID)?;
-			let _ = abbrevelem.ectypes.set_value(&oid)?;
-			let x = self.pubkey.x();
-			let y = self.pubkey.y();
-			coordvecs = _to_der_x_y(types,&x,&y)?;
-			curveelem.abbrev.elem.val.push(abbrevelem);
-		} else {
-			/*now to give */
-			let mut totalelem :ECPublicKeyTotalElem = ECPublicKeyTotalElem::init_asn1();
-			let mut ecparams :ECPublicKeyParamsElem = ECPublicKeyParamsElem::init_asn1();
-			let mut fieldid :ECPublicKeyFieldIDElem = ECPublicKeyFieldIDElem::init_asn1();
-			let mut pubk :ECPublicKeyCurveElem = ECPublicKeyCurveElem::init_asn1();
-			let _ = totalelem.types.set_value(EC_PUBLIC_KEY_OID)?;
-			let x :BigInt = self.curve.generator.x();
-			let y :BigInt = self.curve.generator.y();
-			curveelem.typei = 2;
-			ecparams.version.val = 1;
-			let _ = fieldid.types.set_value(ID_PRIME_FIELD_OID)?;
-			let (_ ,vecs) = self.curve.generator.curve().p().to_bytes_be();
-			fieldid.primenum.val = BigUint::from_bytes_be(&vecs);
-			ecparams.fieldid.elem.val.push(fieldid);
-			let (_, vecs) = self.curve.curve.a().to_bytes_be();
-			pubk.a.data = vecs.clone();
-			let (_, vecs) = self.curve.curve.b().to_bytes_be();
-			pubk.b.data = vecs.clone();
-			ecparams.curve.elem.val.push(pubk);
-			let vecs = _to_der_x_y(types,&x,&y)?;
-			ecparams.basecoords.data = vecs.clone();
-			let (_, vecs) = self.curve.order.to_bytes_be();
-			ecparams.order.val = BigUint::from_bytes_be(&vecs);
-			let vecs :Vec<u8> = vec![0x1];
-			ecparams.cofactor.val = BigUint::from_bytes_be(&vecs);
-			let x = self.pubkey.x();
-			let y = self.pubkey.y();
-			coordvecs = _to_der_x_y(types,&x,&y)?;
-			totalelem.ecparams.elem.val.push(ecparams);
-			curveelem.total.elem.val.push(totalelem);
-		}
-
+		let x = self.pubkey.x();
+		let y = self.pubkey.y();
+		let coordvecs = _to_der_x_y(types,&x,&y)?;
+		
+		let curveelem = self.get_ec_pub(types,exps)?;
 		pubkasn1elem.params = curveelem.clone();
 		pubkasn1elem.coords.data = coordvecs.clone();
 		pubkasn1.elem.val.push(pubkasn1elem);
-
 		return pubkasn1.encode_asn1();
 	}
 
@@ -553,7 +552,7 @@ impl PrivateKey {
 			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
 			let _ = pkcs8.decode_asn1(&inv8)?;
 		} else {
-
+			
 		}
 		let mut bptr :PointJacobi = curve.generator.clone();
 		let pubkey :PointJacobi = bptr.mul_int(&knum);
@@ -629,8 +628,7 @@ impl PrivateKey {
 			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
 			let mut pkcs8elem :ECPrivateKeyPkcs8Elem = ECPrivateKeyPkcs8Elem::init_asn1();
 			pkcs8elem.version.val = 1;
-			let simpelem = self._get_ec_pub_simp(types,exps)?;
-			pkcs8elem.pubkey.val.push(simpelem);
+			pkcs8elem.pubkey = self.get_public_key().get_ec_pub(types,exps)?;
 			let x = self.pubkey.x();
 			let y = self.pubkey.y();
 			let coordvecs = _to_der_x_y(types,&x,&y)?;
@@ -646,7 +644,7 @@ impl PrivateKey {
 			}
 			privelem.secnum.data = vecs.clone();
 			pubcoords.data = coordvecs.clone();
-			privelem.pubcoords.val = pubcoords.clone();
+			privelem.pubcoords.val.push(pubcoords.clone());
 			privkey.elem.val.push(privelem);
 			let rdata = privkey.encode_asn1()?;
 			pkcs8elem.privdata.data = rdata.clone();
