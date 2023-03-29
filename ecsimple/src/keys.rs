@@ -575,11 +575,63 @@ impl PrivateKey {
 		})
 	}
 
+	fn _extract_pub_key_simp(simpelem :&ECPublicKeySimpChoiceElem,coordata :&[u8]) -> Result<PublicKey,Box<dyn Error>> {
+		let curve :ECCCurve;
+		let x :BigInt;
+		let y :BigInt;
+
+		if simpelem.typei == 1 {
+			let oid = simpelem.simple.get_value();
+			let ecname = get_ecc_name_by_oid(&oid)?;
+			curve = get_ecc_curve_by_name(&ecname)?;
+			(x,y) = _from_der_x_y(&(curve.curve),coordata)?;
+		} else if simpelem.typei == 2 {
+			if simpelem.total.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"total [{}] != 1", simpelem.total.elem.val.len()}
+			}
+			let ecparamselem :ECPublicKeyParamsElem = simpelem.total.elem.val[0].clone();
+			if ecparamselem.version.val != 1 {
+				ecsimple_new_error!{EccKeyError,"version [{}] != 1", ecparamselem.version.val}
+			}
+			if ecparamselem.fieldid.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"fieldid len [{}] != 1", ecparamselem.fieldid.elem.val.len()}
+			}
+			let fieldidelem = ecparamselem.fieldid.elem.val[0].clone();
+			if fieldidelem.types.get_value() != ID_PRIME_FIELD_OID {
+				ecsimple_new_error!{EccKeyError,"types [{}] != ID_PRIME_FIELD_OID [{}]", fieldidelem.types.get_value(), ID_PRIME_FIELD_OID}
+			}
+
+			let p = BigInt::from_bytes_be(Sign::Plus,&(fieldidelem.primenum.val.to_bytes_be()));
+			if ecparamselem.curve.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"curve elem [{}] != 1",ecparamselem.curve.elem.val.len()}
+			}
+			let curveelem = ecparamselem.curve.elem.val[0].clone();
+
+			let a = BigInt::from_bytes_be(Sign::Plus,&(curveelem.a.data));
+			let b = BigInt::from_bytes_be(Sign::Plus,&(curveelem.b.data));
+			let cofactor = BigInt::from_bytes_be(Sign::Plus,&(ecparamselem.cofactor.val.to_bytes_be()));
+			let fp :CurveFp = CurveFp::new(&p,&a,&b,&cofactor);
+			let (px,py) = _from_der_x_y(&fp,&(ecparamselem.basecoords.data))?;
+			let order = BigInt::from_bytes_be(Sign::Plus,&(ecparamselem.order.val.to_bytes_be()));
+
+			let jap :PointJacobi = PointJacobi::new(&fp,&px,&py,&cofactor,Some(order),false);
+			curve = ECCCurve::new("",&jap);
+			(x,y) = _from_der_x_y(&fp,coordata)?;
+		} else {
+			ecsimple_new_error!{EccKeyError,"typei [{}] not supported", simpelem.typei}
+		}
+
+		let order = curve.order.clone();
+		let eccpnt :ECCPoint = ECCPoint::new(Some(curve.curve.clone()),Some(x.clone()),Some(y.clone()),Some(order.clone()));
+		PublicKey::new(&curve,&eccpnt)
+	}
+
 	pub fn from_der(inv8 :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
 		let ores = privkey.decode_asn1(&inv8);
-		let mut knum :BigInt = zero();
-		let mut curve :ECCCurve = get_ecc_curve_by_name(SECP112r1_NAME)?;
+		let knum :BigInt;
+		let curve :ECCCurve ;
+		let pubkey :PublicKey;
 		if ores.is_err() {
 			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
 			let _ = pkcs8.decode_asn1(&inv8)?;
@@ -592,7 +644,7 @@ impl PrivateKey {
 				ecsimple_new_error!{EccKeyError,"version pkcs8 [{}] != 1",pkcs8elem.version.val}
 			}
 			let pubkeyelem :ECPublicKeyChoiceElem = pkcs8elem.pubkey.clone();
-			let privkeypkcs8 :ECPrivateKeySimp = ECPrivateKeySimp::init_asn1();
+			let mut privkeypkcs8 :ECPrivateKeySimp = ECPrivateKeySimp::init_asn1();
 			let _ = privkeypkcs8.decode_asn1(&(pkcs8elem.privdata.data))?;
 			if privkeypkcs8.elem.val.len() != 1 {
 				ecsimple_new_error!{EccKeyError,"privkeypkcs8 [{}] != 1", privkeypkcs8.elem.val.len()}
@@ -602,21 +654,52 @@ impl PrivateKey {
 				ecsimple_new_error!{EccKeyError,"privsimpelem pubcoords [{}] != 1",privsimpelem.pubcoords.val.len()}
 			}
 			let getpubkey :PublicKey = PublicKey::extract_from_pub_choice(&pubkeyelem,&(privsimpelem.pubcoords.val[0].data))?;
-
-
+			knum = BigInt::from_bytes_be(Sign::Plus,&(privsimpelem.secnum.data));
+			curve = getpubkey.curve.clone();
+			/*now to get the calculate values*/
+			let testself :PrivateKey = PrivateKey::new(&curve,&knum)?;
+			pubkey = testself.get_public_key();
+			if pubkey != getpubkey {
+				ecsimple_new_error!{EccKeyError,"{:?} != {:?}", pubkey,getpubkey}
+			}
 		} else {
-			
+			if privkey.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"privkeyelem [{}] != 1" ,privkey.elem.val.len()}
+			}
+			let privkeyelem = privkey.elem.val[0].clone();
+			if privkeyelem.version.val != 1 {
+				ecsimple_new_error!{EccKeyError,"version [{}] != 1",privkeyelem.version.val}
+			}
+			let pubkeyelem :ECPublicKeySimpChoiceElem;
+			let pubcoords :Asn1BitData;
 
+			if privkeyelem.pubkey.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"pubkey [{}] != 1", privkeyelem.pubkey.val.len()}
+			}
+			pubkeyelem = privkeyelem.pubkey.val[0].clone();
+
+			if privkeyelem.pubdata.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"pubdata [{}] != 1",privkeyelem.pubdata.val.len()}
+			}
+			pubcoords = privkeyelem.pubdata.val[0].clone();
+
+			knum = BigInt::from_bytes_be(Sign::Plus,&(privkeyelem.privkey.data));
+			pubkey = Self::_extract_pub_key_simp(&pubkeyelem,&(pubcoords.data))?;
+			curve = pubkey.curve.clone();
+
+			let testself :PrivateKey = PrivateKey::new(&curve,&knum)?;
+			if testself.get_public_key() != pubkey {
+				ecsimple_new_error!{EccKeyError,"{:?} != {:?}", testself.get_public_key(),pubkey}
+			}
 		}
-		let mut bptr :PointJacobi = curve.generator.clone();
-		let pubkey :PointJacobi = bptr.mul_int(&knum);
 		Ok(PrivateKey {
 			curve : curve.clone(),
 			keynum : knum.clone(),
-			pubkey : pubkey,
+			pubkey : pubkey.pubkey.clone(),
 			randname : None,
 		})
 	}
+
 
 	fn _get_ec_pub_simp(&self,types :&str,exps :&str) -> Result<ECPublicKeySimpChoiceElem,Box<dyn Error>> {
 		let mut simpelem :ECPublicKeySimpChoiceElem = ECPublicKeySimpChoiceElem::init_asn1();
