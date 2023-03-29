@@ -574,7 +574,7 @@ impl PrivateKey {
 		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
 		let ores = privkey.decode_asn1(&inv8);
 		let mut knum :BigInt = zero();
-		let curve = get_ecc_curve_by_name(SECP112r1_NAME)?;
+		let mut curve :ECCCurve = get_ecc_curve_by_name(SECP112r1_NAME)?;
 		if ores.is_err() {
 			let mut pkcs8 :ECPrivateKeyPkcs8 = ECPrivateKeyPkcs8::init_asn1();
 			let _ = pkcs8.decode_asn1(&inv8)?;
@@ -596,9 +596,19 @@ impl PrivateKey {
 				if abbrevelem.types.get_value() != EC_PUBLIC_KEY_OID {
 					ecsimple_new_error!{EccKeyError,"abbrevelem type [{}] != [{}]",abbrevelem.types.get_value(), EC_PUBLIC_KEY_OID}
 				}
-
+				let oid = abbrevelem.ectypes.get_value();
+				let ecname = get_ecc_name_by_oid(&oid)?;
+				curve = get_ecc_curve_by_name(&ecname)?;
 			} else if pubkeyelem.typei == 2 {
-
+				if pubkeyelem.total.elem.val.len() != 1 {
+					ecsimple_new_error!{EccKeyError,"abbrev elem [{}] != 1",pubkeyelem.total.elem.val.len()}
+				}
+				let totalelem :ECPublicKeyTotalElem = pubkeyelem.total.elem.val[0].clone();
+				if totalelem.types.get_value() != EC_PUBLIC_KEY_OID {
+					ecsimple_new_error!{EccKeyError,"types [{}] != EC_PUBLIC_KEY_OID [{}]", totalelem.types.get_value(), EC_PUBLIC_KEY_OID}
+				}
+			} else {
+				ecsimple_new_error!{EccKeyError,"not supported typei [{}]", pubkeyelem.typei}
 			}
 
 
