@@ -385,18 +385,9 @@ impl PublicKey {
 		Ok(curveelem)
 	}
 
-	pub fn from_der(buf :&[u8]) -> Result<Self,Box<dyn Error>> {
-		let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
-		let _ = pubkasn1.decode_asn1(buf)?;
-		let curveelem :ECPublicKeyChoiceElem;
+	pub fn extract_from_pub_choice(curveelem :&ECPublicKeyChoiceElem,coordata :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let mut pubk :PointJacobi;
-		if pubkasn1.elem.val.len() != 1 {
-			ecsimple_new_error!{EccKeyError,"not pubkasn1 [{}] != 1" , pubkasn1.elem.val.len()}
-		}
-		let pubkelem = pubkasn1.elem.val[0].clone();
-
 		let curve :ECCCurve;
-		curveelem = pubkelem.params.clone();
 		if curveelem.typei == 1 {
 			let abbrevelem :ECPublicKeyAbbrevElem ;
 			if curveelem.abbrev.elem.val.len() != 1 {
@@ -408,7 +399,7 @@ impl PublicKey {
 			let types = get_ecc_name_by_oid(&oids)?;
 			curve = get_ecc_curve_by_name(&types)?;
 			ecsimple_log_trace!("[{}] curve generator {:?}", types, curve.generator);
-			let (x,y) = _from_der_x_y(&(curve.curve),&pubkelem.coords.data)?;
+			let (x,y) = _from_der_x_y(&(curve.curve),coordata)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
 		} else {
@@ -458,7 +449,7 @@ impl PublicKey {
 			let oo :Option<BigInt> = Some(order.clone());
 			let njacobi :PointJacobi = PointJacobi::new(&ncurve,&x,&y,&cofactor,oo,false);
 			curve = ECCCurve::new("",&njacobi);
-			let (x,y) = _from_der_x_y(&ncurve,&pubkelem.coords.data)?;
+			let (x,y) = _from_der_x_y(&ncurve,coordata)?;
 			pubk = curve.generator.clone();
 			let _ = pubk.set_x_y(&x,&y)?;
 		}
@@ -467,6 +458,20 @@ impl PublicKey {
 			curve : curve.clone(),
 			pubkey : pubk.clone(),
 		})
+
+	}
+
+	pub fn from_der(buf :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+		let _ = pubkasn1.decode_asn1(buf)?;
+		let curveelem :ECPublicKeyChoiceElem;
+		if pubkasn1.elem.val.len() != 1 {
+			ecsimple_new_error!{EccKeyError,"not pubkasn1 [{}] != 1" , pubkasn1.elem.val.len()}
+		}
+		let pubkelem = pubkasn1.elem.val[0].clone();
+
+		curveelem = pubkelem.params.clone();
+		return Self::extract_from_pub_choice(&curveelem,&pubkelem.coords.data);
 	}
 
 
@@ -586,30 +591,17 @@ impl PrivateKey {
 			if pkcs8elem.version.val != 1 {
 				ecsimple_new_error!{EccKeyError,"version pkcs8 [{}] != 1",pkcs8elem.version.val}
 			}
-			let getpubkey :PublicKey;
 			let pubkeyelem :ECPublicKeyChoiceElem = pkcs8elem.pubkey.clone();
-			if pubkeyelem.typei == 1 {
-				if pubkeyelem.abbrev.elem.val.len() != 1 {
-					ecsimple_new_error!{EccKeyError,"abbrev elem [{}] != 1",pubkeyelem.abbrev.elem.val.len()}
-				}
-				let abbrevelem :ECPublicKeyAbbrevElem = pubkeyelem.abbrev.elem.val[0].clone();
-				if abbrevelem.types.get_value() != EC_PUBLIC_KEY_OID {
-					ecsimple_new_error!{EccKeyError,"abbrevelem type [{}] != [{}]",abbrevelem.types.get_value(), EC_PUBLIC_KEY_OID}
-				}
-				let oid = abbrevelem.ectypes.get_value();
-				let ecname = get_ecc_name_by_oid(&oid)?;
-				curve = get_ecc_curve_by_name(&ecname)?;
-			} else if pubkeyelem.typei == 2 {
-				if pubkeyelem.total.elem.val.len() != 1 {
-					ecsimple_new_error!{EccKeyError,"abbrev elem [{}] != 1",pubkeyelem.total.elem.val.len()}
-				}
-				let totalelem :ECPublicKeyTotalElem = pubkeyelem.total.elem.val[0].clone();
-				if totalelem.types.get_value() != EC_PUBLIC_KEY_OID {
-					ecsimple_new_error!{EccKeyError,"types [{}] != EC_PUBLIC_KEY_OID [{}]", totalelem.types.get_value(), EC_PUBLIC_KEY_OID}
-				}
-			} else {
-				ecsimple_new_error!{EccKeyError,"not supported typei [{}]", pubkeyelem.typei}
+			let privkeypkcs8 :ECPrivateKeySimp = ECPrivateKeySimp::init_asn1();
+			let _ = privkeypkcs8.decode_asn1(&(pkcs8elem.privdata.data))?;
+			if privkeypkcs8.elem.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"privkeypkcs8 [{}] != 1", privkeypkcs8.elem.val.len()}
 			}
+			let privsimpelem = privkeypkcs8.elem.val[0].clone();
+			if privsimpelem.pubcoords.val.len() != 1 {
+				ecsimple_new_error!{EccKeyError,"privsimpelem pubcoords [{}] != 1",privsimpelem.pubcoords.val.len()}
+			}
+			let getpubkey :PublicKey = PublicKey::extract_from_pub_choice(&pubkeyelem,&(privsimpelem.pubcoords.val[0].data))?;
 
 
 		} else {
