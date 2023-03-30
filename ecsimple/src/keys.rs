@@ -362,6 +362,91 @@ impl PublicKey {
 		Ok(ECCSignature::new(&r,&s))
 	}
 
+	fn _splice_pack(&self,rdata :&[u8],maxsize :usize) -> Result<(BigInt,usize),Box<dyn Error>> {
+		/*
+		for packet 
+		[0] = 
+
+		*/
+		let mut rdsize :usize = maxsize - 3;
+		let mut sizeb :usize = 1;
+		let mut curi :usize;
+		let mut idx :usize;
+		assert!(maxsize < EC_ENC_DATA_4_BYTE_MAX);
+		if rdata.len() > rdsize {
+			rdsize = rdata.len();
+		}
+
+		if (rdsize+3) > EC_ENC_DATA_1_BYTE_MAX {
+			sizeb += 1;
+			if rdsize < rdata.len() {
+				rdsize -= 1;	
+			}
+			
+		}
+
+		if (rdsize + 3) > EC_ENC_DATA_2_BYTE_MAX {
+			sizeb += 1;
+			if rdsize < rdata.len() {
+				rdsize -= 1;	
+			}
+		}
+
+		if (rdsize + 3) > EC_ENC_DATA_3_BYTE_MAX {
+			sizeb += 1;
+			if rdsize < rdata.len() {
+				rdsize -= 1;	
+			}
+		} 
+
+		if (rdsize + sizeb + 2 ) > maxsize {
+			rdsize = maxsize - sizeb - 2;
+		}
+
+		/**/
+		let mut retv :Vec<u8> = Vec::new();
+		/*reserve size*/
+		retv.reserve(rdsize + 2 + sizeb);
+		retv[0] = (EC_ENC_DATA_SIMPLE | ((((sizeb - 1) as u8) & EC_ENC_DATA_SIZE_MASK ) << EC_ENC_DATA_SIZE_SHIFT)) as u8;
+		curi = 1;
+		if rdsize > EC_ENC_DATA_3_BYTE_MAX {
+			retv[curi] = ((rdsize >> 24) & 0xff) as u8;
+			curi += 1;
+		}
+
+		if rdsize > EC_ENC_DATA_2_BYTE_MAX {
+			retv[curi] = ((rdsize >> 16) & 0xff) as u8;
+			curi += 1;
+		}
+
+		if rdsize > EC_ENC_DATA_1_BYTE_MAX {
+			retv[curi] = ((rdsize >> 8) & 0xff) as u8;
+			curi += 1;
+		}
+
+		retv[curi] = (rdsize & 0xff) as u8;
+		curi += 1;
+
+		idx = 0;
+		while idx < rdsize {
+			retv[curi + idx] = rdata[idx];
+			idx += 1;
+		}
+
+		curi += rdsize;
+		/*now we at last to calculate the crc8*/
+		let mut crcv :u8 = 0;
+		for k in 0..curi {
+			crcv += retv[k];
+		}
+
+		retv[curi] = crcv;
+		curi += 1;
+		let r :BigInt = BigInt::from_bytes_be(Sign::Plus,&retv);
+
+		Ok((r,curi))
+	}
+
 	pub fn encrypt(&self, data :&[u8]) -> Result<Vec<ECCSignature>, Box<dyn Error>> {
 		let bitsize :usize = bit_length(&(self.curve.order));
 		let mut bs :usize = bitsize / 8;
@@ -383,12 +468,8 @@ impl PublicKey {
 		rdops = RandOps::new(bname)?;
 
 		while rdsize < data.len() {
-			let mut curlen :usize = bs;
 			let mut retok :Result<ECCSignature,Box<dyn Error>> = Ok(ECCSignature::new(&(zero()),&(zero())));
-			if (curlen + rdsize) > data.len() {
-				curlen = data.len() - rdsize;
-			}
-			let curval :BigInt = BigInt::from_bytes_be(Sign::Plus,&(data[rdsize..(rdsize+curlen)]));
+			let (curval,curlen) = self._splice_pack(&data[rdsize..],bs)?;
 			let mut trycnt :i32 = 0;
 			while trycnt < 3 {
 				let vecs = rdops.get_bytes(bs)?;
@@ -968,6 +1049,78 @@ impl PrivateKey {
 		}
 	}
 
+	fn _check_enc_data(&self,data :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+		/*now to check for the data*/
+		if data.len() < 4 {
+			ecsimple_new_error!{EccKeyError,"data.len [{}] < 4", data.len()}
+		}
+		let sizeb :usize = (((data[0] >> EC_ENC_DATA_SIZE_SHIFT) & EC_ENC_DATA_SIZE_MASK) + 1) as usize;
+		if (data[0] & EC_ENC_DATA_MASK) == 0 {
+			ecsimple_new_error!{EccKeyError,"[0] & 0x3f == 0"}
+		}
+		if (data[0] & EC_ENC_DATA_MASK) == EC_ENC_DATA_SIMPLE {
+			let mut rdsize :usize = 0;
+			let mut curi :usize;
+			curi = 1;
+			if sizeb == 1 {
+				rdsize += data[curi] as usize;
+				curi += 1;
+			} else if sizeb == 2 {
+				rdsize += (data[curi] as usize) << 8;
+				curi += 1;
+				rdsize += data[curi] as usize;
+				curi += 1;
+			} else if sizeb == 3 {
+				rdsize += (data[curi] as usize) << 16;
+				curi += 1;
+				rdsize += (data[curi] as usize) << 8;
+				curi += 1;
+				rdsize += data[curi] as usize;
+				curi += 1;
+			} else {
+				rdsize += (data[curi] as usize) << 24;
+				curi += 1;
+				rdsize += (data[curi] as usize) << 16;
+				curi += 1;
+				rdsize += (data[curi] as usize) << 8;
+				curi += 1;
+				rdsize += data[curi] as usize;
+				curi += 1;
+			}
+
+			if data.len() != (rdsize + 3) {
+				ecsimple_new_error!{EccKeyError,"rdsize [0x{:x}] + 3 != data.len [0x{:x}]", rdsize, data.len()}
+			}
+			let mut crcv :u8 = 0;
+			for k in 0..(curi + rdsize) {
+				crcv += data[k];
+			}
+
+			if crcv != data[(curi+ rdsize)] {
+				ecsimple_new_error!{EccKeyError,"crc [0x{:x}] != get [0x{:x}]", crcv,data[(curi+rdsize)]}
+			}
+			let retv :Vec<u8> = data[curi..(curi+rdsize)].to_vec();
+			return Ok(retv);
+		} else {
+			ecsimple_new_error!{EccKeyError,"mask [0x{:x}] not supported", data[0] & EC_ENC_DATA_MASK}
+		}
+	}
+
+
+	fn _extract_data(&self,nv :&BigInt, p :&BigInt) -> Result<Vec<u8>,Box<dyn Error>> {
+		let (_, vecs) = nv.to_bytes_be();
+		let ores = self._check_enc_data(&vecs);
+		let retv :Vec<u8>;
+		if ores.is_err() {
+			let c = (nv + p) % p;
+			let (_, cvecs) = c.to_bytes_be();
+			retv = self._check_enc_data(&cvecs)?;
+		} else {
+			retv = ores.unwrap();
+		}
+		Ok(retv)
+	}
+
 	fn _decript_one_pack(&self, ecsig :&ECCSignature) -> Result<Vec<u8>,Box<dyn Error>> {
 		let a :BigInt = self.curve.curve.a();
 		let b :BigInt = self.curve.curve.b();
@@ -981,7 +1134,7 @@ impl PrivateKey {
 		let mut orr :PointJacobi = nrj.mul_int(&self.keynum);
 		let opt :ECCPoint = orr.to_affine();
 		let nv :BigInt = s - opt.x();
-		let (_, retv) = nv.to_bytes_be();
+		let retv = self._extract_data(&nv,&p)?;
 		Ok(retv)
 	}
 
