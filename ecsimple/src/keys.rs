@@ -967,4 +967,30 @@ impl PrivateKey {
 			randname : None,
 		}
 	}
+
+	fn _decript_one_pack(&self, ecsig :&ECCSignature) -> Result<Vec<u8>,Box<dyn Error>> {
+		let a :BigInt = self.curve.curve.a();
+		let b :BigInt = self.curve.curve.b();
+		let p :BigInt = self.curve.curve.p();
+		let r :BigInt = ecsig.r.clone();
+		let s :BigInt = ecsig.s.clone();
+		let alpha :BigInt = (&r * &r * &r + &a * &r + &b) % &p;
+		let y :BigInt = square_root_mod_prime(&alpha,&p)?;
+		let nrp :ECCPoint = ECCPoint::new(Some(self.curve.generator.curve()),Some(r.clone()),Some(y.clone()),Some(self.curve.generator.order()));
+		let mut nrj :PointJacobi = PointJacobi::from_affine(&nrp,false);
+		let mut orr :PointJacobi = nrj.mul_int(&self.keynum);
+		let opt :ECCPoint = orr.to_affine();
+		let nv :BigInt = s - opt.x();
+		let (_, retv) = nv.to_bytes_be();
+		Ok(retv)
+	}
+
+	pub fn decrypt(&self,sigs :&[ECCSignature]) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut retv :Vec<u8> = Vec::new();
+		for ecsig in sigs.iter() {
+			let curv :Vec<u8> = self._decript_one_pack(ecsig)?;
+			retv.extend(curv);
+		}
+		Ok(retv)
+	}
 }
