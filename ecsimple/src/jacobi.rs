@@ -217,6 +217,10 @@ impl ECCPoint {
         return self.order.as_ref().unwrap().clone();
     }
 
+    pub fn add_point_ref(&self,other :&Self) -> Self {
+        return self.add_point(other.clone());
+    }
+
     pub fn add_point(&self, other :Self) -> Self {
         if other.infinity {
             return self.clone();
@@ -353,6 +357,13 @@ impl std::ops::Add for ECCPoint {
     type Output = Self;
     fn add(self, other :Self) -> Self {
         return (&self).add_point(other);
+    }
+}
+
+impl<'a,'b> std::ops::Add<&'b ECCPoint> for &'a ECCPoint {
+    type Output = ECCPoint;
+    fn add(self,other :&ECCPoint) -> ECCPoint {
+        return self.add_point_ref(other);
     }
 }
 
@@ -979,6 +990,7 @@ impl std::cmp::PartialEq<ECCPoint> for PointJacobi {
         return  !self.eq(other);
     }
 }
+
 
 impl std::ops::Add for PointJacobi {
     type Output = Self;

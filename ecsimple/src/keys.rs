@@ -318,6 +318,7 @@ fn _to_der_x_y(types :&str,x :&BigInt, y :&BigInt) -> Result<Vec<u8>,Box<dyn Err
 pub struct PublicKey {
 	pub curve :ECCCurve,
 	pub pubkey :PointJacobi,
+	pub randname :Option<String>,
 }
 
 impl std::cmp::PartialEq<PublicKey> for PublicKey {
@@ -339,7 +340,77 @@ impl PublicKey {
 		Ok(PublicKey {
 			curve :curve.clone(),
 			pubkey : PointJacobi::from_affine(pt,false),
+			randname : None,
 		})
+	}
+
+	fn _ecnrypt_one_pack(&self,curval :&BigInt,randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
+		let mut generator :PointJacobi = self.curve.generator.clone();
+		let mut c :PublicKey = self.clone();
+		let pubpoint :ECCPoint = c.pubkey.to_affine();
+		let mut rja :PointJacobi = generator.mul_int(randkey);
+		let sja :ECCPoint = pubpoint.multiply_int(randkey);
+		let rs :ECCPoint = rja.to_affine();
+
+		let r :BigInt = rs.x();
+		let s :BigInt = curval + sja.x();
+
+		if r == zero() || s == zero() {
+			ecsimple_new_error!{EccKeyError,"zero for r [0x{:x}] or s [0x{:x}]", r,s}
+		}
+
+		Ok(ECCSignature::new(&r,&s))
+	}
+
+	pub fn encrypt(&self, data :&[u8]) -> Result<Vec<ECCSignature>, Box<dyn Error>> {
+		let bitsize :usize = bit_length(&(self.curve.order));
+		let mut bs :usize = bitsize / 8;
+		let mut rdsize :usize = 0;
+		let mut rdops :RandOps;
+		let mut retv :Vec<ECCSignature> = Vec::new();
+		let bname :Option<String>;
+		if bitsize == (bs * (8 as usize)) {
+			/*we should make sure every size is less*/
+			bs -= 1;
+		}
+
+		if self.randname.is_some() {
+			bname = Some(format!("{}",self.randname.as_ref().unwrap()));
+		} else {
+			bname = None;
+		}
+
+		rdops = RandOps::new(bname)?;
+
+		while rdsize < data.len() {
+			let mut curlen :usize = bs;
+			let mut retok :Result<ECCSignature,Box<dyn Error>> = Ok(ECCSignature::new(&(zero()),&(zero())));
+			if (curlen + rdsize) > data.len() {
+				curlen = data.len() - rdsize;
+			}
+			let curval :BigInt = BigInt::from_bytes_be(Sign::Plus,&(data[rdsize..(rdsize+curlen)]));
+			let mut trycnt :i32 = 0;
+			while trycnt < 3 {
+				let vecs = rdops.get_bytes(bs)?;
+				let randval :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+				retok = self._ecnrypt_one_pack(&curval,&randval);
+				if retok.is_ok() {
+					break;
+				}
+				trycnt += 1;
+			}
+
+			if trycnt >= 3 {
+				if retok.is_err() {
+					return Err(retok.err().unwrap());
+				}
+			}
+
+			retv.push(retok.unwrap());
+			rdsize += curlen;
+		}
+
+		Ok(retv)
 	}
 
 	pub fn get_ec_pub(&self,types :&str, exps :&str) -> Result<ECPublicKeyChoiceElem,Box<dyn Error>> {
@@ -457,6 +528,7 @@ impl PublicKey {
 		Ok(PublicKey {
 			curve : curve.clone(),
 			pubkey : pubk.clone(),
+			randname : None,
 		})
 
 	}
@@ -892,6 +964,7 @@ impl PrivateKey {
 		PublicKey {
 			curve : self.curve.clone(),
 			pubkey : self.pubkey.clone(),
+			randname : None,
 		}
 	}
 }
