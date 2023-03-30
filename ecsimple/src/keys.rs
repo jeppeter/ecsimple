@@ -346,14 +346,15 @@ impl PublicKey {
 
 	fn _ecnrypt_one_pack(&self,curval :&BigInt,randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
 		let mut generator :PointJacobi = self.curve.generator.clone();
-		let mut c :PublicKey = self.clone();
-		let pubpoint :ECCPoint = c.pubkey.to_affine();
+		let mut pubpoint :PointJacobi = self.pubkey.clone();
 		let mut rja :PointJacobi = generator.mul_int(randkey);
-		let sja :ECCPoint = pubpoint.multiply_int(randkey);
+		let mut sja :PointJacobi = pubpoint.mul_int(randkey);
+
 		let rs :ECCPoint = rja.to_affine();
+		let ss :ECCPoint = sja.to_affine();
 
 		let r :BigInt = rs.x();
-		let s :BigInt = curval + sja.x();
+		let s :BigInt = curval + ss.x();
 
 		if r == zero() || s == zero() {
 			ecsimple_new_error!{EccKeyError,"zero for r [0x{:x}] or s [0x{:x}]", r,s}
@@ -402,45 +403,51 @@ impl PublicKey {
 		if (rdsize + sizeb + 2 ) > maxsize {
 			rdsize = maxsize - sizeb - 2;
 		}
+		if rdsize > rdata.len() {
+			rdsize = rdata.len();
+		}
 
 		/**/
 		let mut retv :Vec<u8> = Vec::new();
 		/*reserve size*/
-		retv.reserve(rdsize + 2 + sizeb);
-		retv[0] = (EC_ENC_DATA_SIMPLE | ((((sizeb - 1) as u8) & EC_ENC_DATA_SIZE_MASK ) << EC_ENC_DATA_SIZE_SHIFT)) as u8;
+		retv.push((EC_ENC_DATA_SIMPLE | ((((sizeb - 1) as u8) & EC_ENC_DATA_SIZE_MASK ) << EC_ENC_DATA_SIZE_SHIFT)) as u8);
 		curi = 1;
 		if rdsize > EC_ENC_DATA_3_BYTE_MAX {
-			retv[curi] = ((rdsize >> 24) & 0xff) as u8;
+			retv.push(((rdsize >> 24) & 0xff) as u8);
 			curi += 1;
 		}
 
 		if rdsize > EC_ENC_DATA_2_BYTE_MAX {
-			retv[curi] = ((rdsize >> 16) & 0xff) as u8;
+			retv.push(((rdsize >> 16) & 0xff) as u8);
 			curi += 1;
 		}
 
 		if rdsize > EC_ENC_DATA_1_BYTE_MAX {
-			retv[curi] = ((rdsize >> 8) & 0xff) as u8;
+			retv.push(((rdsize >> 8) & 0xff) as u8);
 			curi += 1;
 		}
 
-		retv[curi] = (rdsize & 0xff) as u8;
+		retv.push( (rdsize & 0xff) as u8);
 		curi += 1;
 
 		idx = 0;
 		while idx < rdsize {
-			retv[curi + idx] = rdata[idx];
+			retv.push(rdata[idx]);
 			idx += 1;
 		}
 
 		curi += rdsize;
 		/*now we at last to calculate the crc8*/
-		let mut crcv :u8 = 0;
+		let mut c16 :u16 = 0;
+
 		for k in 0..curi {
-			crcv += retv[k];
+			c16 += retv[k] as u16;
+			if c16 > 0xff {
+				c16 &= 0xff;
+			}
 		}
 
-		retv[curi] = crcv;
+		retv.push(c16 as u8);
 		curi += 1;
 		let r :BigInt = BigInt::from_bytes_be(Sign::Plus,&retv);
 
@@ -1091,12 +1098,15 @@ impl PrivateKey {
 			if data.len() != (rdsize + 3) {
 				ecsimple_new_error!{EccKeyError,"rdsize [0x{:x}] + 3 != data.len [0x{:x}]", rdsize, data.len()}
 			}
-			let mut crcv :u8 = 0;
+			let mut crcv :u16 = 0;
 			for k in 0..(curi + rdsize) {
-				crcv += data[k];
+				crcv += data[k] as u16;
+				if crcv > 0xff {
+					crcv &= 0xff;
+				}
 			}
 
-			if crcv != data[(curi+ rdsize)] {
+			if (crcv as u8 ) != data[(curi+ rdsize)] {
 				ecsimple_new_error!{EccKeyError,"crc [0x{:x}] != get [0x{:x}]", crcv,data[(curi+rdsize)]}
 			}
 			let retv :Vec<u8> = data[curi..(curi+rdsize)].to_vec();
