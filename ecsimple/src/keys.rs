@@ -378,7 +378,7 @@ impl PublicKey {
 			rdsize = rdata.len();
 		}
 
-		if (rdsize+3) > EC_ENC_DATA_1_BYTE_MAX {
+		if rdsize > EC_ENC_DATA_1_BYTE_MAX {
 			sizeb += 1;
 			if rdsize < rdata.len() {
 				rdsize -= 1;	
@@ -386,14 +386,14 @@ impl PublicKey {
 			
 		}
 
-		if (rdsize + 3) > EC_ENC_DATA_2_BYTE_MAX {
+		if rdsize > EC_ENC_DATA_2_BYTE_MAX {
 			sizeb += 1;
 			if rdsize < rdata.len() {
 				rdsize -= 1;	
 			}
 		}
 
-		if (rdsize + 3) > EC_ENC_DATA_3_BYTE_MAX {
+		if rdsize > EC_ENC_DATA_3_BYTE_MAX {
 			sizeb += 1;
 			if rdsize < rdata.len() {
 				rdsize -= 1;	
