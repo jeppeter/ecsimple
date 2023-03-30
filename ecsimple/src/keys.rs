@@ -374,7 +374,7 @@ impl PublicKey {
 		let mut curi :usize;
 		let mut idx :usize;
 		assert!(maxsize < EC_ENC_DATA_4_BYTE_MAX);
-		if rdata.len() > rdsize {
+		if rdsize > rdata.len() {
 			rdsize = rdata.len();
 		}
 
@@ -402,9 +402,6 @@ impl PublicKey {
 
 		if (rdsize + sizeb + 2 ) > maxsize {
 			rdsize = maxsize - sizeb - 2;
-		}
-		if rdsize > rdata.len() {
-			rdsize = rdata.len();
 		}
 
 		/**/
@@ -448,10 +445,9 @@ impl PublicKey {
 		}
 
 		retv.push(c16 as u8);
-		curi += 1;
 		let r :BigInt = BigInt::from_bytes_be(Sign::Plus,&retv);
 
-		Ok((r,curi))
+		Ok((r,rdsize))
 	}
 
 	pub fn encrypt(&self, data :&[u8]) -> Result<Vec<ECCSignature>, Box<dyn Error>> {
@@ -1096,6 +1092,7 @@ impl PrivateKey {
 			}
 
 			if data.len() != (rdsize + 3) {
+				ecsimple_debug_buffer_error!(data.as_ptr(),data.len(),"data extracted sizeb [0x{:x}]",sizeb);
 				ecsimple_new_error!{EccKeyError,"rdsize [0x{:x}] + 3 != data.len [0x{:x}]", rdsize, data.len()}
 			}
 			let mut crcv :u16 = 0;
