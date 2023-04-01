@@ -1153,4 +1153,13 @@ impl PrivateKey {
 		}
 		Ok(retv)
 	}
+
+	pub fn ecdh_value(&self,pubk :&PublicKey) -> Result<BigInt,Box<dyn Error>> {
+		let mut pk :PublicKey = pubk.clone();
+		let vpnt :PointJacobi = pk.pubkey.mul_int(&self.keynum);
+		if vpnt.isinfinity() {
+			ecsimple_new_error!{EccKeyError,"infinity"}
+		}
+		Ok(vpnt.x())
+	}
 }

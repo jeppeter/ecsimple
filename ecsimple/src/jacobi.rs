@@ -910,6 +910,10 @@ impl PointJacobi {
         return retv;
     }
 
+    pub fn isinfinity(&self) -> bool {
+        return self.infinity;
+    }
+
     pub fn mul_int(&mut self,o3 :&BigInt) -> PointJacobi {
         let zv :BigInt = zero::<BigInt>();
         let ov :BigInt = one::<BigInt>();
