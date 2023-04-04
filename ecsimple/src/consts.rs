@@ -2,8 +2,12 @@
 
 pub const SECP112r1_NAME :&str = "SECP112r1";
 pub const SECP112r2_NAME :&str = "SECP112r2";
+pub const SECT163k1_NAME :&str = "SECT163k1";
+pub const SECT163r1_NAME :&str = "SECT163r1";
 
 
+pub const SECT163k1_OID :&str = "1.3.132.0.1";
+pub const SECT163r1_OID :&str = "1.3.132.0.2";
 pub const SECP112r1_OID :&str = "1.3.132.0.6";
 pub const SECP112r2_OID :&str = "1.3.132.0.7";
 

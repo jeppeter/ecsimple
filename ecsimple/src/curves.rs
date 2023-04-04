@@ -59,6 +59,21 @@ impl ECCCurve {
 }
 
 /*
+
+_p = int(remove_whitespace("0800000000000000000000000000000000000000C9"), 16)
+# s = 00F50B02 8E4D696E 67687561 51752904 72783FB1
+_a = int(remove_whitespace("000000000000000000000000000000000000000001"), 16)
+_b = int(remove_whitespace("000000000000000000000000000000000000000001"), 16)
+_Gx = int(remove_whitespace("02FE13C0537BBC11ACAA07D793DE4E6D5E5C94EEE8"), 16)
+_Gy = int(remove_whitespace("0289070FB05D38FF58321F2E800536D538CCDAA3D9"), 16)
+_r = int(remove_whitespace("04000000000000000000020108A2E0CC0D99F8A5EF"), 16)
+_h = 2
+curve_ansit163k1 = ellipticcurve.CurveFp(_p, _a, _b, _h)
+generator_112r1 = ellipticcurve.PointJacobi(
+    curve_112r1, _Gx, _Gy, 1, _r, generator=False
+)
+
+
 _p = int(remove_whitespace("DB7C 2ABF62E3 5E668076 BEAD208B"), 16)
 # s = 00F50B02 8E4D696E 67687561 51752904 72783FB1
 _a = int(remove_whitespace("DB7C 2ABF62E3 5E668076 BEAD2088"), 16)
@@ -101,6 +116,50 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 	let mut curve :CurveFp;
 	let mut japt :PointJacobi;
 	let ov :BigInt = one::<BigInt>();
+
+	v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000001").unwrap();
+	a = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000001").unwrap();
+	b = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("02FE13C0537BBC11ACAA07D793DE4E6D5E5C94EEE8").unwrap();
+	gx = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("0289070FB05D38FF58321F2E800536D538CCDAA3D9").unwrap();
+	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("04000000000000000000020108A2E0CC0D99F8A5EF").unwrap();
+	r = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("01").unwrap();
+	h = ov.clone() + ov.clone();
+
+	curve = CurveFp::new(&p,&a,&b,&h);
+	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),false);
+
+	retv.insert(SECT163k1_NAME.to_string(),ECCCurve::new(SECT163k1_NAME,&japt));
+
+
+	v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("07B6882CAAEFA84F9554FF8428BD88E246D2782AE2").unwrap();
+	a = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("0713612DCDDCB40AAB946BDA29CA91F73AF958AFD9").unwrap();
+	b = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("0369979697AB43897789566789567F787A7876A654").unwrap();
+	gx = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("00435EDB42EFAFB2989D51FEFCE3C80988F41FF883").unwrap();
+	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("03FFFFFFFFFFFFFFFFFFFF48AAB689C29CA710279B").unwrap();
+	r = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("01").unwrap();
+	h = ov.clone() + ov.clone();
+
+	curve = CurveFp::new(&p,&a,&b,&h);
+	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),false);
+
+	retv.insert(SECT163r1_NAME.to_string(),ECCCurve::new(SECT163r1_NAME,&japt));
+
+
+
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -147,7 +206,9 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 }
 
 fn create_curve_oid() -> HashMap<String,String> {
-	let mut retv :HashMap<String,String> = HashMap::new();
+	let mut retv :HashMap<String,String> = HashMap::new();	
+	retv.insert(SECT163k1_NAME.to_string(),SECT163k1_OID.to_string());
+	retv.insert(SECT163r1_NAME.to_string(),SECT163r1_OID.to_string());
 	retv.insert(SECP112r1_NAME.to_string(),SECP112r1_OID.to_string());
 	retv.insert(SECP112r2_NAME.to_string(),SECP112r2_OID.to_string());
 
@@ -156,6 +217,8 @@ fn create_curve_oid() -> HashMap<String,String> {
 
 fn create_curve_name() -> HashMap<String,String> {
 	let mut retv :HashMap<String,String> = HashMap::new();
+	retv.insert(SECT163k1_OID.to_string(),SECT163k1_NAME.to_string());
+	retv.insert(SECT163r1_OID.to_string(),SECT163r1_NAME.to_string());
 	retv.insert(SECP112r1_OID.to_string(),SECP112r1_NAME.to_string());
 	retv.insert(SECP112r2_OID.to_string(),SECP112r2_NAME.to_string());
 
