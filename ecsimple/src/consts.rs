@@ -7,6 +7,7 @@ pub const SECT113r2_NAME :&str = "SECT113r2";
 pub const SECP112r1_NAME :&str = "SECP112r1";
 pub const SECP112r2_NAME :&str = "SECP112r2";
 pub const SECP160r1_NAME :&str = "SECP160r1";
+pub const SECP160k1_NAME :&str = "SECP160k1";
 
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
@@ -17,6 +18,7 @@ pub const SECT113r2_OID :&str = "1.3.132.0.5";
 pub const SECP112r1_OID :&str = "1.3.132.0.6";
 pub const SECP112r2_OID :&str = "1.3.132.0.7";
 pub const SECP160r1_OID :&str = "1.3.132.0.8";
+pub const SECP160k1_OID :&str = "1.3.132.0.9";
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
 pub const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
