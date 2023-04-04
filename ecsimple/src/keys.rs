@@ -532,7 +532,7 @@ impl PublicKey {
 			ecparams.basecoords.data = vecs.clone();
 			let (_, vecs) = self.curve.order.to_bytes_be();
 			ecparams.order.val = BigUint::from_bytes_be(&vecs);
-			let vecs :Vec<u8> = vec![0x1];
+			let (_,vecs) = self.curve.curve.h().to_bytes_be();
 			ecparams.cofactor.val = BigUint::from_bytes_be(&vecs);
 			totalelem.ecparams.elem.val.push(ecparams);
 			curveelem.total.elem.val.push(totalelem);
@@ -896,7 +896,7 @@ impl PrivateKey {
 			pubkey.basecoords.data = vecs.clone();
 			let (_, vecs) = self.curve.order.to_bytes_be();
 			pubkey.order.val = BigUint::from_bytes_be(&vecs);
-			let vecs :Vec<u8> = vec![0x1];
+			let (_,vecs) = self.curve.curve.h().to_bytes_be();
 			pubkey.cofactor.val = BigUint::from_bytes_be(&vecs);
 			simpelem.total.elem.val.push(pubkey);
 		} else {
