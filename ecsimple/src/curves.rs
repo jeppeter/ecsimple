@@ -160,6 +160,27 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 
 
 
+	v8 = Vec::from_hex("800000000000000000004000000000000000000000000000000000000001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000000000000000000000000").unwrap();
+	a = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000000000000000000000001").unwrap();
+	b = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("29A0B6A887A983E9730988A68727A8B2D126C44CC2CC7B2A6555193035DC").unwrap();
+	gx = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("76310804F12E549BDB011C103089E73510ACB275FC312A5DC6B76553F0CA").unwrap();
+	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("2000000000000000000000000000005A79FEC67CB6E91F1C1DA800E478A5").unwrap();
+	r = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("01").unwrap();
+	h = ov.clone() + ov.clone() + ov.clone() + ov.clone();
+
+	curve = CurveFp::new(&p,&a,&b,&h);
+	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),false);
+
+	retv.insert(SECT239k1_NAME.to_string(),ECCCurve::new(SECT239k1_NAME,&japt));
+
+
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -209,6 +230,7 @@ fn create_curve_oid() -> HashMap<String,String> {
 	let mut retv :HashMap<String,String> = HashMap::new();	
 	retv.insert(SECT163k1_NAME.to_string(),SECT163k1_OID.to_string());
 	retv.insert(SECT163r1_NAME.to_string(),SECT163r1_OID.to_string());
+	retv.insert(SECT239k1_NAME.to_string(),SECT239k1_OID.to_string());
 	retv.insert(SECP112r1_NAME.to_string(),SECP112r1_OID.to_string());
 	retv.insert(SECP112r2_NAME.to_string(),SECP112r2_OID.to_string());
 
@@ -219,6 +241,7 @@ fn create_curve_name() -> HashMap<String,String> {
 	let mut retv :HashMap<String,String> = HashMap::new();
 	retv.insert(SECT163k1_OID.to_string(),SECT163k1_NAME.to_string());
 	retv.insert(SECT163r1_OID.to_string(),SECT163r1_NAME.to_string());
+	retv.insert(SECT239k1_OID.to_string(),SECT239k1_NAME.to_string());
 	retv.insert(SECP112r1_OID.to_string(),SECP112r1_NAME.to_string());
 	retv.insert(SECP112r2_OID.to_string(),SECP112r2_NAME.to_string());
 
