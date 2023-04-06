@@ -22,6 +22,9 @@ pub const SECP128r1_NAME :&str = "SECP128r1";
 pub const SECP128r2_NAME :&str = "SECP128r2";
 pub const SECP160r2_NAME :&str = "SECP160r2";
 pub const SECP192k1_NAME :&str = "SECP192k1";
+pub const SECP224k1_NAME :&str = "SECP224k1";
+pub const SECP224r1_NAME :&str = "SECP224r1";
+pub const SECP384r1_NAME :&str = "SECP384r1";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -46,6 +49,9 @@ pub const SECP128r1_OID :&str = "1.3.132.0.28";
 pub const SECP128r2_OID :&str = "1.3.132.0.29";
 pub const SECP160r2_OID :&str = "1.3.132.0.30";
 pub const SECP192k1_OID :&str = "1.3.132.0.31";
+pub const SECP224k1_OID :&str = "1.3.132.0.32";
+pub const SECP224r1_OID :&str = "1.3.132.0.33";
+pub const SECP384r1_OID :&str = "1.3.132.0.34";
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
 pub const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
