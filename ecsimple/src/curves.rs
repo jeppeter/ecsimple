@@ -480,6 +480,27 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 
 	retv.insert(SECT193r2_NAME.to_string(),ECCCurve::new(SECT193r2_NAME,&japt));
 
+	v8 = Vec::from_hex("020000000000000000000000000000000000000004000000000000000001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000000000000000000000000").unwrap();
+	a = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000000000000000000000001").unwrap();
+	b = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("017232BA853A7E731AF129F22FF4149563A419C26BF50A4C9D6EEFAD6126").unwrap();
+	gx = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("01DB537DECE819B7F70F555A67C427A8CD9BF18AEB9B56E0C11056FAE6A3").unwrap();
+	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("008000000000000000000000000000069D5BB915BCD46EFB1AD5F173ABDF").unwrap();
+	r = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("4").unwrap();
+	//h = BigInt::from_bytes_be(Sign::Plus,&v8);
+	h = ov.clone() + ov.clone() +ov.clone() + ov.clone() ;
+
+	curve = CurveFp::new(&p,&a,&b,&h);
+	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),true);
+
+	retv.insert(SECT233k1_NAME.to_string(),ECCCurve::new(SECT233k1_NAME,&japt));
+
 	retv
 }
 
@@ -502,6 +523,7 @@ fn create_curve_oid() -> HashMap<String,String> {
 	retv.insert(SECT131r2_NAME.to_string(),SECT131r2_OID.to_string());
 	retv.insert(SECT193r1_NAME.to_string(),SECT193r1_OID.to_string());
 	retv.insert(SECT193r2_NAME.to_string(),SECT193r2_OID.to_string());
+	retv.insert(SECT233k1_NAME.to_string(),SECT233k1_OID.to_string());
 
 	retv
 }
@@ -525,6 +547,7 @@ fn create_curve_name() -> HashMap<String,String> {
 	retv.insert(SECT131r2_OID.to_string(),SECT131r2_NAME.to_string());
 	retv.insert(SECT193r1_OID.to_string(),SECT193r1_NAME.to_string());
 	retv.insert(SECT193r2_OID.to_string(),SECT193r2_NAME.to_string());
+	retv.insert(SECT233k1_OID.to_string(),SECT233k1_NAME.to_string());
 
 	retv
 }
