@@ -15,6 +15,7 @@ pub const SECT283r1_NAME :&str = "SECT283r1";
 pub const SECT131r1_NAME :&str = "SECT131r1";
 pub const SECT131r2_NAME :&str = "SECT131r2";
 pub const SECT193r1_NAME :&str = "SECT193r1";
+pub const SECT193r2_NAME :&str = "SECT193r2";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -32,6 +33,7 @@ pub const SECT283r1_OID :&str = "1.3.132.0.17";
 pub const SECT131r1_OID :&str = "1.3.132.0.22";
 pub const SECT131r2_OID :&str = "1.3.132.0.23";
 pub const SECT193r1_OID :&str = "1.3.132.0.24";
+pub const SECT193r2_OID :&str = "1.3.132.0.25";
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
 pub const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";

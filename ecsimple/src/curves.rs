@@ -459,6 +459,27 @@ fn create_jacobi() -> HashMap<String,ECCCurve> {
 
 	retv.insert(SECT193r1_NAME.to_string(),ECCCurve::new(SECT193r1_NAME,&japt));
 
+	v8 = Vec::from_hex("02000000000000000000000000000000000000000000008001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("0163F35A5137C2CE3EA6ED8667190B0BC43ECD69977702709B").unwrap();
+	a = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("00C9BB9E8927D4D64C377E2AB2856A5B16E3EFB7F61D4316AE").unwrap();
+	b = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("00D9B67D192E0367C803F39E1A7E82CA14A651350AAE617E8F").unwrap();
+	gx = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("01CE94335607C304AC29E7DEFBD9CA01F596F927224CDECF6C").unwrap();
+	gy = BigInt::from_bytes_be(Sign::Plus,&v8);
+	v8 = Vec::from_hex("010000000000000000000000015AAB561B005413CCD4EE99D5").unwrap();
+	r = BigInt::from_bytes_be(Sign::Plus,&v8);
+	//v8 = Vec::from_hex("4").unwrap();
+	//h = BigInt::from_bytes_be(Sign::Plus,&v8);
+	h = ov.clone() + ov.clone() ;
+
+	curve = CurveFp::new(&p,&a,&b,&h);
+	japt = PointJacobi::new(&curve,&gx,&gy,&ov,Some(r.clone()),true);
+
+	retv.insert(SECT193r2_NAME.to_string(),ECCCurve::new(SECT193r2_NAME,&japt));
+
 	retv
 }
 
@@ -480,6 +501,7 @@ fn create_curve_oid() -> HashMap<String,String> {
 	retv.insert(SECT131r1_NAME.to_string(),SECT131r1_OID.to_string());
 	retv.insert(SECT131r2_NAME.to_string(),SECT131r2_OID.to_string());
 	retv.insert(SECT193r1_NAME.to_string(),SECT193r1_OID.to_string());
+	retv.insert(SECT193r2_NAME.to_string(),SECT193r2_OID.to_string());
 
 	retv
 }
@@ -502,6 +524,7 @@ fn create_curve_name() -> HashMap<String,String> {
 	retv.insert(SECT131r1_OID.to_string(),SECT131r1_NAME.to_string());
 	retv.insert(SECT131r2_OID.to_string(),SECT131r2_NAME.to_string());
 	retv.insert(SECT193r1_OID.to_string(),SECT193r1_NAME.to_string());
+	retv.insert(SECT193r2_OID.to_string(),SECT193r2_NAME.to_string());
 
 	retv
 }
