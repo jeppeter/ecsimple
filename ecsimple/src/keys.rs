@@ -656,8 +656,16 @@ impl PublicKey {
 		let n :BigInt = G.order();
 		let r :BigInt = sig.r.clone();
 		let s :BigInt = sig.s.clone();
-		let hash :BigInt = BigInt::from_bytes_be(Sign::Plus,hashcode);
+		let bitlen :usize = bit_length(&(self.curve.order));
+		let blen :usize = (bitlen + 7) / 8;
+		let hash :BigInt;
 		let mut pubkey :PointJacobi = self.pubkey.clone();
+		if blen < hashcode.len() {
+			hash = BigInt::from_bytes_be(Sign::Plus,&hashcode[0..blen]);
+		} else {
+			hash = BigInt::from_bytes_be(Sign::Plus,hashcode);
+		}
+		ecsimple_log_trace!("hash 0x{:x}", hash);
 
 		ecsimple_log_trace!("G {:?}",G);
 		if r < one() || r >= n {
@@ -1016,14 +1024,25 @@ impl PrivateKey {
 	pub fn sign_base(&self, hashcode :&[u8], randkey :&BigInt) -> Result<ECCSignature,Box<dyn Error>> {
 		let n :BigInt;
 		let mut G :PointJacobi = self.curve.generator.clone();
+
 		n = G.order();
+		let bitlen  :usize = bit_length(&self.curve.order);
+		let blen :usize = (bitlen + 7) / 8;
 		let k :BigInt = randkey % (&n);
 		let ks :BigInt = &k + &n;
 		let kt :BigInt = &ks + &n;
 		let p1 :PointJacobi;
 		let r :BigInt;
 		let s :BigInt;
-		let hash :BigInt = BigInt::from_bytes_be(Sign::Plus,hashcode);
+		let hash :BigInt;
+
+		if blen < hashcode.len() {
+			hash = BigInt::from_bytes_be(Sign::Plus,&hashcode[0..blen]);
+		} else {
+			hash = BigInt::from_bytes_be(Sign::Plus,hashcode);
+		}
+
+		ecsimple_log_trace!("hash 0x{:x}", hash);
 
 		if bit_length(&ks) == bit_length(&n) {
 			p1 = G.mul_int(&kt);

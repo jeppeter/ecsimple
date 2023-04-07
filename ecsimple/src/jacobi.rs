@@ -492,7 +492,7 @@ impl PointJacobi {
 
     fn _double(&self,X1 :&BigInt, Y1 :&BigInt,Z1 :&BigInt,p :&BigInt, a :&BigInt) -> (BigInt,BigInt,BigInt) {
         if  one::<BigInt>().eq(Z1)  {
-            ecsimple_log_trace!(" ");
+            //ecsimple_log_trace!(" ");
             return self._double_with_z_1(X1,Y1,p,a);
         }
         if zero::<BigInt>().eq(Y1) || zero::<BigInt>().eq(Z1) {
@@ -518,7 +518,7 @@ impl PointJacobi {
         let Y3 :BigInt = mod_with_sign(&_Y3,p);
         let _Z3 :BigInt = ((Y1 + Z1) *(Y1 + Z1) - &YY - &ZZ ) % p;
         let Z3 :BigInt = mod_with_sign(&_Z3,p);
-        ecsimple_log_trace!(" ");
+        //ecsimple_log_trace!(" ");
         return (T, Y3 ,Z3);
     }
 
@@ -738,8 +738,8 @@ impl PointJacobi {
         let Y3 :BigInt = mod_with_sign(&_Y3,p);
         let _Z3 :BigInt = ((Z1 + (&H)) * (Z1 + (&H)) - &Z1Z1 - &HH) % p;
         let Z3 :BigInt = mod_with_sign(&_Z3,p);
-        ecsimple_log_trace!("H 0x{:x} HH 0x{:x} I 0x{:x} J 0x{:x} r 0x{:x}",H,HH,I,J,r);
-        ecsimple_log_trace!("V 0x{:x} X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",V,X3,Y3,Z3);
+        //ecsimple_log_trace!("H 0x{:x} HH 0x{:x} I 0x{:x} J 0x{:x} r 0x{:x}",H,HH,I,J,r);
+        //ecsimple_log_trace!("V 0x{:x} X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",V,X3,Y3,Z3);
         return (X3,Y3,Z3);
     }
 
@@ -767,10 +767,10 @@ impl PointJacobi {
         let Y3 :BigInt = mod_with_sign(&_Y3,p);
         let _Z3 :BigInt = (((Z1 + Z2) * (Z1 + Z2) - &Z1Z1 - &Z2Z2) * &H) % p;
         let Z3 :BigInt = mod_with_sign(&_Z3,p);
-        ecsimple_log_trace!("Z1Z1 0x{:x} Z2Z2 0x{:x} U1 0x{:x} U2 0x{:x}",Z1Z1,Z2Z2,U1,U2);
-        ecsimple_log_trace!("S1 0x{:x} S2 0x{:x} H 0x{:x} I 0x{:x}",S1,S2,H,I);
-        ecsimple_log_trace!("J 0x{:x} r 0x{:x} V 0x{:x}",J,r,V);
-        ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
+        //ecsimple_log_trace!("Z1Z1 0x{:x} Z2Z2 0x{:x} U1 0x{:x} U2 0x{:x}",Z1Z1,Z2Z2,U1,U2);
+        //ecsimple_log_trace!("S1 0x{:x} S2 0x{:x} H 0x{:x} I 0x{:x}",S1,S2,H,I);
+        //ecsimple_log_trace!("J 0x{:x} r 0x{:x} V 0x{:x}",J,r,V);
+        //ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
         return (X3,Y3,Z3);
     }
 
@@ -778,7 +778,7 @@ impl PointJacobi {
         let zv :BigInt = zero::<BigInt>();
         let ov :BigInt = one::<BigInt>();
         if zv.eq(Y1) || zv.eq(Z1) {
-            ecsimple_log_trace!(" ");
+            //ecsimple_log_trace!(" ");
             return (X2.clone(),Y2.clone(),Z2.clone());
         }
         if zv.eq(Y2) || zv.eq(Z2) {
@@ -800,11 +800,11 @@ impl PointJacobi {
         }
 
         if ov.eq(Z2) {
-            ecsimple_log_trace!(" ");
+            //ecsimple_log_trace!(" ");
             return self._add_with_z2_1(X1, Y1, Z1, X2, Y2, p);
         }
 
-        ecsimple_log_trace!(" ");
+        //ecsimple_log_trace!(" ");
         return self._add_with_z_ne(X1, Y1, Z1, X2, Y2, Z2, p);
     }
 
@@ -814,10 +814,10 @@ impl PointJacobi {
         let p :BigInt = self.curve.p();
         let (X1,Y1,Z1) = self.coords.clone();
         let (X2,Y2,Z2) = other.coords.clone();
-        ecsimple_log_trace!("X1 0x{:x} Y1 0x{:x} Z1 0x{:x} X2 0x{:x} Y2 0x{:x} Z2 0x{:x} p 0x{:x}",X1,Y1,Z1,X2,Y2,Z2,p);
+        //ecsimple_log_trace!("X1 0x{:x} Y1 0x{:x} Z1 0x{:x} X2 0x{:x} Y2 0x{:x} Z2 0x{:x} p 0x{:x}",X1,Y1,Z1,X2,Y2,Z2,p);
 
         let (X3,Y3,Z3) = self._add(&X1, &Y1, &Z1, &X2, &Y2, &Z2, &p);
-        ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
+        //ecsimple_log_trace!("X3 0x{:x} Y3 0x{:x} Z3 0x{:x}",X3,Y3,Z3);
         if ov.eq(&Y3) || ov.eq(&Z3) {
             return PointJacobi::infinity();
         }
@@ -940,24 +940,24 @@ impl PointJacobi {
         }
         let _ = self.scale();
         let (X2,Y2,_)  = self.coords.clone();
-        ecsimple_log_trace!("X2 0x{:x} Y2 0x{:x}", X2,Y2);
+        //ecsimple_log_trace!("X2 0x{:x} Y2 0x{:x}", X2,Y2);
         let (mut X3,mut Y3,mut Z3) = (zv.clone(),zv.clone(),ov.clone());
         let (p,a) = (self.curve.p(),self.curve.a());
         let mut nafvecs :Vec<i32> = self._naf(&other);
         let negY2 :BigInt = - (&Y2);
-        let mut idx :i32 = 0;
+        //let mut idx :i32 = 0;
         nafvecs.reverse();
         for i in nafvecs {
-            ecsimple_log_trace!("[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ",idx, i, X3,Y3,Z3);
+            //ecsimple_log_trace!("[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ",idx, i, X3,Y3,Z3);
             (X3,Y3,Z3) = self._double(&X3,&Y3,&Z3,&p,&a);
-            ecsimple_log_trace!("after[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ",idx, i, X3,Y3,Z3);
+            //ecsimple_log_trace!("after[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ",idx, i, X3,Y3,Z3);
             if i < 0 {
                 (X3,Y3,Z3) = self._add(&X3, &Y3, &Z3, &X2, &negY2, &ov, &p);
             } else if i > 0 {
                 (X3,Y3,Z3) = self._add(&X3, &Y3, &Z3, &X2, &Y2, &ov, &p);
             }
-            ecsimple_log_trace!("last[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ", idx,i, X3,Y3,Z3);
-            idx += 1;
+            //ecsimple_log_trace!("last[{}][{}] (X3 :0x{:x} , Y3 : 0x{:x}, Z3 : 0x{:x}) ", idx,i, X3,Y3,Z3);
+            //idx += 1;
         }
 
         if zv.eq(&Y3) || zv.eq(&Z3) {
