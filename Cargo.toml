@@ -1,13 +1,23 @@
 [package]
 name = "ecsimple"
 version = "0.1.0"
-authors = ["Brown, Simon <simon@simbro.me>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.7"
-num-bigint = { version = "0.3", features = ["rand"] }
-num-traits = "0.2"
-rust-crypto = "0.2.36"
+num-traits = "^0.2"
+lazy_static = "^1.4.0"
+chrono = "^0.4.0"
+bytes = "^0.5.3"
+regex = "1"
+hex = "^0.4.3"
+rand_core = "^0.6.4"
+rand = "^0.8.5"
+serde_json = "^1.0.42"
+asn1obj = { path = "../../asn1obj/asn1obj"}
+asn1obj_codegen = { path = "../../asn1obj/asn1obj_codegen"}
+num-bigint-dig = {version = "0.8.1", features = [    "i128",    "u64_digit",    "prime",    "zeroize"], default-features = false}
+
+num-bigint = "^0.4.3"
+
