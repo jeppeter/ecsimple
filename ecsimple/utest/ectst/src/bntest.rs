@@ -71,8 +71,25 @@ fn binadd_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
+fn binmul_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
 
-#[extargs_map_function(binbnload_handler,binadd_handler)]
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and bnum"}
+	}
+	let aval :BinBn = get_binbn(&sarr[0])?;
+	let bval :BinBn = get_binbn(&sarr[1])?;
+
+	let cval :BinBn = aval.mul_op(&bval);
+	println!("0x{:x} * 0x{:x} = 0x{:X}",aval,bval,cval);
+
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -80,6 +97,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : "+"
 		},
 		"binadd<binadd_handler>## anum + bnum in bin mode##" : {
+			"$" : 2
+		},
+		"binmul<binmul_handler>## anum * bnum in bin mode##" : {
 			"$" : 2
 		}
 	}
