@@ -38,8 +38,9 @@ fn binbnload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 
 	for v in sarr.iter() {
 		let vv :Vec<u8> = Vec::from_hex(v).unwrap();
-		let bn :BinBn = BinBn::new_from_be(&vv);
-		println!("v {} bn 0x{:x}", v,bn);
+		let bebn :BinBn = BinBn::new_from_be(&vv);
+		let lebn :BinBn = BinBn::new_from_le(&vv);
+		println!("v {} bebn 0x{:x} lebn 0x{:x}", v,bebn,lebn);
 	}
 	Ok(())
 }

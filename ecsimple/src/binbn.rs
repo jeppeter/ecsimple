@@ -18,19 +18,27 @@ pub struct BinBn  {
 impl BinBn {
 	pub fn new_from_le(varr :&[u8]) -> BinBn {
 		let mut rdata :Vec<BValue> = Vec::new();
-		let mut lens :usize = varr.len() / BVALUE_SIZE;
-		if (lens * BVALUE_SIZE) < varr.len() {
-			lens += 1;
+		let mut passlen :usize = 0;
+		let mut curval :BValue;
+		let leftlen :usize;
+		while (passlen + BVALUE_SIZE) <= varr.len() {
+			curval = 0;
+			for i in 0..BVALUE_SIZE {
+				curval |= (varr[passlen + i] as BValue) << (i * 8);
+			}
+			rdata.insert(0,curval);
+			passlen += BVALUE_SIZE;
 		}
-		for i in 0..lens {
-			let mut curval : BValue = 0;
-			for j in 0..BVALUE_SIZE {
-				if ((i * BVALUE_SIZE) + j) < varr.len() {
-					curval |= (varr[(i * BVALUE_SIZE) + j] as BValue )<< (j * 8);	
-				}				
+
+		if passlen != varr.len() {
+			curval = 0;
+			leftlen = varr.len() - passlen;
+			for i in 0..leftlen {
+				curval |= (varr[passlen+i] as BValue) << (i * 8);
 			}
 			rdata.insert(0,curval);
 		}
+
 		ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len(), "to bytes");
 		BinBn {
 			data : rdata,
@@ -39,28 +47,27 @@ impl BinBn {
 
 	pub fn new_from_be(varr :&[u8]) -> BinBn {
 		let mut rdata :Vec<BValue> = Vec::new();
-		let mut lens :usize = varr.len() / BVALUE_SIZE;
-		if (lens * BVALUE_SIZE) < varr.len() {
-			lens += 1;
-		}
-		ecsimple_debug_buffer_trace!(varr.as_ptr(),varr.len(), "varr ");
-		for i in 0..lens {
-			ecsimple_log_trace!("i [{i}]");
-			let mut curval : BValue = 0;
-			if i == (lens - 1) && (lens * BVALUE_SIZE) > varr.len() {
-				let mut k :usize = 0;
-				while ((BVALUE_SIZE * i) + k) < varr.len() {
-					curval |= (varr[i * BVALUE_SIZE + k ] as BValue) << ((varr.len() - (BVALUE_SIZE * i) - k - 1) * 8);
-					k += 1;
-				}
-			} else {
-				for j in 0..BVALUE_SIZE {
-					if ((i * BVALUE_SIZE) + j) < varr.len() {
-						curval |= (varr[(i * BVALUE_SIZE) + j]  as BValue)<< ((BVALUE_SIZE - j - 1) * 8);
-					}				
-				}				
+		let mut passlen :usize = 0;
+		let leftlen :usize;
+		let mut curval :BValue;
+		if (varr.len() % BVALUE_SIZE) != 0 {
+			leftlen = varr.len() % BVALUE_SIZE;
+			curval = 0;
+			for i in 0..leftlen {
+				curval |= (varr[i] as BValue) << ((leftlen - i - 1) * 8);
 			}
 			rdata.push(curval);
+			passlen += leftlen;
+		}
+		ecsimple_debug_buffer_trace!(varr.as_ptr(),varr.len(), "varr ");
+
+		while passlen < varr.len() {
+			curval = 0;
+			for i in 0..BVALUE_SIZE {
+				curval |= (varr[passlen + i] as BValue) << ((BVALUE_SIZE - i - 1) * 8 );
+			}
+			rdata.push(curval);
+			passlen += BVALUE_SIZE;
 		}
 		ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
 		BinBn {
