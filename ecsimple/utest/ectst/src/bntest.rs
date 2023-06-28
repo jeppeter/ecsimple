@@ -30,6 +30,13 @@ use std::io::Write;
 use ecsimple::binbn::*;
 use hex::FromHex;
 
+extargs_error_class!{BinError}
+
+fn get_binbn(s :&str) -> Result<BinBn,Box<dyn Error>> {
+	let vv :Vec<u8> = Vec::from_hex(s).unwrap();
+	let retv :BinBn = BinBn::new_from_be(&vv);
+	Ok(retv)
+}
 
 fn binbnload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
@@ -41,17 +48,39 @@ fn binbnload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 		let bebn :BinBn = BinBn::new_from_be(&vv);
 		let lebn :BinBn = BinBn::new_from_le(&vv);
 		println!("v {} bebn 0x{:x} lebn 0x{:x}", v,bebn,lebn);
+		//println!("v {} bebn 0x{:x}", v,bebn);
 	}
 	Ok(())
 }
 
 
-#[extargs_map_function(binbnload_handler)]
+fn binadd_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and bnum"}
+	}
+	let aval :BinBn = get_binbn(&sarr[0])?;
+	let bval :BinBn = get_binbn(&sarr[1])?;
+
+	let cval :BinBn = aval.add_op(&bval);
+	println!("0x{:x} + 0x{:x} = 0x{:x}",aval,bval,cval);
+
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
 		"binbnload<binbnload_handler>" : {
 			"$" : "+"
+		},
+		"binadd<binadd_handler>## anum + bnum in bin mode##" : {
+			"$" : 2
 		}
 	}
 	"#;

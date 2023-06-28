@@ -11,11 +11,23 @@ const BVALUE_SIZE :usize = std::mem::size_of::<BValue>();
 const BVALUE_BITS :usize = BVALUE_SIZE * 8;
 
 pub struct BinBn  {
+	/*little endian*/
 	data :Vec<BValue>,
 }
 
 #[allow(dead_code)]
 impl BinBn {
+
+	fn _check_self(&self) {
+		if self.data.len() == 0 {
+			panic!("self len 0");
+		}
+	}
+	fn _check_other(&self,other :&BinBn) {
+		self._check_self();
+		other._check_self();
+	}
+
 	pub fn new_from_le(varr :&[u8]) -> BinBn {
 		let mut rdata :Vec<BValue> = Vec::new();
 		let mut passlen :usize = 0;
@@ -26,7 +38,7 @@ impl BinBn {
 			for i in 0..BVALUE_SIZE {
 				curval |= (varr[passlen + i] as BValue) << (i * 8);
 			}
-			rdata.insert(0,curval);
+			rdata.push(curval);
 			passlen += BVALUE_SIZE;
 		}
 
@@ -36,10 +48,13 @@ impl BinBn {
 			for i in 0..leftlen {
 				curval |= (varr[passlen+i] as BValue) << (i * 8);
 			}
-			rdata.insert(0,curval);
+			rdata.push(curval);
+		}
+		if rdata.len() == 0 {
+			rdata.push(0);
 		}
 
-		ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len(), "to bytes");
+		ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
 		BinBn {
 			data : rdata,
 		}
@@ -56,7 +71,7 @@ impl BinBn {
 			for i in 0..leftlen {
 				curval |= (varr[i] as BValue) << ((leftlen - i - 1) * 8);
 			}
-			rdata.push(curval);
+			rdata.insert(0,curval);
 			passlen += leftlen;
 		}
 		ecsimple_debug_buffer_trace!(varr.as_ptr(),varr.len(), "varr ");
@@ -66,9 +81,14 @@ impl BinBn {
 			for i in 0..BVALUE_SIZE {
 				curval |= (varr[passlen + i] as BValue) << ((BVALUE_SIZE - i - 1) * 8 );
 			}
-			rdata.push(curval);
+			rdata.insert(0,curval);
 			passlen += BVALUE_SIZE;
 		}
+
+		if rdata.len() == 0 {
+			rdata.push(0);
+		}
+
 		ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
 		BinBn {
 			data : rdata,
@@ -79,12 +99,57 @@ impl BinBn {
 		let mut rdata :Vec<u8> = Vec::new();
 		for i in 0..self.data.len() {
 			for j in 0..BVALUE_SIZE {
-				let val :u8 = (self.data[i] >> ((BVALUE_SIZE - j - 1) * 8)) as u8;
+				let val :u8 = (self.data[i] >> (j * 8)) as u8;
 				rdata.push(val);
 			}
 		}
 		ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len(), "to bytes");
-		BigInt::from_bytes_be(Sign::Plus,&rdata)
+		BigInt::from_bytes_le(Sign::Plus,&rdata)
+	}
+
+	pub fn add_op(&self, other :&BinBn) -> BinBn {
+		let mut retv :Vec<BValue> = Vec::new();
+		let mut maxlen :usize = self.data.len();
+		let mut aval :BValue;
+		let mut bval :BValue;
+		let mut rv :BinBn;
+		let r8 :Vec<u8> = vec![0];
+		self._check_other(other);
+		if maxlen < other.data.len() {
+			maxlen = other.data.len();
+		}
+
+		for i in 0..maxlen {
+			if i < self.data.len() {
+				aval = self.data[i];
+			} else {
+				aval = 0;
+			}
+			if i < other.data.len() {
+				bval = other.data[i];
+			} else {
+				bval = 0;
+			}
+
+			aval = aval ^ bval;
+			retv.push(aval);
+		}
+
+		rv = BinBn::new_from_be(&r8);
+		rv.data= retv;
+		rv
+	}
+
+
+	pub fn mul_op(&self, other :&BinBn) -> BinBn {
+		let mut maxlen :usize = 0;
+		let alen :usize = self.data.len();
+		let olen :usize = other.data.len();
+		let r8 :Vec<u8> = vec![0];
+		let rv :BinBn = BinBn::new_from_be(&r8);
+		self._check_other(other);
+
+		rv
 	}
 
 }
