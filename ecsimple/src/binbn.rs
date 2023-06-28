@@ -171,9 +171,9 @@ impl BinBn {
 		tab[14] = a8 ^ a4 ^ a2;
 		tab[15] = a8 ^ a4 ^ a2 ^ a1;
 
-		for i in 0..tab.len() {
+		/*for i in 0..tab.len() {
 			ecsimple_log_trace!("tab[{}]=[0x{:x}]",i,tab[i]);
-		}
+		}*/
 
 		ecsimple_log_trace!("a 0x{:x} b 0x{:x}",x0,y0);
 
@@ -296,7 +296,7 @@ impl BinBn {
 		resv = self._mul_1x1(x0 ^ x1 , y0 ^ y1);
 		ecsimple_log_trace!("m1 0x{:x} m0 0x{:x}",resv[1],resv[0]);
 
-		retv[2] = resv[1] ^ retv[1] ^ retv[3];
+		retv[2] ^= resv[1] ^ retv[1] ^ retv[3];
 		retv[1] = retv[3] ^ retv[2] ^ retv[0] ^ resv[1] ^ resv[0];
 
 
@@ -314,6 +314,7 @@ impl BinBn {
 		let mut retv :Vec<BValue> = Vec::new();
 		let (mut y0,mut y1) :(BValue,BValue);
 		let (mut x0,mut x1) :(BValue,BValue);
+		let (mut i, mut j) : (usize,usize);
 		self._check_other(other);
 
 		maxlen = alen + olen + 4;
@@ -321,13 +322,15 @@ impl BinBn {
 			retv.push(0);
 		}
 
-		for i in 0..alen {
+		i = 0;
+		while i < alen {
 			y0 = self.data[i];
 			y1 = 0;
 			if (i + 1) < alen {
 				y1 = self.data[i+1];
 			}
-			for j in 0..olen {
+			j = 0;
+			while j < olen {
 				x0 = other.data[j];
 				x1 = 0;
 				if (j + 1) < olen {
@@ -338,10 +341,13 @@ impl BinBn {
 				ecsimple_log_trace!("resv 0x{:x} 0x{:x} 0x{:x} 0x{:x}",resv[0],resv[1],resv[2],resv[3]);
 
 				for k in 0..resv.len() {
+					ecsimple_log_trace!("[{i}+{j}+{k}] 0x{:x} ^ [{k}] 0x{:x} => 0x{:x}",retv[i+j+k], resv[k],retv[i+j+k] ^ resv[k]);
 					retv[i+j+k] ^= resv[k];
-					ecsimple_log_trace!("[{i}+{j}+{k}] = [0x{:x}]",retv[i+j+k]);
+					
 				}
+				j += 2;
 			}
+			i += 2;
 		}
 		rv.data = retv;
 		rv
