@@ -7,12 +7,13 @@ use crate::logger::*;
 type BValue = u64;
 
 const BVALUE_SIZE :usize = std::mem::size_of::<BValue>();
-#[allow(dead_code)]
 const BVALUE_BITS :usize = BVALUE_SIZE * 8;
 
+#[derive(Clone)]
 pub struct BnGf2m  {
 	/*little endian*/
 	data :Vec<BValue>,
+	polyarr :Vec<i32>,
 }
 
 #[allow(dead_code)]
@@ -57,6 +58,7 @@ impl BnGf2m {
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
 		BnGf2m {
 			data : rdata,
+			polyarr : Vec::new(),
 		}
 	}
 
@@ -98,6 +100,7 @@ impl BnGf2m {
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
 		BnGf2m {
 			data : rdata,
+			polyarr : Vec::new(),
 		}
 	}
 
@@ -357,6 +360,48 @@ impl BnGf2m {
 		}
 		rv.data = retv;
 		rv
+	}
+
+	fn _extend_poly(&mut self) {
+		self.polyarr = Vec::new();
+		let mut jdx :i32 ;
+		let mut idx :i32;
+		jdx = (self.data.len() - 1)  as i32;
+		while jdx >= 0 {
+			idx = (BVALUE_BITS - 1) as i32;
+			while idx >= 0 {
+				if ((self.data[jdx as usize] >> idx) & 0x1) != 0 {
+					self.polyarr.push(jdx * (BVALUE_BITS as i32) + idx);
+				}
+				idx -= 1;
+			}
+			jdx -= 1;
+		}
+		return
+
+	}
+
+	pub fn extend_poly(&mut self) {
+		if self.polyarr.len() > 0 {
+			return;
+		}
+		return self._extend_poly();
+	}
+
+	pub fn mod_op(&self,other :&BnGf2m) -> BnGf2m {
+		let mut retv :BnGf2m = self.clone();
+		let modptr :&BnGf2m;
+		let mut cv :BnGf2m;
+
+		if other.polyarr.len() == 0 {
+			cv = other.clone();
+			cv.extend_poly();
+			modptr = &cv;
+		} else {
+			modptr = other;
+		}
+
+		retv
 	}
 
 }
