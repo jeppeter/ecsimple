@@ -6,5 +6,5 @@ pub mod consts;
 pub mod errors;
 #[macro_use]
 pub mod logger;
-pub mod binbn;
+pub mod bngf2m;
 pub mod curve;

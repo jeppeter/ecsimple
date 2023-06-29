@@ -10,25 +10,25 @@ const BVALUE_SIZE :usize = std::mem::size_of::<BValue>();
 #[allow(dead_code)]
 const BVALUE_BITS :usize = BVALUE_SIZE * 8;
 
-pub struct BinBn  {
+pub struct BnGf2m  {
 	/*little endian*/
 	data :Vec<BValue>,
 }
 
 #[allow(dead_code)]
-impl BinBn {
+impl BnGf2m {
 
 	fn _check_self(&self) {
 		if self.data.len() == 0 {
 			panic!("self len 0");
 		}
 	}
-	fn _check_other(&self,other :&BinBn) {
+	fn _check_other(&self,other :&BnGf2m) {
 		self._check_self();
 		other._check_self();
 	}
 
-	pub fn new_from_le(varr :&[u8]) -> BinBn {
+	pub fn new_from_le(varr :&[u8]) -> BnGf2m {
 		let mut rdata :Vec<BValue> = Vec::new();
 		let mut passlen :usize = 0;
 		let mut curval :BValue;
@@ -55,18 +55,18 @@ impl BinBn {
 		}
 
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
-		BinBn {
+		BnGf2m {
 			data : rdata,
 		}
 	}
 
-	pub fn new_from_bigint(bn :&BigInt) -> BinBn {
+	pub fn new_from_bigint(bn :&BigInt) -> BnGf2m {
 		let varr :Vec<u8>;
 		(_, varr) = bn.to_bytes_be();
-		return BinBn::new_from_be(&varr);
+		return BnGf2m::new_from_be(&varr);
 	}
 
-	pub fn new_from_be(varr :&[u8]) -> BinBn {
+	pub fn new_from_be(varr :&[u8]) -> BnGf2m {
 		let mut rdata :Vec<BValue> = Vec::new();
 		let mut passlen :usize = 0;
 		let leftlen :usize;
@@ -96,7 +96,7 @@ impl BinBn {
 		}
 
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
-		BinBn {
+		BnGf2m {
 			data : rdata,
 		}
 	}
@@ -113,12 +113,12 @@ impl BinBn {
 		BigInt::from_bytes_le(Sign::Plus,&rdata)
 	}
 
-	pub fn add_op(&self, other :&BinBn) -> BinBn {
+	pub fn add_op(&self, other :&BnGf2m) -> BnGf2m {
 		let mut retv :Vec<BValue> = Vec::new();
 		let mut maxlen :usize = self.data.len();
 		let mut aval :BValue;
 		let mut bval :BValue;
-		let mut rv :BinBn;
+		let mut rv :BnGf2m;
 		let r8 :Vec<u8> = vec![0];
 		self._check_other(other);
 		if maxlen < other.data.len() {
@@ -141,7 +141,7 @@ impl BinBn {
 			retv.push(aval);
 		}
 
-		rv = BinBn::new_from_be(&r8);
+		rv = BnGf2m::new_from_be(&r8);
 		rv.data= retv;
 		rv
 	}
@@ -311,12 +311,12 @@ impl BinBn {
 	}
 
 
-	pub fn mul_op(&self, other :&BinBn) -> BinBn {
+	pub fn mul_op(&self, other :&BnGf2m) -> BnGf2m {
 		let maxlen :usize;
 		let alen :usize = self.data.len();
 		let olen :usize = other.data.len();
 		let r8 :Vec<u8> = vec![0];
-		let mut rv :BinBn = BinBn::new_from_be(&r8);
+		let mut rv :BnGf2m = BnGf2m::new_from_be(&r8);
 		let mut retv :Vec<BValue> = Vec::new();
 		let (mut y0,mut y1) :(BValue,BValue);
 		let (mut x0,mut x1) :(BValue,BValue);
@@ -362,42 +362,42 @@ impl BinBn {
 }
 
 
-impl core::fmt::Debug for BinBn {
+impl core::fmt::Debug for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
 		core::fmt::Display::fmt(&bnum, f)
 	}
 }
 
-impl core::fmt::Display for BinBn {
+impl core::fmt::Display for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
 		core::fmt::Display::fmt(&bnum,f)
 	}
 }
 
-impl core::fmt::Binary for BinBn {
+impl core::fmt::Binary for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
 		core::fmt::Binary::fmt(&bnum,f)		
 	}
 }
 
-impl core::fmt::Octal for BinBn {
+impl core::fmt::Octal for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
 		core::fmt::Octal::fmt(&bnum,f)		
 	}
 }
 
-impl core::fmt::LowerHex for BinBn {
+impl core::fmt::LowerHex for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
 		core::fmt::LowerHex::fmt(&bnum,f)		
 	}
 }
 
-impl core::fmt::UpperHex for BinBn {
+impl core::fmt::UpperHex for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
 		core::fmt::UpperHex::fmt(&bnum,f)		
