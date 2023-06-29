@@ -86,7 +86,11 @@ fn binmul_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	let bval :BnGf2m = get_bngf2m(&sarr[1])?;
 
 	let cval :BnGf2m = aval.mul_op(&bval);
-	println!("0x{:x} * 0x{:x} = 0x{:X}",aval,bval,cval);
+	let mut cformat :String = format!("{:X}",cval);
+	if (cformat.len() % 2) != 0 {
+		cformat = format!("0{}",cformat);
+	}
+	println!("0x{:x} * 0x{:x} = 0x{}",aval,bval,cformat);
 
 	Ok(())
 }
