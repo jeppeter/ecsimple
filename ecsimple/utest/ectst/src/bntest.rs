@@ -31,6 +31,7 @@ use std::io::Write;
 use ecsimple::bngf2m::*;
 
 use num_bigint::{BigInt};
+use num_traits::{one};
 
 
 extargs_error_class!{BinError}
@@ -105,6 +106,12 @@ fn binmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	}
 	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
 	let pval :BnGf2m = get_bngf2m(&sarr[1])?;
+
+	let pnum :BigInt = pval.to_bigint();
+	let ov :BigInt = one();
+	if (pnum.clone() & ov.clone()) != ov.clone() {
+		extargs_new_error!{BinError," 0x{:x} not odd pnum",pnum}
+	}
 
 	let cval :BnGf2m = aval.mod_op(&pval);
 	let mut cformat :String = format!("{:X}",cval);
