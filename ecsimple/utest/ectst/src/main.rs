@@ -38,6 +38,8 @@ mod loglib_windows;
 mod loglib;
 #[allow(dead_code)]
 mod fileop;
+#[allow(dead_code)]
+mod strop;
 mod bntest;
 
 

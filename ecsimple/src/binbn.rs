@@ -60,6 +60,12 @@ impl BinBn {
 		}
 	}
 
+	pub fn new_from_bigint(bn :&BigInt) -> BinBn {
+		let varr :Vec<u8>;
+		(_, varr) = bn.to_bytes_be();
+		return BinBn::new_from_be(&varr);
+	}
+
 	pub fn new_from_be(varr :&[u8]) -> BinBn {
 		let mut rdata :Vec<BValue> = Vec::new();
 		let mut passlen :usize = 0;
