@@ -377,8 +377,10 @@ impl BnGf2m {
 			}
 			jdx -= 1;
 		}
-		self.polyarr.push(-1);
-		self.polyarr.push(0);
+		if self.polyarr.len() == 0 || self.polyarr[(self.polyarr.len() - 1)] != 0 {
+			/*because this is the error for correcting mod ones must be odd ones*/
+			self.polyarr.push(0);
+		}
 		return
 
 	}
