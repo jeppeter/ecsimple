@@ -60,6 +60,7 @@ impl BnGf2m {
 			data : rdata,
 			polyarr : Vec::new(),
 		};
+		retv._fixup_length();
 		retv.extend_poly();
 		retv
 	}
@@ -104,6 +105,7 @@ impl BnGf2m {
 			data : rdata,
 			polyarr : Vec::new(),
 		};
+		retv._fixup_length();
 		retv.extend_poly();
 		retv
 
@@ -119,6 +121,10 @@ impl BnGf2m {
 		}
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len(), "to bytes");
 		BigInt::from_bytes_le(Sign::Plus,&rdata)
+	}
+
+	pub fn sub_op(&self,other :&BnGf2m) -> BnGf2m {
+		return self.add_op(other);
 	}
 
 	pub fn add_op(&self, other :&BnGf2m) -> BnGf2m {
@@ -405,15 +411,12 @@ impl BnGf2m {
 		}
 
 		if idx != (rdata.len() - 1) {
-			ecsimple_debug_buffer_trace!(self.data.as_ptr(), self.data.len() * BVALUE_SIZE, "old data [{}]",self.data.len());
 			if idx > 0 {
 				self.data = rdata[0..(idx+1)].to_vec();	
 			} else {
 				self.data = Vec::new();
 				self.data.push(rdata[0]);
-			}
-			ecsimple_debug_buffer_trace!(self.data.as_ptr(), self.data.len() * BVALUE_SIZE, "new data [{}]",self.data.len());
-			
+			}			
 		}
 		return;
 	}
@@ -523,24 +526,36 @@ impl BnGf2m {
 	fn _get_max_bits(&self,bv :&[BValue]) -> (i32,i32) {
 		let mut findidx :i32 = -1;
 		let mut bitidx :i32 = -1;
-		for idx in (bv.len()-1)..=0  {
+		let mut idx : usize = bv.len() - 1;
+		loop  {
 			if bv[idx] != 0 {
 				findidx = idx as i32;
 				break;
 			}
+			if idx == 0 {
+				break;				
+			}
+			idx -= 1;
 		}
 
 		if findidx < 0 {
 			/*we just get the value*/
 			return (-1,-1);
 		}
+		idx = BVALUE_BITS - 1;
 
-		for i in (BVALUE_BITS-1)..=0 {
-			if (bv[findidx as usize] & (1 << i)) != 0 {
-				bitidx = i as i32;
+		loop {
+			if ((bv[findidx as usize]) & (1 << idx)) != 0 {
+				bitidx = idx as i32;
 				break;
 			}
+
+			if idx == 0 {
+				break;
+			}
+			idx -= 1;
 		}
+
 		return (findidx,bitidx);
 	}
 
@@ -550,40 +565,125 @@ impl BnGf2m {
 			return BnGf2m::new_from_be(&r8);
 		}
 		let mut rdata :Vec<BValue> = Vec::new();
-		let maxbytes : usize = (poly[0] / BVALUE_BITS) + 1;
+		let maxbytes : usize = ((poly[0]  as usize)/ BVALUE_BITS ) + 1;
 		for _ in 0..maxbytes {
 			rdata.push(0);
 		}
 
 		for k in 0..poly.len() {
-			let bs = poly[k] / BVALUE_BITS ;
-			let bb = poly[k] % BVALUE_BITS ;
-			rdata[bs] |= (1 << bb);
+			let bs = (poly[k] as usize) / BVALUE_BITS  ;
+			let bb = (poly[k] as usize)% BVALUE_BITS;
+			rdata[bs] |= 1 << bb;
 		}
 
 		BnGf2m {
 			data : rdata.clone(),
-			polyarr : poly.clone(),
+			polyarr : poly.to_vec(),
 		}
 	}
 
-	pub fn div_op(&self, other :&BnGf2m) -> BnGf2m {
-		let mut divdents :Vec<BValue> = self.data.clone();
-		let mut divds :Vec<BValue> = other.data.clone();
-		let mut cv :Vec<i32> = Vec::new();
-		other._check_mod_val();
+	pub fn left_shift(&self,shnum :i32) -> BnGf2m {
+		let mut retvdata :Vec<BValue> = Vec::new();
+		let (mbs,mbits) = self._get_max_bits(&self.data);
+		//ecsimple_log_trace!("0x{:x} mbs {} mbits {}",self,mbs,mbits);
+		let r8 :Vec<u8> = vec![0];
+		let mut retv :BnGf2m = BnGf2m::new_from_be(&r8);
+		if mbs < 0 {
+			return retv;
+		}
+		let maxbytes :i32 = shnum / (BVALUE_BITS as i32) + mbs + 2;
+		let addi :i32 = shnum / (BVALUE_BITS as i32);
+		let addb :i32 = shnum % (BVALUE_BITS as i32);
+		for _ in 0..maxbytes {
+			retvdata.push(0);
+		}
+		let mut i :usize = self.data.len() - 1;
+		//ecsimple_log_trace!("retvdata len {}" ,retvdata.len());
 
-		/*now first to get the max bits*/
-		let (mut dbidx,mut dbitidx) : (i32,i32);
-		let (mut vbidx,mut vbitidx) : (i32,i32);
+		loop {
+			if addb > 0 {
+				retvdata[i + addi as usize + 1] |= self.data[i] >> (BVALUE_BITS -  addb as usize);
+				retvdata[i + addi as usize ] |= self.data[i] << addb;
+			} else {
+				retvdata[i + addi as usize] |= self.data[i];
+			}
+			if i == 0 {
+				break;
+			}
+			i -= 1;
+		}
 
-		(dbidx,dbitidx) = self._get_max_bits(divdents);
+		retv.data = retvdata;
+		retv._fixup_length();
+		retv._extend_poly();
+		return retv; 
+	}
 
+	pub fn right_shift(&self,shnum :i32) -> BnGf2m {
+		let mut retvdata :Vec<BValue> = Vec::new();
+		let (mbs,_) = self._get_max_bits(&self.data);
+		let r8 :Vec<u8> = vec![0];
+		let mut retv :BnGf2m = BnGf2m::new_from_be(&r8);
+		if mbs < 0  {
+			return retv;
+		}
+		let addi :i32 = shnum / (BVALUE_BITS as i32);
+		let addb :i32 = shnum % (BVALUE_BITS as i32);
+		let maxbytes :i32 = mbs + 2;
+		for _ in 0..maxbytes {
+			retvdata.push(0);
+		}
+		ecsimple_log_trace!("addi {} addb {}", addi, addb);
+
+		let mut kidx :usize = self.data.len() - 1;
+		while kidx >= addi as usize {
+			if addb > 0  {
+				if kidx > addi as usize {
+					ecsimple_log_trace!("kidx {} [{}]", kidx,kidx - addi as usize);
+					retvdata[(kidx - addi as usize)] |= self.data[kidx] >> addb;
+					retvdata[(kidx - addi as usize - 1)] |= self.data[kidx] << ( BVALUE_BITS - addb as usize);
+				} else {
+					retvdata[0] |= self.data[kidx] >> addb;
+				}
+			} else {
+				retvdata[(kidx- addi as usize)] |= self.data[kidx];
+			}
+			if kidx == 0 {
+				break;
+			}
+			kidx -= 1;
+		}
+
+		retv.data = retvdata;
+		retv._fixup_length();
+		retv._extend_poly();
+		return retv;
+	}
+
+	pub fn div_op(&self,other :&BnGf2m) -> BnGf2m {
+		let mut d1 :BnGf2m = self.clone();
+		let d2 :BnGf2m = other.clone();
+		let mut polyarr :Vec<i32> = Vec::new();
+
+		loop {
+			let (d1b,d1t) = d1._get_max_bits(&d1.data);
+			let (d2b,d2t) = d2._get_max_bits(&d2.data);
+			let m1b = d1b * BVALUE_BITS as i32  + d1t;
+			let m2b = d2b * BVALUE_BITS as i32 + d2t;
+			if m1b < m2b {
+				break;
+			}		
+			let c = d2.left_shift(m1b - m2b);
+			let d = d1.sub_op(&c);
+			polyarr.push(m1b-m2b);
+			d1 = d;
+		}
+
+		return self._poly_to_bngf2m(&polyarr);
 
 	}
 
 }
-
 
 impl core::fmt::Debug for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

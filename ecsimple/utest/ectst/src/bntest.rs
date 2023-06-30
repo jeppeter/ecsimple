@@ -123,8 +123,71 @@ fn binmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
+fn binlshift_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler)]
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and pnum"}
+	}
+	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
+	let shiftnum :u64 = parse_u64(&sarr[1])?;
+
+
+	let cval :BnGf2m = aval.left_shift(shiftnum as i32);
+	println!("0x{:x} << {} = 0x{:x}", aval,shiftnum,cval);
+
+	Ok(())
+}
+
+fn binrshift_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and pnum"}
+	}
+	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
+	let shiftnum :u64 = parse_u64(&sarr[1])?;
+
+
+	let cval :BnGf2m = aval.right_shift(shiftnum as i32);
+	println!("0x{:x} >> {} = 0x{:x}", aval,shiftnum,cval);
+
+	Ok(())
+}
+
+fn bindiv_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and pnum"}
+	}
+	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
+	let pval :BnGf2m = get_bngf2m(&sarr[1])?;
+
+	let pnum :BigInt = pval.to_bigint();
+	let ov :BigInt = one();
+	if (pnum.clone() & ov.clone()) != ov.clone() {
+		extargs_new_error!{BinError," 0x{:x} not odd pnum",pnum}
+	}
+
+	let cval :BnGf2m = aval.div_op(&pval);
+	let mut cformat :String = format!("{:X}",cval);
+	if (cformat.len() % 2) != 0 {
+		cformat = format!("0{}",cformat);
+	}
+	println!("0x{:x} / 0x{:x} = 0x{}",aval,pval,cformat);
+
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -138,6 +201,15 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : "+"
 		},
 		"binmod<binmod_handler>## anum % pnum in bin mode ##" : {
+			"$" : "+"
+		},
+		"binlshift<binlshift_handler>##anum shiftnum in left shift##" : {
+			"$" : "+"
+		},
+		"binrshift<binrshift_handler>##anum shiftnum in right shift##" : {
+			"$" : "+"
+		},
+		"bindiv<bindiv_handler>##anum / bnum to bin divide##" : {
 			"$" : "+"
 		}
 	}
