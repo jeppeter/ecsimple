@@ -520,6 +520,68 @@ impl BnGf2m {
 		retv
 	}
 
+	fn _get_max_bits(&self,bv :&[BValue]) -> (i32,i32) {
+		let mut findidx :i32 = -1;
+		let mut bitidx :i32 = -1;
+		for idx in (bv.len()-1)..=0  {
+			if bv[idx] != 0 {
+				findidx = idx as i32;
+				break;
+			}
+		}
+
+		if findidx < 0 {
+			/*we just get the value*/
+			return (-1,-1);
+		}
+
+		for i in (BVALUE_BITS-1)..=0 {
+			if (bv[findidx as usize] & (1 << i)) != 0 {
+				bitidx = i as i32;
+				break;
+			}
+		}
+		return (findidx,bitidx);
+	}
+
+	fn _poly_to_bngf2m(&self,poly :&[i32]) -> BnGf2m {
+		if poly.len() == 0 {
+			let r8 :Vec<u8> = vec![0];
+			return BnGf2m::new_from_be(&r8);
+		}
+		let mut rdata :Vec<BValue> = Vec::new();
+		let maxbytes : usize = (poly[0] / BVALUE_BITS) + 1;
+		for _ in 0..maxbytes {
+			rdata.push(0);
+		}
+
+		for k in 0..poly.len() {
+			let bs = poly[k] / BVALUE_BITS ;
+			let bb = poly[k] % BVALUE_BITS ;
+			rdata[bs] |= (1 << bb);
+		}
+
+		BnGf2m {
+			data : rdata.clone(),
+			polyarr : poly.clone(),
+		}
+	}
+
+	pub fn div_op(&self, other :&BnGf2m) -> BnGf2m {
+		let mut divdents :Vec<BValue> = self.data.clone();
+		let mut divds :Vec<BValue> = other.data.clone();
+		let mut cv :Vec<i32> = Vec::new();
+		other._check_mod_val();
+
+		/*now first to get the max bits*/
+		let (mut dbidx,mut dbitidx) : (i32,i32);
+		let (mut vbidx,mut vbitidx) : (i32,i32);
+
+		(dbidx,dbitidx) = self._get_max_bits(divdents);
+
+
+	}
+
 }
 
 
