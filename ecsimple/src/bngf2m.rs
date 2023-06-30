@@ -56,10 +56,12 @@ impl BnGf2m {
 		}
 
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
-		BnGf2m {
+		let mut retv = BnGf2m {
 			data : rdata,
 			polyarr : Vec::new(),
-		}
+		};
+		retv.extend_poly();
+		retv
 	}
 
 	pub fn new_from_bigint(bn :&BigInt) -> BnGf2m {
@@ -98,10 +100,13 @@ impl BnGf2m {
 		}
 
 		//ecsimple_debug_buffer_trace!(rdata.as_ptr(), rdata.len() * BVALUE_SIZE, "to bytes");
-		BnGf2m {
+		let mut retv = BnGf2m {
 			data : rdata,
 			polyarr : Vec::new(),
-		}
+		};
+		retv.extend_poly();
+		retv
+
 	}
 
 	pub fn to_bigint(&self) -> BigInt {
@@ -362,6 +367,13 @@ impl BnGf2m {
 		rv
 	}
 
+	fn _check_mod_val(&self) {
+		if self.polyarr.len() == 0 || self.polyarr[self.polyarr.len() - 1] != 0 {
+			panic!("0x{:x} not odd for mod", self);
+		}
+		return;
+	}
+
 	fn _extend_poly(&mut self) {
 		self.polyarr = Vec::new();
 		let mut jdx :i32 ;
@@ -377,11 +389,31 @@ impl BnGf2m {
 			}
 			jdx -= 1;
 		}
-		if self.polyarr.len() == 0 || self.polyarr[(self.polyarr.len() - 1)] != 0 {
-			panic!("0x{:x} not valid pol must odd", self);
-		}
 		return
+	}
 
+	fn _fixup_length(&mut self) {
+		let rdata :Vec<BValue> = self.data.clone();
+		let mut idx :usize;
+
+		idx = rdata.len() - 1;
+		loop {
+			if rdata[idx] != 0 || idx == 0 {
+				break;
+			}
+			idx -= 1;
+		}
+
+		if idx != (rdata.len() - 1) {
+			if idx > 0 {
+				self.data = rdata[0..(idx+1)].to_vec();	
+			} else {
+				self.data = Vec::new();
+				self.data.push(rdata[0]);
+			}
+			
+		}
+		return;
 	}
 
 	pub fn extend_poly(&mut self) {
@@ -394,15 +426,9 @@ impl BnGf2m {
 	pub fn mod_op(&self,other :&BnGf2m) -> BnGf2m {
 		let mut retv :BnGf2m = self.clone();
 		let modptr :&BnGf2m;
-		let mut cv :BnGf2m;
+		modptr = other;
+		modptr._check_mod_val();
 
-		if other.polyarr.len() == 0 {
-			cv = other.clone();
-			cv.extend_poly();
-			modptr = &cv;
-		} else {
-			modptr = other;
-		}
 		ecsimple_debug_buffer_trace!(modptr.polyarr.as_ptr(), modptr.polyarr.len() * std::mem::size_of::<i32>(),"polyarr {}",modptr.polyarr.len());
 
 		let dn :usize = ((modptr.polyarr[0] as usize) / BVALUE_BITS ) as usize;
@@ -488,7 +514,7 @@ impl BnGf2m {
 				kidx += 1;
 			}
 		}
-
+		retv._fixup_length();
 		retv
 	}
 
