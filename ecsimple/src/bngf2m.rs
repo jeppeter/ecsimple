@@ -405,12 +405,14 @@ impl BnGf2m {
 		}
 
 		if idx != (rdata.len() - 1) {
+			ecsimple_debug_buffer_trace!(self.data.as_ptr(), self.data.len() * BVALUE_SIZE, "old data [{}]",self.data.len());
 			if idx > 0 {
 				self.data = rdata[0..(idx+1)].to_vec();	
 			} else {
 				self.data = Vec::new();
 				self.data.push(rdata[0]);
 			}
+			ecsimple_debug_buffer_trace!(self.data.as_ptr(), self.data.len() * BVALUE_SIZE, "new data [{}]",self.data.len());
 			
 		}
 		return;
