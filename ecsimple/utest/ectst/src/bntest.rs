@@ -32,6 +32,7 @@ use ecsimple::bngf2m::*;
 
 use num_bigint::{BigInt};
 use num_traits::{one};
+//use std::ops::{Add,Mul,Div,Rem};
 
 
 extargs_error_class!{BinError}
@@ -69,7 +70,7 @@ fn binadd_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
 	let bval :BnGf2m = get_bngf2m(&sarr[1])?;
 
-	let cval :BnGf2m = aval.add_op(&bval);
+	let cval :BnGf2m = &aval + &bval;
 	println!("0x{:x} + 0x{:x} = 0x{:x}",aval,bval,cval);
 
 	Ok(())
@@ -86,7 +87,7 @@ fn binmul_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
 	let bval :BnGf2m = get_bngf2m(&sarr[1])?;
 
-	let cval :BnGf2m = aval.mul_op(&bval);
+	let cval :BnGf2m = &aval * &bval;
 	let mut cformat :String = format!("{:X}",cval);
 	if (cformat.len() % 2) != 0 {
 		cformat = format!("0{}",cformat);
@@ -113,7 +114,7 @@ fn binmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 		extargs_new_error!{BinError," 0x{:x} not odd pnum",pnum}
 	}
 
-	let cval :BnGf2m = aval.mod_op(&pval);
+	let cval :BnGf2m = &aval % &pval;
 	let mut cformat :String = format!("{:X}",cval);
 	if (cformat.len() % 2) != 0 {
 		cformat = format!("0{}",cformat);
@@ -135,7 +136,7 @@ fn binlshift_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let shiftnum :u64 = parse_u64(&sarr[1])?;
 
 
-	let cval :BnGf2m = aval.left_shift(shiftnum as i32);
+	let cval :BnGf2m = &aval << (shiftnum as i32);
 	println!("0x{:x} << {} = 0x{:x}", aval,shiftnum,cval);
 
 	Ok(())
@@ -153,7 +154,7 @@ fn binrshift_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let shiftnum :u64 = parse_u64(&sarr[1])?;
 
 
-	let cval :BnGf2m = aval.right_shift(shiftnum as i32);
+	let cval :BnGf2m = &aval >> (shiftnum as i32);
 	println!("0x{:x} >> {} = 0x{:x}", aval,shiftnum,cval);
 
 	Ok(())
@@ -176,7 +177,7 @@ fn bindiv_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 		extargs_new_error!{BinError," 0x{:x} not odd pnum",pnum}
 	}
 
-	let cval :BnGf2m = aval.div_op(&pval);
+	let cval :BnGf2m = &aval / &pval;
 	let mut cformat :String = format!("{:X}",cval);
 	if (cformat.len() % 2) != 0 {
 		cformat = format!("0{}",cformat);

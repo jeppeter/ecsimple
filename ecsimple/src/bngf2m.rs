@@ -2,6 +2,7 @@ use num_bigint::{BigInt,Sign};
 
 use crate::*;
 use crate::logger::*;
+use std::ops::{Add,Sub,Mul,Div,Rem,Shl,Shr};
 
 
 type BValue = u64;
@@ -584,7 +585,7 @@ impl BnGf2m {
 
 	pub fn left_shift(&self,shnum :i32) -> BnGf2m {
 		let mut retvdata :Vec<BValue> = Vec::new();
-		let (mbs,mbits) = self._get_max_bits(&self.data);
+		let (mbs,_) = self._get_max_bits(&self.data);
 		//ecsimple_log_trace!("0x{:x} mbs {} mbits {}",self,mbs,mbits);
 		let r8 :Vec<u8> = vec![0];
 		let mut retv :BnGf2m = BnGf2m::new_from_be(&r8);
@@ -726,3 +727,106 @@ impl core::fmt::UpperHex for BnGf2m {
 		core::fmt::UpperHex::fmt(&bnum,f)		
 	}
 }
+
+
+impl Add for BnGf2m {
+	type Output = BnGf2m;
+	fn add (self,rhs :BnGf2m) -> Self::Output {
+		return( &self).add_op(&rhs);
+	}
+}
+
+impl Add for &BnGf2m {
+	type Output = BnGf2m;
+	fn add(self, rhs :&BnGf2m) -> Self::Output {
+		return self.add_op(rhs);
+	}
+}
+
+impl Sub for BnGf2m {
+	type Output = BnGf2m;
+	fn sub (self, rhs :BnGf2m) -> Self::Output {
+		return (&self).sub_op(&rhs);
+	}
+}
+
+impl Sub for &BnGf2m {
+	type Output = BnGf2m;
+	fn sub (self, rhs :&BnGf2m) -> Self::Output {
+		return (self).sub_op(rhs);
+	}
+}
+
+
+impl Mul for BnGf2m {
+	type Output = BnGf2m;
+	fn mul(self, rhs :Self) -> Self::Output {
+		return (&self).mul_op(&rhs);
+	}
+}
+
+impl Mul for &BnGf2m {
+	type Output = BnGf2m;
+	fn mul(self, rhs :&BnGf2m) -> Self::Output {
+		return (self).mul_op(rhs);
+	}
+}
+
+
+impl Div for BnGf2m {
+	type Output = BnGf2m;
+	fn div(self, rhs :Self) -> Self::Output {
+		return (&self).div_op(&rhs);
+	}
+}
+
+impl Div for &BnGf2m {
+	type Output = BnGf2m;
+	fn div(self, rhs :&BnGf2m) -> Self::Output {
+		return (self).div_op(rhs);
+	}
+}
+
+impl Rem for BnGf2m {
+	type Output = BnGf2m;
+	fn rem(self, rhs :Self) -> Self::Output {
+		return (&self).mod_op(&rhs);
+	}
+}
+
+impl Rem for &BnGf2m {
+	type Output = BnGf2m;
+	fn rem(self, rhs :&BnGf2m) -> Self::Output {
+		return (self).mod_op(rhs);
+	}
+}
+
+
+impl Shl<i32> for BnGf2m {
+	type Output = BnGf2m;
+	fn shl(self, rhs :i32) -> Self::Output {
+		return (&self).left_shift(rhs);
+	}
+}
+
+impl Shl<i32> for &BnGf2m {
+	type Output = BnGf2m;
+	fn shl(self, rhs :i32) -> Self::Output {
+		return (self).left_shift(rhs);
+	}
+}
+
+impl Shr<i32> for BnGf2m {
+	type Output = BnGf2m;
+	fn shr(self, rhs :i32) -> Self::Output {
+		return (&self).right_shift(rhs);
+	}
+}
+
+impl Shr<i32> for &BnGf2m {
+	type Output = BnGf2m;
+	fn shr(self, rhs :i32) -> Self::Output {
+		return (self).right_shift(rhs);
+	}
+}
+
