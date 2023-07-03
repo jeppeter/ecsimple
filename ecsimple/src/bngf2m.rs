@@ -17,7 +17,15 @@ pub struct BnGf2m  {
 	polyarr :Vec<i32>,
 }
 
-#[allow(dead_code)]
+impl std::default::Default for BnGf2m {
+	fn default() -> Self {
+		BnGf2m {
+			data :vec![0],
+			polyarr : Vec::new(),
+		}
+	}
+}
+
 impl BnGf2m {
 
 	fn _check_self(&self) {
@@ -29,6 +37,7 @@ impl BnGf2m {
 		self._check_self();
 		other._check_self();
 	}
+
 
 	pub fn new_from_le(varr :&[u8]) -> BnGf2m {
 		let mut rdata :Vec<BValue> = Vec::new();

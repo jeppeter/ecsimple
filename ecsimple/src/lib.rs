@@ -7,4 +7,6 @@ pub mod errors;
 #[macro_use]
 pub mod logger;
 pub mod bngf2m;
+pub mod group;
+pub mod point;
 pub mod curve;
