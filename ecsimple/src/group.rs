@@ -1,6 +1,7 @@
 
 use crate::bngf2m::*;
 
+#[derive(Clone)]
 pub struct ECBnGf2mGenerator {
 	pub x :BnGf2m,
 	pub y :BnGf2m,
@@ -34,6 +35,7 @@ impl std::default::Default for ECBnGf2mGenerator {
 }
 
 
+#[derive(Clone)]
 pub struct ECGroupBnGf2m {
 	pub generator :ECBnGf2mGenerator,
 	pub order :BnGf2m,
