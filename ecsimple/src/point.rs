@@ -1,6 +1,8 @@
 
 use crate::bngf2m::*;
 use crate::group::*;
+use num_bigint::{BigInt};
+use num_traits::{zero};
 
 
 #[derive(Clone)]
@@ -9,11 +11,12 @@ pub struct ECGf2mPoint {
 	y :BnGf2m,
 	z :BnGf2m,
 	group :ECGroupBnGf2m,
+	infinity : bool,
 }
 
 impl std::fmt::Display for ECGf2mPoint {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f,"curve[{}] x 0x{:x} y 0x{:x} z 0x{:x}", self.group,self.x,self.y,self.z)
+		write!(f,"curve[{}] isinfinity {} x 0x{:x} y 0x{:x} z 0x{:x}", self.group,self.infinity,self.x,self.y,self.z)
 	}
 }
 
@@ -24,18 +27,24 @@ impl std::default::Default for ECGf2mPoint {
 			y :BnGf2m::default(),
 			z :BnGf2m::default(),
 			group : ECGroupBnGf2m::default(),
+			infinity : true,
 		}
 	}
 }
 
 
 impl ECGf2mPoint {
+	pub fn is_infinity(&self) -> bool {
+		return self.infinity;
+	}
+
 	pub fn new(grp :&ECGroupBnGf2m) -> ECGf2mPoint {
 		ECGf2mPoint {
 			x : BnGf2m::default(),
 			y :BnGf2m::default(),
 			z :BnGf2m::default(),
 			group : grp.clone(),
+			infinity : false,
 		}
 	}
 
@@ -45,6 +54,7 @@ impl ECGf2mPoint {
 			y :y.clone(),
 			z :z.clone(),
 			group :grp.clone(),
+			infinity : false,
 		}
 	}
 
@@ -62,6 +72,31 @@ impl ECGf2mPoint {
 
 	pub fn set_z(&mut self, z :&BnGf2m) {
 		self.z = z.clone();
+	}
+
+	pub fn mulint_op(&self, bn :&BigInt) -> ECGf2mPoint {
+		let zv :BigInt = zero();
+		let mut retv :ECGf2mPoint = self.clone();
+		let mut p :ECGf2mPoint = self.clone();
+		let mut s :ECGf2mPoint = self.clone();
+		let mut cardinal :BigInt = zero();
+		let mut lamda :BigInt = zero();
+		let mut k :BigInt = zero();
+		if bn <= &zv {
+			let mut retv :ECGf2mPoint = self.clone();
+			retv.infinity = true;
+			return retv;
+		}
+
+		if self.infinity {
+			return self.clone();
+		}
+
+		if self.group.order == zv || self.group.cofactor == zv {
+			panic!("group order 0x{:x} or group cofactor 0x{:x}", self.group.order, self.group.cofactor);
+		}
+
+		return self.clone();
 	}
 
 }

@@ -1,5 +1,8 @@
 
 use crate::bngf2m::*;
+use num_bigint::{BigInt};
+use num_traits::{zero};
+
 
 #[derive(Clone)]
 pub struct ECBnGf2mGenerator {
@@ -38,8 +41,8 @@ impl std::default::Default for ECBnGf2mGenerator {
 #[derive(Clone)]
 pub struct ECGroupBnGf2m {
 	pub generator :ECBnGf2mGenerator,
-	pub order :BnGf2m,
-	pub cofactor :BnGf2m,
+	pub order :BigInt,
+	pub cofactor :BigInt,
 	pub curvename :String,
 	pub a :BnGf2m,
 	pub b :BnGf2m,
@@ -56,8 +59,8 @@ impl std::default::Default for ECGroupBnGf2m {
 	fn default() -> Self {
 		ECGroupBnGf2m {
 			generator : ECBnGf2mGenerator::default(),
-			order :BnGf2m::default(),
-			cofactor :BnGf2m::default(),
+			order :zero(),
+			cofactor :zero(),
 			curvename : "".to_string(),
 			a : BnGf2m::default(),
 			b : BnGf2m::default(),

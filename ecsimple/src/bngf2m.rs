@@ -38,6 +38,10 @@ impl BnGf2m {
 		other._check_self();
 	}
 
+	pub fn one() -> BnGf2m {
+		let v :Vec<u8> = vec![1];
+		return BnGf2m::new_from_be(&v);
+	}
 
 	pub fn new_from_le(varr :&[u8]) -> BnGf2m {
 		let mut rdata :Vec<BValue> = Vec::new();
@@ -73,6 +77,16 @@ impl BnGf2m {
 		retv._fixup_length();
 		retv.extend_poly();
 		retv
+	}
+
+	pub fn is_zero(&self) -> bool {
+		let mut retv : bool =false;
+		let (bmax, _) = self._get_max_bits(&self.data);
+		if bmax < 0 {
+			retv = true;
+		}
+		return retv;
+
 	}
 
 	pub fn new_from_bigint(bn :&BigInt) -> BnGf2m {
