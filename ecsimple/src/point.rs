@@ -2,8 +2,23 @@
 use crate::bngf2m::*;
 use crate::group::*;
 use num_bigint::{BigInt};
-use num_traits::{zero};
+use num_traits::{zero,one};
 
+fn get_max_bits(bn :&BigInt) -> i64 {
+	let mut retv : i64 = -1;
+	let mut idx : i64 = 0 ;
+	let zv :BigInt = zero();
+	let mut cv : BigInt = one();
+
+	while bn >= &cv {
+		if (&cv & bn) != zv {
+			retv = idx;
+		}
+		idx += 1;
+		cv <<= 1;
+	}
+	return retv;
+}
 
 #[derive(Clone)]
 pub struct ECGf2mPoint {
@@ -40,13 +55,14 @@ impl ECGf2mPoint {
 
 	pub fn new(grp :&ECGroupBnGf2m) -> ECGf2mPoint {
 		ECGf2mPoint {
-			x : BnGf2m::default(),
-			y :BnGf2m::default(),
-			z :BnGf2m::default(),
+			x : grp.generator.x.clone(),
+			y : grp.generator.y.clone(),
+			z : grp.generator.z.clone(),
 			group : grp.clone(),
 			infinity : false,
 		}
 	}
+
 
 	pub fn new_point(x :&BnGf2m, y :&BnGf2m,z :&BnGf2m, grp :&ECGroupBnGf2m) -> Self {
 		Self {
@@ -76,9 +92,9 @@ impl ECGf2mPoint {
 
 	pub fn mulint_op(&self, bn :&BigInt) -> ECGf2mPoint {
 		let zv :BigInt = zero();
-		let mut retv :ECGf2mPoint = self.clone();
-		let mut p :ECGf2mPoint = self.clone();
-		let mut s :ECGf2mPoint = self.clone();
+		let mut retv :ECGf2mPoint;
+		let mut p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
+		let mut s :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut cardinal :BigInt = zero();
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
@@ -95,6 +111,15 @@ impl ECGf2mPoint {
 		if self.group.order == zv || self.group.cofactor == zv {
 			panic!("group order 0x{:x} or group cofactor 0x{:x}", self.group.order, self.group.cofactor);
 		}
+
+		cardinal = &self.group.order * &self.group.cofactor;
+		k = bn.clone();
+
+		lamda = &k + &cardinal;
+
+		let cardbits = get_max_bits(&cardinal);
+
+		
 
 		return self.clone();
 	}
