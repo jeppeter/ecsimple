@@ -41,6 +41,7 @@ mod fileop;
 #[allow(dead_code)]
 mod strop;
 mod bntest;
+mod ectest;
 
 
 #[extargs_map_function()]
@@ -55,6 +56,7 @@ fn main() -> Result<(),Box<dyn Error>> {
 	extargs_load_commandline!(parser,&commandline)?;
 	loglib::prepare_log(parser.clone())?;
 	bntest::bn_load_parser(parser.clone())?;
+	ectest::ec_load_parser(parser.clone());
 	let ores = parser.parse_commandline_ex(None,None,None,None);
 	if ores.is_err() {
 		let e = ores.err().unwrap();
