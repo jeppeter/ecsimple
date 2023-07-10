@@ -14,7 +14,8 @@ fn get_max_bits(bn :&BigInt) -> i64 {
 
 	while bn >= &cv {
 		if (&cv & bn) != zv {
-			retv = idx;
+			/*for expand*/
+			retv = (idx + 1);
 		}
 		idx += 1;
 		cv <<= 1;
@@ -116,13 +117,22 @@ impl ECGf2mPoint {
 		}
 
 		cardinal = &self.group.order * &self.group.cofactor;
+
+		ecsimple_log_trace!("field 0x{:X} p 0x{:X}", self.group.p,self.group.p);
+		ecsimple_log_trace!("group->a 0x{:X} a 0x{:X}", self.group.a,self.group.a);
+		ecsimple_log_trace!("group->b 0x{:X} b 0x{:X}", self.group.b,self.group.b);
+		ecsimple_log_trace!("cardinality 0x{:X} order 0x{:X} cofactor 0x{:X}",cardinal,self.group.order,self.group.cofactor);
+		ecsimple_log_trace!("k 0x{:X} lamda 0x{:X}", k, lamda);
+
 		k = bn.clone();
-
-		ecsimple_log_trace!("field 0x{:x} p 0x{:x}", self.group.p,self.group.p);
-
 		lamda = &k + &cardinal;
+		ecsimple_log_trace!("scalar 0x{:X} k 0x{:X}",k,k);
+		ecsimple_log_trace!("lamda 0x{:X}",lamda);
+
+		k = &lamda + &cardinal;
 
 		let cardbits = get_max_bits(&cardinal);
+		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X} cardinality_bits 0x{:x}",k,cardinal,cardbits);
 
 		
 
