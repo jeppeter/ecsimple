@@ -69,3 +69,67 @@ impl std::default::Default for ECGroupBnGf2m {
 }
 
 
+#[derive(Clone)]
+pub struct ECPrimeGenerator {
+	pub x :BigInt,
+	pub y :BigInt,
+	pub z :BigInt,
+}
+
+impl std::fmt::Display for ECPrimeGenerator {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"x 0x{:x} y 0x{:x} z 0x{:x}", self.x,self.y,self.z)
+	}
+}
+
+impl ECPrimeGenerator {
+	pub fn new(x :&BigInt, y :&BigInt,z :&BigInt) -> Self {
+		ECPrimeGenerator {
+			x :x.clone(),
+			y :y.clone(),
+			z :z.clone(),
+		}
+	}
+}
+
+impl std::default::Default for ECPrimeGenerator {
+	fn default() -> Self {
+		ECPrimeGenerator {
+			x : zero(),
+			y : zero(),
+			z : zero(),
+		}
+	}
+}
+
+
+#[derive(Clone)]
+pub struct ECGroupPrime {
+	pub generator :ECPrimeGenerator,
+	pub order :BigInt,
+	pub cofactor :BigInt,
+	pub curvename :String,
+	pub a :BigInt,
+	pub b :BigInt,
+}
+
+impl std::fmt::Display for ECGroupPrime {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"curve {} generator {} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x}", 
+			self.curvename, self.generator,self.order,self.cofactor,self.a, self.b)
+	}
+}
+
+impl std::default::Default for ECGroupPrime {
+	fn default() -> Self {
+		ECGroupPrime {
+			generator : ECPrimeGenerator::default(),
+			order :zero(),
+			cofactor :zero(),
+			curvename : "".to_string(),
+			a : zero(),
+			b : zero(),
+		}
+	}
+}
+
