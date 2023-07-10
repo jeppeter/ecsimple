@@ -4,6 +4,12 @@ use num_bigint::{BigInt};
 use num_traits::{zero};
 
 
+pub trait ECGroup {
+	fn x(&self) -> BigInt ;
+	fn y(&self) -> BigInt ;
+	fn z(&self) -> BigInt ;
+}
+
 #[derive(Clone)]
 pub struct ECBnGf2mGenerator {
 	pub x :BnGf2m,
@@ -65,6 +71,20 @@ impl std::default::Default for ECGroupBnGf2m {
 			a : BnGf2m::default(),
 			b : BnGf2m::default(),
 		}
+	}
+}
+
+impl ECGroup for ECGroupBnGf2m {
+	fn x(&self) -> BigInt {
+		return self.generator.x.to_bigint();
+	}
+
+	fn y(&self) -> BigInt {
+		return self.generator.y.to_bigint();
+	}
+
+	fn z(&self) -> BigInt {
+		return self.generator.z.to_bigint();
 	}
 }
 
@@ -130,6 +150,21 @@ impl std::default::Default for ECGroupPrime {
 			a : zero(),
 			b : zero(),
 		}
+	}
+}
+
+
+impl ECGroup for ECGroupPrime {
+	fn x(&self) -> BigInt {
+		return self.generator.x.clone();
+	}
+
+	fn y(&self) -> BigInt {
+		return self.generator.y.clone();
+	}
+
+	fn z(&self) -> BigInt {
+		return self.generator.z.clone();
 	}
 }
 
