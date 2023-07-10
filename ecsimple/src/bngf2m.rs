@@ -43,6 +43,11 @@ impl BnGf2m {
 		return BnGf2m::new_from_be(&v);
 	}
 
+	pub fn zero() -> BnGf2m {
+		let v :Vec<u8> = vec![0];
+		return BnGf2m::new_from_be(&v);
+	}
+
 	pub fn new_from_le(varr :&[u8]) -> BnGf2m {
 		let mut rdata :Vec<BValue> = Vec::new();
 		let mut passlen :usize = 0;

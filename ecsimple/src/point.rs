@@ -99,6 +99,7 @@ impl ECGf2mPoint {
 		let mut retv :ECGf2mPoint;
 		let mut p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut s :ECGf2mPoint = ECGf2mPoint::new(&self.group);
+		let mut r :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut cardinal :BigInt = zero();
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
@@ -133,6 +134,17 @@ impl ECGf2mPoint {
 
 		let cardbits = get_max_bits(&cardinal);
 		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X} cardinality_bits 0x{:x}",k,cardinal,cardbits);
+
+		s.x = BnGf2m::zero();
+		s.y = BnGf2m::zero();
+		s.z = BnGf2m::zero();
+
+		r.x = BnGf2m::zero();
+		r.y = BnGf2m::zero();
+		r.z = BnGf2m::zero();
+
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
 		
 
