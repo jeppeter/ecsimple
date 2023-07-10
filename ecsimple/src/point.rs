@@ -4,6 +4,8 @@ use crate::group::*;
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 
+use crate::logger::*;
+
 fn get_max_bits(bn :&BigInt) -> i64 {
 	let mut retv : i64 = -1;
 	let mut idx : i64 = 0 ;
@@ -74,6 +76,7 @@ impl ECGf2mPoint {
 		}
 	}
 
+
 	pub fn set_group(&mut self, grp :&ECGroupBnGf2m) {
 		self.group = grp.clone();
 	}
@@ -90,7 +93,7 @@ impl ECGf2mPoint {
 		self.z = z.clone();
 	}
 
-	pub fn mulint_op(&self, bn :&BigInt) -> ECGf2mPoint {
+	pub fn mul_op(&self, bn :&BigInt) -> ECGf2mPoint {
 		let zv :BigInt = zero();
 		let mut retv :ECGf2mPoint;
 		let mut p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
@@ -114,6 +117,8 @@ impl ECGf2mPoint {
 
 		cardinal = &self.group.order * &self.group.cofactor;
 		k = bn.clone();
+
+		ecsimple_log_trace!("field 0x{:x} p 0x{:x}", self.group.p,self.group.p);
 
 		lamda = &k + &cardinal;
 

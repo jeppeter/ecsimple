@@ -30,6 +30,9 @@ use std::io::Write;
 
 use num_bigint::{BigInt};
 
+use ecsimple::group::{ECGroupBnGf2m,get_bn_group_curve};
+use ecsimple::point::ECGf2mPoint;
+
 
 extargs_error_class!{EcError}
 
@@ -45,6 +48,12 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let ecname :String = format!("{}",sarr[0]);
 	let bn : BigInt = parse_to_bigint(&sarr[1])?;
 
+	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
+	let pnt : ECGf2mPoint = ECGf2mPoint::new(&grp);
+
+	let pubpnt :ECGf2mPoint = pnt.mul_op(&bn);
+
+	println!("from {} * 0x{:x} = {}",pnt,bn, pubpnt);
 	Ok(())
 }
 

@@ -3,7 +3,7 @@
 
 use crate::bngf2m::*;
 use num_bigint::{BigInt,Sign};
-use num_traits::{zero};
+use num_traits::{zero,one};
 use crate::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ use hex::FromHex;
 ecsimple_error_class!{ECGroupError}
 
 
-pub trait ECGroup : Send + Sync {
+pub trait ECGroup  {
 	fn x(&self) -> BigInt ;
 	fn y(&self) -> BigInt ;
 	fn z(&self) -> BigInt ;
@@ -100,9 +100,6 @@ impl ECGroup for ECGroupBnGf2m {
 	}
 }
 
-unsafe impl Send for ECGroupBnGf2m {}
-unsafe impl Sync for ECGroupBnGf2m {}
-
 
 #[derive(Clone)]
 pub struct ECPrimeGenerator {
@@ -183,15 +180,14 @@ impl ECGroup for ECGroupPrime {
 	}
 }
 
-unsafe impl Send for ECGroupPrime {}
-unsafe impl Sync for ECGroupPrime {}
 
 
-fn create_group_curves() -> HashMap<String,Box<dyn ECGroup>> {
-	let mut retv :HashMap<String,Box<dyn ECGroup>> = HashMap::new();
+fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
+	let mut retv :HashMap<String,ECGroupBnGf2m> = HashMap::new();
 	let mut bngrp :ECGroupBnGf2m = ECGroupBnGf2m::default();
 	let mut v8 :Vec<u8>;
 	let mut p :BigInt;
+	let ov :BigInt = one();
 
 	v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -213,26 +209,27 @@ fn create_group_curves() -> HashMap<String,Box<dyn ECGroup>> {
 	v8 = Vec::from_hex("04000000000000000000020108A2E0CC0D99F8A5EF").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.order = p.clone();
+	bngrp.cofactor = &ov + &ov;
+	bngrp.curvename = SECT163k1_NAME.to_string();
 
-	retv.insert(SECT163k1_NAME.to_string(),Box::new(bngrp.clone()));
+	retv.insert(SECT163k1_NAME.to_string(),bngrp.clone());
 
 	retv
 }
 
 
 lazy_static ! {
-	static ref ECC_CURVES :HashMap<String,Box<dyn ECGroup>> = {
-		create_group_curves()	
+	static ref ECC_BN_CURVES :HashMap<String,ECGroupBnGf2m> = {
+		create_group_bn_curves()	
 	};
+
 }
 
 
-pub fn get_group_curve(name :&str) -> Result<Box<dyn ECGroup>,Box<dyn Error>> {
-	let retv :Box<dyn ECGroup>;
-
-	match ECC_CURVES.get(name) {
+pub fn get_bn_group_curve(name :&str) -> Result<ECGroupBnGf2m,Box<dyn Error>> {
+	match ECC_BN_CURVES.get(name) {
 		Some(pv) => {
-			return Ok(*(pv.clone()));
+			return Ok(pv.clone());
 		},
 		_ => {
 			ecsimple_new_error!{ECGroupError,"can not find [{}]",name}
