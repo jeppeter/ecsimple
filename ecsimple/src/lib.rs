@@ -6,6 +6,8 @@ pub mod consts;
 pub mod errors;
 #[macro_use]
 pub mod logger;
+pub (crate) mod fileop;
+pub (crate) mod randop;
 pub mod bngf2m;
 pub mod group;
 pub mod point;

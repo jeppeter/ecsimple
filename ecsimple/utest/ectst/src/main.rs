@@ -38,6 +38,7 @@ mod loglib_windows;
 mod loglib;
 #[allow(dead_code)]
 mod fileop;
+mod filehdl;
 #[allow(dead_code)]
 mod strop;
 mod bntest;
@@ -54,6 +55,7 @@ fn main() -> Result<(),Box<dyn Error>> {
 	}}
 	"#);
 	extargs_load_commandline!(parser,&commandline)?;
+	filehdl::file_load_parser(parser.clone())?;
 	loglib::prepare_log(parser.clone())?;
 	bntest::bn_load_parser(parser.clone())?;
 	ectest::ec_load_parser(parser.clone());

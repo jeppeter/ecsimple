@@ -5,6 +5,7 @@ use num_bigint::{BigInt};
 use num_traits::{zero,one};
 
 use crate::logger::*;
+use crate::randop::{ecsimple_rand_bits};
 
 fn get_max_bits(bn :&BigInt) -> i64 {
 	let mut retv : i64 = -1;
@@ -15,7 +16,7 @@ fn get_max_bits(bn :&BigInt) -> i64 {
 	while bn >= &cv {
 		if (&cv & bn) != zv {
 			/*for expand*/
-			retv = (idx + 1);
+			retv = idx + 1;
 		}
 		idx += 1;
 		cv <<= 1;
@@ -94,13 +95,26 @@ impl ECGf2mPoint {
 		self.z = z.clone();
 	}
 
+	fn ladder_pre(&self, r :&mut ECGf2mPoint, s :&mut ECGf2mPoint, bits :u64) {
+		let mut bs :Vec<u8>;
+		bs = ecsimple_rand_bits(bits);
+		s.z = BnGf2m::new_from_be(&bs);
+		ecsimple_log_trace!("s->Z 0x{:X} bits [0x{:x}]", s.z, bits);
+
+		bs = ecsimple_rand_bits(bits);
+		r.z = BnGf2m::new_from_be(&bs);
+		ecsimple_log_trace!("r->Z 0x{:X} bits [0x{:x}]",r.z,bits);
+		return;
+	}
+
+
 	pub fn mul_op(&self, bn :&BigInt) -> ECGf2mPoint {
 		let zv :BigInt = zero();
 		let mut retv :ECGf2mPoint;
 		let mut p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut s :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut r :ECGf2mPoint = ECGf2mPoint::new(&self.group);
-		let mut cardinal :BigInt = zero();
+		let mut cardinal :BigInt;
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
 		if bn <= &zv {
@@ -145,7 +159,13 @@ impl ECGf2mPoint {
 
 		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
+
+
+		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+		self.ladder_pre(&mut r,&mut s, (cardbits - 1) as u64);
 		
 
 		return self.clone();
