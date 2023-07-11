@@ -1,38 +1,13 @@
 
 use crate::bngf2m::*;
 use crate::group::*;
+use crate::utils::*;
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 
 use crate::logger::*;
 use crate::randop::{ecsimple_rand_bits};
 
-fn get_max_bits(bn :&BigInt) -> i64 {
-	let mut retv : i64 = -1;
-	let mut idx : i64 = 0 ;
-	let zv :BigInt = zero();
-	let mut cv : BigInt = one();
-
-	while bn >= &cv {
-		if (&cv & bn) != zv {
-			/*for expand*/
-			retv = idx + 1;
-		}
-		idx += 1;
-		cv <<= 1;
-	}
-	return retv;
-}
-
-fn get_bit_set(bn :&BigInt,i :i32) -> i32 {
-	let mut retv :i32 = 0;
-	let ov :BigInt = one();
-	let zv :BigInt = zero();
-	if (bn & (ov << i)) != zv {
-		retv = 1;
-	}
-	return retv;
-}
 
 #[derive(Clone)]
 pub struct ECGf2mPoint {
@@ -166,15 +141,49 @@ impl ECGf2mPoint {
 		return;
 	}
 
+	fn make_affine(&self, r :&mut ECGf2mPoint) {
+		return;
+	}
+
+	fn point_invert(&self, r :&mut ECGf2mPoint) {
+		if r.is_infinity() || r.y.is_zero() {
+			return;
+		}
+
+		self.make_affine(r);
+		r.y = &r.x + &r.y;
+		return;
+	}
+
 	fn ladder_post(&self,r :&mut ECGf2mPoint,s :&ECGf2mPoint,p :&ECGf2mPoint) {
 		if r.z.is_zero() {
 			r.infinity = true;
 			return;
 		}
 		if s.z.is_zero() {
-			r = p.clone();
-			
+			*r = p.clone();
+			self.point_invert(r);
+			return;
 		}
+		let mut t0 :BnGf2m;
+		let mut t1 :BnGf2m;
+		let mut t2 :BnGf2m;
+
+		t0 = self.field_mul(&(r.z),&(s.z));
+		t1 = self.field_mul(&(p.x),&(r.z));
+		t1 = &r.x + &t1;
+		t2 = self.field_mul(&(p.x),&(s.z));
+		r.z = self.field_mul(&(r.x),&t2);
+		t2 = &t2 + &s.x;
+		t1 = self.field_mul(&t1,&t2);
+		t2 = self.field_sqr(&p.x);
+		t2 = &p.y + &t2;
+		t2 = self.field_mul(&t2,&t0);
+		t1 = &t2 + &t1;
+
+
+
+		return;
 	}
 
 

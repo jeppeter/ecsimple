@@ -712,6 +712,11 @@ impl BnGf2m {
 
 	}
 
+	pub fn inv_op(&self, modnum :&BnGf2m) -> BnGf2m {
+		let retv :BnGf2m = BnGf2m::zero();
+		return retv;
+	}
+
 }
 
 impl core::fmt::Debug for BnGf2m {

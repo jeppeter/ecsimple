@@ -8,6 +8,7 @@ pub mod errors;
 pub mod logger;
 pub (crate) mod fileop;
 pub (crate) mod randop;
+pub (crate) mod utils;
 pub mod bngf2m;
 pub mod group;
 pub mod point;
