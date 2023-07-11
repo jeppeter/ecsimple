@@ -24,6 +24,16 @@ fn get_max_bits(bn :&BigInt) -> i64 {
 	return retv;
 }
 
+fn get_bit_set(bn :&BigInt,i :i32) -> i32 {
+	let mut retv :i32 = 0;
+	let ov :BigInt = one();
+	let zv :BigInt = zero();
+	if (bn & (ov << i)) != zv {
+		retv = 1;
+	}
+	return retv;
+}
+
 #[derive(Clone)]
 pub struct ECGf2mPoint {
 	x :BnGf2m,
@@ -95,15 +105,64 @@ impl ECGf2mPoint {
 		self.z = z.clone();
 	}
 
-	fn ladder_pre(&self, r :&mut ECGf2mPoint, s :&mut ECGf2mPoint, bits :u64) {
+	fn field_mul(&self,a :&BnGf2m, b :&BnGf2m) -> BnGf2m {
+		let retv :BnGf2m ;
+		retv = a * b;
+		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
+		ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
+		return retv % ord;
+	}
+
+	fn field_sqr(&self,a :&BnGf2m) -> BnGf2m {
+		let retv :BnGf2m;
+		retv = a * a;
+		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
+		ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
+		return retv % ord;		
+	}
+
+	fn ladder_pre(&self, r :&mut ECGf2mPoint, s :&mut ECGf2mPoint, p :&ECGf2mPoint, bits :u64) {
 		let mut bs :Vec<u8>;
 		bs = ecsimple_rand_bits(bits);
 		s.z = BnGf2m::new_from_be(&bs);
 		ecsimple_log_trace!("s->Z 0x{:X} bits [0x{:x}]", s.z, bits);
 
+		s.x = self.field_mul(&(s.z),&(p.x));
+		ecsimple_log_trace!("s->X 0x{:X}", s.x);
+
+
 		bs = ecsimple_rand_bits(bits);
-		r.z = BnGf2m::new_from_be(&bs);
-		ecsimple_log_trace!("r->Z 0x{:X} bits [0x{:x}]",r.z,bits);
+		r.y = BnGf2m::new_from_be(&bs);
+		ecsimple_log_trace!("r->Y 0x{:X} bits [0x{:x}]",r.y,bits);
+		r.z = self.field_sqr(&(p.x));
+		r.x = self.field_sqr(&(r.z));
+		r.x = &r.x + &self.group.b;
+		r.z = self.field_mul(&(r.z),&(r.y));
+		r.x = self.field_mul(&(r.x),&(r.y));
+
+		ecsimple_log_trace!("r->X 0x{:X} r->Y 0x{:X} r->Z 0x{:X}", r.x,r.y,r.z);
+
+		return;
+	}
+
+	fn ladder_step(&self, r :&mut ECGf2mPoint, s :&mut ECGf2mPoint, p :&ECGf2mPoint) {
+		r.y = self.field_mul(&(r.z),&(s.x));
+		s.x = self.field_mul(&(r.x),&(s.z));
+		s.y = self.field_sqr(&(r.z));
+
+		r.z = self.field_sqr(&(r.x));
+		s.z = &r.y + &s.x;
+		s.z = self.field_sqr(&(s.z));
+		s.x = self.field_mul(&(r.y),&(s.x));
+		r.y = self.field_mul(&(s.z),&(p.x));
+		s.x = &s.x + &r.y;
+
+		r.y = self.field_sqr(&(r.z));
+		r.z = self.field_mul(&(r.z),&(s.y));
+		s.y = self.field_sqr(&(s.y));
+		s.y = self.field_mul(&(s.y),&(self.group.b));
+		r.x = &r.y + &s.y;
+
 		return;
 	}
 
@@ -147,6 +206,9 @@ impl ECGf2mPoint {
 		k = &lamda + &cardinal;
 
 		let cardbits = get_max_bits(&cardinal);
+		let mut i :i32;
+		let mut pbit :i32 = 1;
+		let mut kbit :i32;
 		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X} cardinality_bits 0x{:x}",k,cardinal,cardbits);
 
 		s.x = BnGf2m::zero();
@@ -165,7 +227,31 @@ impl ECGf2mPoint {
 
 		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
-		self.ladder_pre(&mut r,&mut s, (cardbits - 1) as u64);
+		self.ladder_pre(&mut r,&mut s, &p, (cardbits - 1) as u64);
+
+		i = (cardbits - 1) as i32;
+		while i >= 0 {
+			kbit = get_bit_set(&k,i) ^ pbit;
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} bitset [0x{:x}]", i,kbit,pbit, get_bit_set(&k,i));
+
+			if kbit != 0 {
+				(r,s) = (s,r);
+			}
+
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+
+			self.ladder_step(&mut r,&mut s,&p);
+
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+			pbit ^= kbit;
+			i -= 1;
+		}
 		
 
 		return self.clone();

@@ -224,7 +224,7 @@ impl BnGf2m {
 			ecsimple_log_trace!("tab[{}]=[0x{:x}]",i,tab[i]);
 		}*/
 
-		ecsimple_log_trace!("a 0x{:x} b 0x{:x}",x0,y0);
+		//ecsimple_log_trace!("a 0x{:x} b 0x{:x}",x0,y0);
 
 		s = tab[(y0 & 0xF) as usize];
 		l = s;
@@ -322,34 +322,34 @@ impl BnGf2m {
 
 		retv.push(l);
 		retv.push(h);
-		ecsimple_log_trace!("h 0x{:x} l 0x{:x}", h, l);
+		//ecsimple_log_trace!("h 0x{:x} l 0x{:x}", h, l);
 		retv
 	}
 
 	fn _mul_2x2(&self,x0 :BValue,x1 :BValue, y0 :BValue,y1 :BValue) -> Vec<BValue> {
 		let mut retv :Vec<BValue> = Vec::new();
 		let mut resv :Vec<BValue>;
-		ecsimple_log_trace!("x0 0x{:x} x1 0x{:x} y0 0x{:x} y1 0x{:x}",x0,x1,y0,y1);
+		//ecsimple_log_trace!("x0 0x{:x} x1 0x{:x} y0 0x{:x} y1 0x{:x}",x0,x1,y0,y1);
 		for _ in 0..4 {
 			retv.push(0);
 		}
 		resv = self._mul_1x1(x1,y1);
 		retv[2] = resv[0];
 		retv[3] = resv[1];
-		ecsimple_log_trace!("retv[3] 0x{:x} retv[2] 0x{:x}",retv[3],retv[2]);
+		//ecsimple_log_trace!("retv[3] 0x{:x} retv[2] 0x{:x}",retv[3],retv[2]);
 
 		resv = self._mul_1x1(x0,y0);
 		retv[0] = resv[0];
 		retv[1] = resv[1];
-		ecsimple_log_trace!("retv[1] 0x{:x} retv[0] 0x{:x}",retv[1],retv[0]);
+		//ecsimple_log_trace!("retv[1] 0x{:x} retv[0] 0x{:x}",retv[1],retv[0]);
 		resv = self._mul_1x1(x0 ^ x1 , y0 ^ y1);
-		ecsimple_log_trace!("m1 0x{:x} m0 0x{:x}",resv[1],resv[0]);
+		//ecsimple_log_trace!("m1 0x{:x} m0 0x{:x}",resv[1],resv[0]);
 
 		retv[2] ^= resv[1] ^ retv[1] ^ retv[3];
 		retv[1] = retv[3] ^ retv[2] ^ retv[0] ^ resv[1] ^ resv[0];
 
 
-		ecsimple_log_trace!("retv 0x{:x} 0x{:x} 0x{:x} 0x{:x}",retv[3],retv[2],retv[1],retv[0]);
+		//ecsimple_log_trace!("retv 0x{:x} 0x{:x} 0x{:x} 0x{:x}",retv[3],retv[2],retv[1],retv[0]);
 		retv
 	}
 
@@ -387,10 +387,10 @@ impl BnGf2m {
 				}
 
 				let resv = self._mul_2x2(x0,x1,y0,y1);
-				ecsimple_log_trace!("resv 0x{:x} 0x{:x} 0x{:x} 0x{:x}",resv[0],resv[1],resv[2],resv[3]);
+				//ecsimple_log_trace!("resv 0x{:x} 0x{:x} 0x{:x} 0x{:x}",resv[0],resv[1],resv[2],resv[3]);
 
 				for k in 0..resv.len() {
-					ecsimple_log_trace!("[{i}+{j}+{k}] 0x{:x} ^ [{k}] 0x{:x} => 0x{:x}",retv[i+j+k], resv[k],retv[i+j+k] ^ resv[k]);
+					//ecsimple_log_trace!("[{i}+{j}+{k}] 0x{:x} ^ [{k}] 0x{:x} => 0x{:x}",retv[i+j+k], resv[k],retv[i+j+k] ^ resv[k]);
 					retv[i+j+k] ^= resv[k];
 					
 				}
@@ -463,7 +463,7 @@ impl BnGf2m {
 		modptr = other;
 		modptr._check_mod_val();
 
-		ecsimple_debug_buffer_trace!(modptr.polyarr.as_ptr(), modptr.polyarr.len() * std::mem::size_of::<i32>(),"polyarr {}",modptr.polyarr.len());
+		//ecsimple_debug_buffer_trace!(modptr.polyarr.as_ptr(), modptr.polyarr.len() * std::mem::size_of::<i32>(),"polyarr {}",modptr.polyarr.len());
 
 		let dn :usize = ((modptr.polyarr[0] as usize) / BVALUE_BITS ) as usize;
 		let mut jdx :usize = retv.data.len() - 1;
@@ -475,7 +475,7 @@ impl BnGf2m {
 		while jdx > dn {
 			zz = retv.data[jdx];
 			if zz == 0 {
-				ecsimple_log_trace!("[{jdx}] 0");
+				//ecsimple_log_trace!("[{jdx}] 0");
 				jdx -= 1;
 				continue;
 			}
@@ -483,29 +483,29 @@ impl BnGf2m {
 			kidx = 1;
 			while kidx < modptr.polyarr.len() && modptr.polyarr[kidx] != 0 {
 				n = modptr.polyarr[0] - modptr.polyarr[kidx];
-				ecsimple_log_trace!("p[0] {} - p[{kidx}] {} = {}", modptr.polyarr[0],modptr.polyarr[kidx],n);
+				//ecsimple_log_trace!("p[0] {} - p[{kidx}] {} = {}", modptr.polyarr[0],modptr.polyarr[kidx],n);
 				d0 = n % (BVALUE_BITS as i32);
 				d1 = (BVALUE_BITS as i32) - d0;				
 				n = n / (BVALUE_BITS as i32);
-				ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} >> {}) = 0x{:x}", jdx-(n as usize),retv.data[jdx-(n as usize)],zz,d0,retv.data[jdx-(n as usize)] ^ (zz >> d0));
+				//ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} >> {}) = 0x{:x}", jdx-(n as usize),retv.data[jdx-(n as usize)],zz,d0,retv.data[jdx-(n as usize)] ^ (zz >> d0));
 				retv.data[(jdx - (n as usize))] ^= ( zz >> d0) as BValue;
 				if d0 != 0 {
-					ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} << {}) = 0x{:x}", jdx-(n as usize)-1,retv.data[jdx-(n as usize)-1],zz,d1,retv.data[jdx-(n as usize) - 1] ^ (zz << d1));
+					//ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} << {}) = 0x{:x}", jdx-(n as usize)-1,retv.data[jdx-(n as usize)-1],zz,d1,retv.data[jdx-(n as usize) - 1] ^ (zz << d1));
 					retv.data[(jdx - (n as usize) - 1)] ^=  zz << d1;
 				}
 				kidx += 1;
 				if kidx < modptr.polyarr.len() {
-					ecsimple_log_trace!("p[{}+1] = {}",kidx-1,modptr.polyarr[kidx]);
+					//ecsimple_log_trace!("p[{}+1] = {}",kidx-1,modptr.polyarr[kidx]);
 				}
 			}
 
 			n = dn as i32;
 			d0 = modptr.polyarr[0] % (BVALUE_BITS as i32);
 			d1 = (BVALUE_BITS as i32) - d0 ;
-			ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} >> {}) = 0x{:x}", jdx-(n as usize),retv.data[jdx-(n as usize)],zz,d0,retv.data[jdx-(n as usize)] ^ (zz >> d0));
+			//ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} >> {}) = 0x{:x}", jdx-(n as usize),retv.data[jdx-(n as usize)],zz,d0,retv.data[jdx-(n as usize)] ^ (zz >> d0));
 			retv.data[jdx - (n as usize) ] ^= zz >> d0;
 			if d0 != 0 {
-				ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} << {}) = 0x{:x}", jdx-(n as usize)-1,retv.data[jdx-(n as usize)-1],zz,d1,retv.data[jdx-(n as usize) - 1] ^ (zz << d1));
+				//ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} << {}) = 0x{:x}", jdx-(n as usize)-1,retv.data[jdx-(n as usize)-1],zz,d1,retv.data[jdx-(n as usize) - 1] ^ (zz << d1));
 				retv.data[jdx - (n  as usize) - 1]  ^= zz << d1;
 			} 
 		}
@@ -513,21 +513,21 @@ impl BnGf2m {
 		while jdx == dn {
 			d0 = modptr.polyarr[0] % (BVALUE_BITS  as i32);
 			zz = retv.data[dn] >> d0;
-			ecsimple_log_trace!("z[{}] 0x{:x} >> d0 {} = zz 0x{:x}",dn, retv.data[dn],d0,zz);
+			//ecsimple_log_trace!("z[{}] 0x{:x} >> d0 {} = zz 0x{:x}",dn, retv.data[dn],d0,zz);
 			if zz == 0 {
-				ecsimple_log_trace!(" ");
+				//ecsimple_log_trace!(" ");
 				break;
 			}
 			d1 = (BVALUE_BITS  as i32) - d0;
 
 			if d0 != 0 {
-				ecsimple_log_trace!("z[{}] (0x{:x} << {}) >> {} = 0x{:x}", dn, retv.data[dn] ,d1,d1, (retv.data[dn] << d1) >> d1);
+				//ecsimple_log_trace!("z[{}] (0x{:x} << {}) >> {} = 0x{:x}", dn, retv.data[dn] ,d1,d1, (retv.data[dn] << d1) >> d1);
 				retv.data[dn] = (retv.data[dn] << d1) >> d1;
 			} else {
-				ecsimple_log_trace!("z[{}] = 0", dn);
+				//ecsimple_log_trace!("z[{}] = 0", dn);
 				retv.data[dn] = 0;
 			}
-			ecsimple_log_trace!("z[0] 0x{:x} ^ 0x{:x} = 0x{:x}", retv.data[0],zz,retv.data[0] ^ zz);
+			//ecsimple_log_trace!("z[0] 0x{:x} ^ 0x{:x} = 0x{:x}", retv.data[0],zz,retv.data[0] ^ zz);
 			retv.data[0] ^= zz;
 
 			kidx = 1;
@@ -537,12 +537,12 @@ impl BnGf2m {
 				n = modptr.polyarr[kidx] / (BVALUE_BITS as i32);
 				d0 = modptr.polyarr[kidx] % (BVALUE_BITS  as i32);
 				d1 = (BVALUE_BITS as i32)- d0;
-				ecsimple_log_trace!("p[{}] 0x{:x} n {} d0 {} d1 {}",kidx,modptr.polyarr[kidx],n,d0,d1);
-				ecsimple_log_trace!("z[{}] 0x{:x} ^ (zz 0x{:x} << d0 {}) = 0x{:x}", n,retv.data[(n as usize)],zz,d0,retv.data[(n as usize)] ^ (zz << d0));
+				//ecsimple_log_trace!("p[{}] 0x{:x} n {} d0 {} d1 {}",kidx,modptr.polyarr[kidx],n,d0,d1);
+				//ecsimple_log_trace!("z[{}] 0x{:x} ^ (zz 0x{:x} << d0 {}) = 0x{:x}", n,retv.data[(n as usize)],zz,d0,retv.data[(n as usize)] ^ (zz << d0));
 				retv.data[(n as usize)] ^= zz << d0;
 				tmp_ulong = zz >> d1;
 				if d0 != 0 && tmp_ulong != 0 {
-					ecsimple_log_trace!("z[{}] 0x{:x} ^ tmp_ulong 0x{:x} = 0x{:x}", n+1,retv.data[(n as usize)+1],tmp_ulong,retv.data[(n as usize)+1]^tmp_ulong);
+					//ecsimple_log_trace!("z[{}] 0x{:x} ^ tmp_ulong 0x{:x} = 0x{:x}", n+1,retv.data[(n as usize)+1],tmp_ulong,retv.data[(n as usize)+1]^tmp_ulong);
 					retv.data[(n as usize)+1] ^= tmp_ulong;
 				}
 				kidx += 1;
@@ -662,13 +662,13 @@ impl BnGf2m {
 		for _ in 0..maxbytes {
 			retvdata.push(0);
 		}
-		ecsimple_log_trace!("addi {} addb {}", addi, addb);
+		//ecsimple_log_trace!("addi {} addb {}", addi, addb);
 
 		let mut kidx :usize = self.data.len() - 1;
 		while kidx >= addi as usize {
 			if addb > 0  {
 				if kidx > addi as usize {
-					ecsimple_log_trace!("kidx {} [{}]", kidx,kidx - addi as usize);
+					//ecsimple_log_trace!("kidx {} [{}]", kidx,kidx - addi as usize);
 					retvdata[(kidx - addi as usize)] |= self.data[kidx] >> addb;
 					retvdata[(kidx - addi as usize - 1)] |= self.data[kidx] << ( BVALUE_BITS - addb as usize);
 				} else {
