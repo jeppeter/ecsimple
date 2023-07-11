@@ -745,7 +745,7 @@ impl core::fmt::Octal for BnGf2m {
 impl core::fmt::LowerHex for BnGf2m {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let bnum :BigInt = self.to_bigint();
-		core::fmt::LowerHex::fmt(&bnum,f)		
+		core::fmt::LowerHex::fmt(&bnum,f)
 	}
 }
 

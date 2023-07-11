@@ -166,6 +166,17 @@ impl ECGf2mPoint {
 		return;
 	}
 
+	fn ladder_post(&self,r :&mut ECGf2mPoint,s :&ECGf2mPoint,p :&ECGf2mPoint) {
+		if r.z.is_zero() {
+			r.infinity = true;
+			return;
+		}
+		if s.z.is_zero() {
+			r = p.clone();
+			
+		}
+	}
+
 
 	pub fn mul_op(&self, bn :&BigInt) -> ECGf2mPoint {
 		let zv :BigInt = zero();
@@ -196,12 +207,12 @@ impl ECGf2mPoint {
 		ecsimple_log_trace!("group->a 0x{:X} a 0x{:X}", self.group.a,self.group.a);
 		ecsimple_log_trace!("group->b 0x{:X} b 0x{:X}", self.group.b,self.group.b);
 		ecsimple_log_trace!("cardinality 0x{:X} order 0x{:X} cofactor 0x{:X}",cardinal,self.group.order,self.group.cofactor);
-		ecsimple_log_trace!("k 0x{:X} lamda 0x{:X}", k, lamda);
+		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
 
 		k = bn.clone();
 		lamda = &k + &cardinal;
 		ecsimple_log_trace!("scalar 0x{:X} k 0x{:X}",k,k);
-		ecsimple_log_trace!("lamda 0x{:X}",lamda);
+		ecsimple_log_trace!("lambda 0x{:X}",lamda);
 
 		k = &lamda + &cardinal;
 
@@ -234,7 +245,7 @@ impl ECGf2mPoint {
 			kbit = get_bit_set(&k,i) ^ pbit;
 			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
-			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} bitset [0x{:x}]", i,kbit,pbit, get_bit_set(&k,i));
+			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
 
 			if kbit != 0 {
 				(r,s) = (s,r);
@@ -253,6 +264,8 @@ impl ECGf2mPoint {
 			i -= 1;
 		}
 		
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
 		return self.clone();
 	}
