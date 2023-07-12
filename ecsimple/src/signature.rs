@@ -15,3 +15,21 @@ impl ECSignature {
 		}
 	}
 }
+
+impl std::cmp::PartialEq for ECSignature {
+	fn eq(&self,other :&Self) -> bool {
+		let mut retv : bool = true;
+		if self.r != other.r {
+			retv = false;
+		}
+
+		if self.s != other.s {
+			retv = false;
+		}
+		retv
+	}
+
+	fn ne(&self,other :&Self) -> bool {
+		return ! self.eq(other);
+	}
+}
