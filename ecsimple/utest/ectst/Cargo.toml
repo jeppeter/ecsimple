@@ -17,6 +17,9 @@ log = "^0.4.8"
 num-traits = "^0.2"
 num-bigint = "^0.4.3"
 base64 = "^0.13.0"
+rand_core = "^0.6.4"
+rand = "^0.8.5"
+
 
 [target.'cfg(windows)'.dependencies.winapi]
 version = "0.3"

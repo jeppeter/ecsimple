@@ -10,6 +10,7 @@ use std::io;
 use std::fs;
 use std::io::prelude::*;
 use std::io::BufReader;
+ use rand::RngCore;
 
 
 use std::error::Error;
@@ -99,5 +100,17 @@ pub fn read_file(fname :&str) -> Result<String,Box<dyn Error>> {
 
 		Ok(retv)		
 	}
+}
+
+pub fn get_rand_bytes(nbytes :i32) -> Vec<u8> {
+
+	let mut r : rand::rngs::ThreadRng = rand::thread_rng();
+	let mut buf :Vec<u8> = Vec::new();
+	for _ in 0..nbytes {
+		buf.push(0x0);
+	}
+
+	let _ = r.try_fill_bytes(&mut buf);
+	return buf;
 }
 

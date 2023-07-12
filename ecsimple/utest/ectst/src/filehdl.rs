@@ -27,6 +27,8 @@ use super::fileop::*;
 use super::strop::*;
 #[allow(unused_imports)]
 use std::io::Write;
+use super::loglib::*;
+use super::*;
 
 
 use num_bigint::{BigInt};
@@ -41,6 +43,8 @@ fn rnadwr_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let mut bs :Vec<u8> = Vec::new();
 	let fname :String;
+	let mut idx :i64 = 0;
+	let offset :i64 = ns.get_int("offset");
 
 	init_log(ns.clone())?;
 
@@ -49,6 +53,17 @@ fn rnadwr_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 		let (_,vv) = bn.to_bytes_be();
 		bs.extend(&vv);
 	}
+
+	debug_trace!("offset {}",offset);
+	if offset > 0 {
+		let buf = get_rand_bytes(offset as i32);
+		while idx < offset {
+			bs.insert(0,buf[idx as usize]);
+			idx += 1;
+		}
+	}
+
+
 
 	fname = ns.get_string("output");
 	let _ = write_file_bytes(&fname,&bs)?;
@@ -60,6 +75,7 @@ fn rnadwr_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 pub fn file_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
+		"offset|O" : 0,
 		"randwr<rnadwr_handler>##bins ... to write bytes##" : {
 			"$" : "+"
 		}
