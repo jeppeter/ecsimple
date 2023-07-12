@@ -96,7 +96,7 @@ impl ECGf2mPoint {
 		let retv :BnGf2m ;
 		retv = a * b;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
+		//ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
 		return retv % ord;
 	}
 
@@ -104,7 +104,7 @@ impl ECGf2mPoint {
 		let retv :BnGf2m;
 		retv = a * a;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
+		//ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
 		return retv % ord;		
 	}
 
@@ -112,22 +112,22 @@ impl ECGf2mPoint {
 		let mut bs :Vec<u8>;
 		bs = ecsimple_rand_bits(bits);
 		s.z = BnGf2m::new_from_be(&bs);
-		//ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
+		ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
 
 		s.x = self.field_mul(&(p.x),&(s.z));
-		//ecsimple_log_trace!("s->X 0x{:X}", s.x);
+		ecsimple_log_trace!("s->X 0x{:X}", s.x);
 
 
 		bs = ecsimple_rand_bits(bits);
 		r.y = BnGf2m::new_from_be(&bs);
-		//ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
+		ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
 		r.z = self.field_sqr(&(p.x));
 		r.x = self.field_sqr(&(r.z));
 		r.x = &r.x + &self.group.b;
 		r.z = self.field_mul(&(r.z),&(r.y));
 		r.x = self.field_mul(&(r.x),&(r.y));
 
-		//ecsimple_log_trace!("r->X 0x{:X} r->Y 0x{:X} r->Z 0x{:X}", r.x,r.y,r.z);
+		ecsimple_log_trace!("r->X 0x{:X} r->Y 0x{:X} r->Z 0x{:X}", r.x,r.y,r.z);
 
 		return;
 	}
@@ -245,13 +245,13 @@ impl ECGf2mPoint {
 		//ecsimple_log_trace!("group->a 0x{:X} a 0x{:X}", self.group.a,self.group.a);
 		//ecsimple_log_trace!("group->b 0x{:X} b 0x{:X}", self.group.b,self.group.b);
 		//ecsimple_log_trace!("cardinality 0x{:X} order 0x{:X} cofactor 0x{:X}",cardinal,self.group.order,self.group.cofactor);
-		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
+		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
 		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
 
 		k = bn.clone();
 		lamda = &k + &cardinal;
-		//ecsimple_log_trace!("scalar 0x{:X} k 0x{:X}",k,k);
-		//ecsimple_log_trace!("lambda 0x{:X}",lamda);
+		ecsimple_log_trace!("scalar 0x{:X} k 0x{:X}",k,k);
+		ecsimple_log_trace!("lambda 0x{:X}",lamda);
 
 		k = &lamda + &cardinal;
 		//ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X}",k,cardinal);

@@ -2,6 +2,8 @@
 
 use rand;
 use crate::fileop::*;
+use crate::*;
+use crate::logger::*;
 use std::error::Error;
 use num_bigint::{BigInt,Sign};
 use num_traits::{zero};
@@ -16,6 +18,7 @@ pub struct RandOps  {
 	gencore : Option<rand::rngs::ThreadRng>,
 	filerand : Option<RandFile>,
 	begen : bool,
+	pos :usize,
 }
 
 impl RandOps {
@@ -24,6 +27,7 @@ impl RandOps {
 			gencore : None,
 			filerand : None,
 			begen : true,
+			pos : 0,
 		};
 		if fname.is_none() {
 			retv.gencore = Some(rand::thread_rng());
@@ -44,6 +48,8 @@ impl RandOps {
 		} else {
 			self.filerand.as_mut().unwrap().try_fill_bytes(&mut buf)?;
 		}
+		//ecsimple_log_trace!("get pos [0x{:x}] size [0x{:x}]",self.pos,num);
+		self.pos += num;
 		Ok(buf)
 	}
 }
@@ -93,9 +99,11 @@ fn create_randop() -> RwLock<RandOps> {
 	match env::var(&envname) {
 		Ok(v) => {
 			let randfile = Some(format!("{}",v));
+			//ecsimple_log_trace!("file {}",v);
 			randop = RandOps::new(randfile).unwrap();
 		},
 		Err(_e) => {
+			//ecsimple_log_trace!("none file");
 			randop = RandOps::new(None).unwrap();
 		}
 	}
@@ -113,13 +121,16 @@ lazy_static ! {
 pub (crate) fn ecsimple_rand_bits(bits :u64) -> Vec<u8> {
 	let rnbytes : usize = ((bits+ 7) >> 3) as usize;
 	let retv = EC_SIMPLE_RANDOP.write().unwrap().get_bytes(rnbytes).unwrap();
+	//ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 	return retv;
 }
 
 pub (crate) fn ecsimple_rand_range(buflen :i64, rangeval :&BigInt) -> BigInt {
 	loop {
 		let retv = EC_SIMPLE_RANDOP.write()	.unwrap().get_bytes(buflen as usize).unwrap();
+		//ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 		let mut bv = BigInt::from_bytes_be(Sign::Plus,&retv);
+		ecsimple_log_trace!("random out 0x{:X}", bv);
 		bv = bv % rangeval;
 		if bv != zero() {
 			return bv;	
