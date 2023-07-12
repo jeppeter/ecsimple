@@ -100,15 +100,15 @@ impl ECGf2mPoint {
 		let mut bs :Vec<u8>;
 		bs = ecsimple_rand_bits(bits);
 		s.z = BnGf2m::new_from_be(&bs);
-		ecsimple_log_trace!("s->Z 0x{:X} bits [0x{:x}]", s.z, bits);
+		ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
 
-		s.x = self.field_mul(&(s.z),&(p.x));
+		s.x = self.field_mul(&(p.x),&(s.z));
 		ecsimple_log_trace!("s->X 0x{:X}", s.x);
 
 
 		bs = ecsimple_rand_bits(bits);
 		r.y = BnGf2m::new_from_be(&bs);
-		ecsimple_log_trace!("r->Y 0x{:X} bits [0x{:x}]",r.y,bits);
+		ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
 		r.z = self.field_sqr(&(p.x));
 		r.x = self.field_sqr(&(r.z));
 		r.x = &r.x + &self.group.b;
@@ -177,22 +177,29 @@ impl ECGf2mPoint {
 		t0 = self.field_mul(&(r.z),&(s.z));
 		t1 = self.field_mul(&(p.x),&(r.z));
 		t1 = &r.x + &t1;
+		ecsimple_log_trace!("t1 0x{:X}",t1);
 		t2 = self.field_mul(&(p.x),&(s.z));
 		r.z = self.field_mul(&(r.x),&t2);
 		t2 = &t2 + &s.x;
+		ecsimple_log_trace!("t2 0x{:X}",t2);
 		t1 = self.field_mul(&t1,&t2);
 		t2 = self.field_sqr(&p.x);
 		t2 = &p.y + &t2;
+		ecsimple_log_trace!("t2 0x{:X}",t2);
 		t2 = self.field_mul(&t2,&t0);
 		t1 = &t2 + &t1;
-		t2 = &p.x + &t0;
+		ecsimple_log_trace!("t1 0x{:X}",t1);
+		t2 = self.field_mul(&p.x,&t0);
 		t2 = self.field_inv(&t2);
 		t1 = self.field_mul(&t1,&t2);
 		r.x = self.field_mul(&r.z,&t2);
 		t2 = &p.x + &r.x;
+		ecsimple_log_trace!("t2 0x{:X}",t2);
 		t2 = self.field_mul(&t2,&t1);
 		r.y = &p.y + &t2;
+		ecsimple_log_trace!("r->Y 0x{:X}",r.y);
 		r.z = BnGf2m::one();
+		ecsimple_log_trace!("r->Z 0x{:X}",r.z);
 
 		return;
 	}
@@ -227,6 +234,7 @@ impl ECGf2mPoint {
 		ecsimple_log_trace!("group->b 0x{:X} b 0x{:X}", self.group.b,self.group.b);
 		ecsimple_log_trace!("cardinality 0x{:X} order 0x{:X} cofactor 0x{:X}",cardinal,self.group.order,self.group.cofactor);
 		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
+		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
 
 		k = bn.clone();
 		lamda = &k + &cardinal;
@@ -234,12 +242,13 @@ impl ECGf2mPoint {
 		ecsimple_log_trace!("lambda 0x{:X}",lamda);
 
 		k = &lamda + &cardinal;
+		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X}",k,cardinal);
 
 		let cardbits = get_max_bits(&cardinal);
 		let mut i :i32;
 		let mut pbit :i32 = 1;
 		let mut kbit :i32;
-		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X} cardinality_bits 0x{:x}",k,cardinal,cardbits);
+		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
 
 		s.x = BnGf2m::zero();
 		s.y = BnGf2m::zero();
