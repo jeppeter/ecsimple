@@ -204,7 +204,7 @@ fn bininv_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 		extargs_new_error!{BinError," 0x{:x} not odd pnum",pnum}
 	}
 
-	let cval :BnGf2m = aval.inv_op(&pval);
+	let cval :BnGf2m = aval.inv_op(&pval)?;
 	println!("0x{:x} = 1 /  0x{:x} % 0x{:x}",cval,aval,pval);
 
 	Ok(())

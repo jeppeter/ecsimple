@@ -3,7 +3,7 @@ use num_bigint::{BigInt,Sign};
 use crate::*;
 use crate::logger::*;
 use std::ops::{Add,Sub,Mul,Div,Rem,Shl,Shr};
-
+use std::error::Error;
 
 type BValue = u64;
 
@@ -16,6 +16,8 @@ pub struct BnGf2m  {
 	data :Vec<BValue>,
 	polyarr :Vec<i32>,
 }
+
+ecsimple_error_class!{BnGf2mError}
 
 impl std::default::Default for BnGf2m {
 	fn default() -> Self {
@@ -413,11 +415,13 @@ impl BnGf2m {
 		self.polyarr = Vec::new();
 		let mut jdx :i32 ;
 		let mut idx :i32;
+		//ecsimple_debug_buffer_trace!(self.data.as_ptr(),self.data.len() * std::mem::size_of::<BValue>(),"data set");
 		jdx = (self.data.len() - 1)  as i32;
 		while jdx >= 0 {
 			idx = (BVALUE_BITS - 1) as i32;
 			while idx >= 0 {
 				if ((self.data[jdx as usize] >> idx) & 0x1) != 0 {
+					//ecsimple_log_trace!("push 0x{:x}",jdx * (BVALUE_BITS as i32) + idx);
 					self.polyarr.push(jdx * (BVALUE_BITS as i32) + idx);
 				}
 				idx -= 1;
@@ -549,6 +553,7 @@ impl BnGf2m {
 			}
 		}
 		retv._fixup_length();
+		retv._extend_poly();
 		retv
 	}
 
@@ -712,9 +717,106 @@ impl BnGf2m {
 
 	}
 
-	pub fn inv_op(&self, modnum :&BnGf2m) -> BnGf2m {
-		let retv :BnGf2m = BnGf2m::zero();
+	pub fn is_odd(&self) -> bool {
+		let mut retv :bool = false;
+		if self.data.len() > 0 && (self.data[0] & 0x1) != 0 {
+			retv = true;
+		}
 		return retv;
+	}
+
+
+	pub fn eq_op(&self, v :&BnGf2m) -> bool {
+		let mut retv :bool = true;
+		let mut idx :usize =0;
+		let mut jdx :usize = 0;
+
+		while idx < self.data.len() || jdx < v.data.len() {
+			if idx < self.data.len() && jdx < v.data.len() {
+				if self.data[idx] != v.data[jdx] {
+					retv = false;
+					break;
+				}
+			} else if idx < self.data.len() {
+				if self.data[idx] != 0 {
+					retv = false;
+					break;
+				}
+			} else if jdx < v.data.len() {
+				if v.data[jdx] != 0 {
+					retv = false;
+					break;
+				}
+			}
+			idx += 1;
+			jdx += 1;
+		}
+
+		return retv;
+	}
+
+	pub fn max_bits(&self) -> i32 {
+		if self.polyarr.len() == 0 {
+			return 0;
+		}
+		return (self.polyarr[0] + 1) as i32;
+	}
+
+	pub fn inv_op(&self, p :&BnGf2m) -> Result<BnGf2m,Box<dyn Error>> {
+		let mut u :BnGf2m = self % p;
+		let mut c :BnGf2m = BnGf2m::zero();
+		let mut v :BnGf2m = p.clone();
+		let mut tmp :BnGf2m;
+		let ov :BnGf2m = BnGf2m::one();
+		let mut b :BnGf2m = ov.clone();
+		if u.is_zero() {
+			ecsimple_new_error!{BnGf2mError,"0x{:X} / 0x{:X} == 0", self,p}
+		}
+		ecsimple_log_trace!("a 0x{:X} u 0x{:X} p 0x{:X}",self,u,p);
+
+		loop {
+			ecsimple_log_trace!("b 0x{:X} c 0x{:X}",b,c);
+			while !u.is_odd() {
+				ecsimple_log_trace!("u 0x{:X}",u);
+				if u.is_zero() {
+					ecsimple_new_error!{BnGf2mError,"u is zero"}
+				}
+				u = u >> 1;
+				ecsimple_log_trace!("u 0x{:X} b 0x{:X}", u,b);
+
+				if b.is_odd() {
+					b = &b + p;
+					ecsimple_log_trace!("b 0x{:X}", b);
+				}
+
+				b = b >> 1;
+				ecsimple_log_trace!("b 0x{:X}",b);
+			}
+
+			if u.eq_op(&ov) {
+				ecsimple_log_trace!("u 0x{:X}",u);
+				break;
+			}
+
+			ecsimple_log_trace!("u 0x{:X} v 0x{:X}",u,v);
+			if u.max_bits() < v.max_bits() {
+				ecsimple_log_trace!("bits u [0x{:x}] bits v [0x{:x}]", u.max_bits(), v.max_bits());
+				tmp = u;
+				u = v;
+				v = tmp;
+				tmp = b;
+				b = c;
+				c = tmp;
+				ecsimple_log_trace!("u <=> v");
+			}
+
+			u = &u + &v;
+			b = &b + &c;
+
+			ecsimple_log_trace!("u 0x{:X} b 0x{:X}", u,b);
+		}
+
+		return Ok(b);
 	}
 
 }
