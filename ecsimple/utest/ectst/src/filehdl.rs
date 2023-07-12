@@ -28,10 +28,8 @@ use super::strop::*;
 #[allow(unused_imports)]
 use std::io::Write;
 
-use ecsimple::bngf2m::*;
 
 use num_bigint::{BigInt};
-use num_traits::{one};
 //use std::ops::{Add,Mul,Div,Rem};
 
 

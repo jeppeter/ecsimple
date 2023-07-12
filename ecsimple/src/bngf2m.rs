@@ -1,6 +1,7 @@
 use num_bigint::{BigInt,Sign};
 
 use crate::*;
+#[allow(unused_imports)]
 use crate::logger::*;
 use std::ops::{Add,Sub,Mul,Div,Rem,Shl,Shr};
 use std::error::Error;
@@ -772,48 +773,48 @@ impl BnGf2m {
 		if u.is_zero() {
 			ecsimple_new_error!{BnGf2mError,"0x{:X} / 0x{:X} == 0", self,p}
 		}
-		ecsimple_log_trace!("a 0x{:X} u 0x{:X} p 0x{:X}",self,u,p);
+		//ecsimple_log_trace!("a 0x{:X} u 0x{:X} p 0x{:X}",self,u,p);
 
 		loop {
-			ecsimple_log_trace!("b 0x{:X} c 0x{:X}",b,c);
+			//ecsimple_log_trace!("b 0x{:X} c 0x{:X}",b,c);
 			while !u.is_odd() {
-				ecsimple_log_trace!("u 0x{:X}",u);
+				//ecsimple_log_trace!("u 0x{:X}",u);
 				if u.is_zero() {
 					ecsimple_new_error!{BnGf2mError,"u is zero"}
 				}
 				u = u >> 1;
-				ecsimple_log_trace!("u 0x{:X} b 0x{:X}", u,b);
+				//ecsimple_log_trace!("u 0x{:X} b 0x{:X}", u,b);
 
 				if b.is_odd() {
 					b = &b + p;
-					ecsimple_log_trace!("b 0x{:X}", b);
+					//ecsimple_log_trace!("b 0x{:X}", b);
 				}
 
 				b = b >> 1;
-				ecsimple_log_trace!("b 0x{:X}",b);
+				//ecsimple_log_trace!("b 0x{:X}",b);
 			}
 
 			if u.eq_op(&ov) {
-				ecsimple_log_trace!("u 0x{:X}",u);
+				//ecsimple_log_trace!("u 0x{:X}",u);
 				break;
 			}
 
-			ecsimple_log_trace!("u 0x{:X} v 0x{:X}",u,v);
+			//ecsimple_log_trace!("u 0x{:X} v 0x{:X}",u,v);
 			if u.max_bits() < v.max_bits() {
-				ecsimple_log_trace!("bits u [0x{:x}] bits v [0x{:x}]", u.max_bits(), v.max_bits());
+				//ecsimple_log_trace!("bits u [0x{:x}] bits v [0x{:x}]", u.max_bits(), v.max_bits());
 				tmp = u;
 				u = v;
 				v = tmp;
 				tmp = b;
 				b = c;
 				c = tmp;
-				ecsimple_log_trace!("u <=> v");
+				//ecsimple_log_trace!("u <=> v");
 			}
 
 			u = &u + &v;
 			b = &b + &c;
 
-			ecsimple_log_trace!("u 0x{:X} b 0x{:X}", u,b);
+			//ecsimple_log_trace!("u 0x{:X} b 0x{:X}", u,b);
 		}
 
 		return Ok(b);

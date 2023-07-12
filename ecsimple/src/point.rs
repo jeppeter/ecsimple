@@ -3,7 +3,7 @@ use crate::bngf2m::*;
 use crate::group::*;
 use crate::utils::*;
 use num_bigint::{BigInt};
-use num_traits::{zero,one};
+use num_traits::{zero};
 
 use crate::logger::*;
 use crate::randop::{ecsimple_rand_bits};
@@ -141,7 +141,7 @@ impl ECGf2mPoint {
 		return;
 	}
 
-	fn make_affine(&self, r :&mut ECGf2mPoint) {
+	fn make_affine(&self, _r :&mut ECGf2mPoint) {
 		return;
 	}
 
@@ -155,6 +155,11 @@ impl ECGf2mPoint {
 		return;
 	}
 
+	fn field_inv(&self,a :&BnGf2m) -> BnGf2m {
+		let pbn :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
+		return a.inv_op(&pbn).unwrap();
+	}
+
 	fn ladder_post(&self,r :&mut ECGf2mPoint,s :&ECGf2mPoint,p :&ECGf2mPoint) {
 		if r.z.is_zero() {
 			r.infinity = true;
@@ -165,7 +170,7 @@ impl ECGf2mPoint {
 			self.point_invert(r);
 			return;
 		}
-		let mut t0 :BnGf2m;
+		let t0 :BnGf2m;
 		let mut t1 :BnGf2m;
 		let mut t2 :BnGf2m;
 
@@ -180,8 +185,14 @@ impl ECGf2mPoint {
 		t2 = &p.y + &t2;
 		t2 = self.field_mul(&t2,&t0);
 		t1 = &t2 + &t1;
-
-
+		t2 = &p.x + &t0;
+		t2 = self.field_inv(&t2);
+		t1 = self.field_mul(&t1,&t2);
+		r.x = self.field_mul(&r.z,&t2);
+		t2 = &p.x + &r.x;
+		t2 = self.field_mul(&t2,&t1);
+		r.y = &p.y + &t2;
+		r.z = BnGf2m::one();
 
 		return;
 	}
@@ -189,17 +200,16 @@ impl ECGf2mPoint {
 
 	pub fn mul_op(&self, bn :&BigInt) -> ECGf2mPoint {
 		let zv :BigInt = zero();
-		let mut retv :ECGf2mPoint;
-		let mut p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
+		let p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut s :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut r :ECGf2mPoint = ECGf2mPoint::new(&self.group);
-		let mut cardinal :BigInt;
+		let cardinal :BigInt;
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
 		if bn <= &zv {
-			let mut retv :ECGf2mPoint = self.clone();
-			retv.infinity = true;
-			return retv;
+			r = self.clone();
+			r.infinity = true;
+			return r;
 		}
 
 		if self.infinity {
@@ -276,7 +286,12 @@ impl ECGf2mPoint {
 		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
-		return self.clone();
+		self.ladder_post(&mut r,&mut s,&p);
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+		return r;
 	}
 
 }

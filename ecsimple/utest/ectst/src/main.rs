@@ -45,6 +45,7 @@ mod bntest;
 mod ectest;
 
 
+#[allow(unused_must_use)]
 #[extargs_map_function()]
 fn main() -> Result<(),Box<dyn Error>> {
 	let parser :ExtArgsParser = ExtArgsParser::new(None,None)?;
