@@ -8,7 +8,7 @@ use crate::utils::*;
 use crate::randop::*;
 use crate::logger::*;
 use num_bigint::{BigInt,Sign};
-use num_traits::{zero};
+use num_traits::{zero,one};
 
 use std::error::Error;
 
@@ -40,24 +40,23 @@ impl ECGf2mPubKey {
 pub struct ECGf2mPrivateKey {
 	base : ECGf2mPoint,
 	privnum :BigInt,
-	pubk :ECGf2mPoint,
 }
 
 impl ECGf2mPrivateKey {
 	pub fn new(grp :&ECGroupBnGf2m , privnum :&BigInt) -> ECGf2mPrivateKey {
 		let b :ECGf2mPoint = ECGf2mPoint::new(grp);
-		let pubk :ECGf2mPoint = b.mul_op(privnum);
 		ECGf2mPrivateKey {
 			base : b,
 			privnum : privnum.clone(),
-			pubk : pubk,
 		}
 	}
 
 	pub fn export_pubkey(&self) -> ECGf2mPubKey {
+		let ck : ECGf2mPoint;
+		ck = self.base.mul_op(&self.privnum);
 		let retv :ECGf2mPubKey = ECGf2mPubKey {
 			base : self.base.clone(),
-			pubk : self.pubk.clone(),
+			pubk : ck.clone(),
 		};
 		retv
 	}
@@ -65,8 +64,20 @@ impl ECGf2mPrivateKey {
 	fn setup_sign(&self,realhash :&BigInt, hashlen :i64) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		let r :BigInt = zero();
 		let kinv :BigInt = zero();
-		let k = ecsimple_rand_range(hashlen,&self.base.group.order);
-		ecsimple_log_trace!("k 0x{:X} dlen 0x{:x}", k, hashlen);
+		let mut tmppnt :ECGf2mPoint = self.base.clone();
+		let zv :BnGf2m = BnGf2m::zero();
+		let ov :BigInt = one();
+		tmppnt.set_x(&zv);
+		tmppnt.set_y(&zv);
+		tmppnt.set_z(&zv);
+		let mut k  :BigInt ;
+		let blen = get_max_bits(&self.base.group.order);
+		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X}, tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
+		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
+		k = ov << blen;
+		ecsimple_log_trace!("k 0x{:X}",k);
+		k = ecsimple_rand_range(((blen + 7 ) >> 3) as i64,&self.base.group.order);
+		ecsimple_log_trace!("k 0x{:X} dlen 0x{:x}", k, ((blen + 7 ) >> 3) as i64);
 		Ok((kinv,r))
 	}
 
@@ -74,16 +85,27 @@ impl ECGf2mPrivateKey {
 		let zv :BigInt = zero();
 		let mut bs = hashnum.to_vec();
 		let orderbits = get_max_bits(&self.base.group.order);
+		ecsimple_log_trace!("begin sign");
 		if (bs.len() * 8 ) > (orderbits as usize) {
 			bs = bs[0..(((orderbits as usize) +7) >> 3)].to_vec();
 		}
 		let mut realhash :BigInt = BigInt::from_bytes_be(Sign::Plus,&bs);
+		let kinv :BigInt;
+		let mut r :BigInt = zero();
+		let mut s :BigInt = zero();
+		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
+		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
+		ecsimple_log_trace!("dgst 0x{:X}", realhash);
+
 
 		if (bs.len() * 8) > (orderbits as usize) {
 			realhash = realhash >> (8 - orderbits & 0x7);
 		}
 
+		ecsimple_log_trace!("dgst rshift 0x{:X}", realhash);
+
 		(_, bs) = realhash.to_bytes_be();
+
 
 		assert!(realhash <= self.base.group.order);
 		let (kinv,r) = self.setup_sign(&realhash,hashnum.len() as i64)?;

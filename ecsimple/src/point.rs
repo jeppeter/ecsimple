@@ -80,11 +80,23 @@ impl ECGf2mPoint {
 		self.z = z.clone();
 	}
 
+	pub fn x(&self) -> BnGf2m {
+		return self.x.clone();
+	}
+
+	pub fn y(&self) -> BnGf2m {
+		return self.y.clone();
+	}
+
+	pub fn z(&self) -> BnGf2m {
+		return self.z.clone();
+	}
+
 	fn field_mul(&self,a :&BnGf2m, b :&BnGf2m) -> BnGf2m {
 		let retv :BnGf2m ;
 		retv = a * b;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		//ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
+		ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
 		return retv % ord;
 	}
 
@@ -92,7 +104,7 @@ impl ECGf2mPoint {
 		let retv :BnGf2m;
 		retv = a * a;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		//ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
+		ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
 		return retv % ord;		
 	}
 
