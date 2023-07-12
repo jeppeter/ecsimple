@@ -14,7 +14,7 @@ pub struct ECGf2mPoint {
 	x :BnGf2m,
 	y :BnGf2m,
 	z :BnGf2m,
-	group :ECGroupBnGf2m,
+	pub group :ECGroupBnGf2m,
 	infinity : bool,
 }
 

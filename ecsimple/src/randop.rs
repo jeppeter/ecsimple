@@ -3,6 +3,8 @@
 use rand;
 use crate::fileop::*;
 use std::error::Error;
+use num_bigint::{BigInt,Sign};
+use num_traits::{zero};
 //use rand_core::CryptoRng;
 use rand_core::RngCore;
 use std::env;
@@ -112,4 +114,16 @@ pub (crate) fn ecsimple_rand_bits(bits :u64) -> Vec<u8> {
 	let rnbytes : usize = ((bits+ 7) >> 3) as usize;
 	let retv = EC_SIMPLE_RANDOP.write().unwrap().get_bytes(rnbytes).unwrap();
 	return retv;
+}
+
+pub (crate) fn ecsimple_rand_range(buflen :i64, rangeval :&BigInt) -> BigInt {
+	loop {
+		let retv = EC_SIMPLE_RANDOP.write()	.unwrap().get_bytes(buflen as usize).unwrap();
+		let mut bv = BigInt::from_bytes_be(Sign::Plus,&retv);
+		bv = bv % rangeval;
+		if bv != zero() {
+			return bv;	
+		}		
+	}
+	
 }
