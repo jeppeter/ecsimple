@@ -16,6 +16,13 @@ impl ECSignature {
 	}
 }
 
+impl std::fmt::Display for ECSignature {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"r 0x{:X} s 0x{:X}",self.r,self.s)
+	}
+}
+
+
 impl std::cmp::PartialEq for ECSignature {
 	fn eq(&self,other :&Self) -> bool {
 		let mut retv : bool = true;
