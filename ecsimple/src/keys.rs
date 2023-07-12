@@ -3,7 +3,12 @@
 use crate::point::*;
 use crate::group::*;
 use crate::bngf2m::*;
+use crate::signature::*;
 use num_bigint::{BigInt};
+use num_traits::{zero};
+
+use std::error::Error;
+
 
 #[derive(Clone)]
 pub struct ECGf2mPubKey {
@@ -41,7 +46,22 @@ impl ECGf2mPrivateKey {
 			pubk : pubk,
 		}
 	}
+
+	pub fn export_pubkey(&self) -> ECGf2mPubKey {
+		let retv :ECGf2mPubKey = ECGf2mPubKey {
+			base : self.base.clone(),
+			pubk : self.pubk.clone(),
+		};
+		retv
+	}
+
+	pub fn sign_base(&self,hashnum :&BigInt) -> Result<ECSignature,Box<dyn Error>> {
+		let zv :BigInt = zero();
+		let retv :ECSignature = ECSignature::new(&zv,&zv);
+		Ok(retv)
+	}
 }
+
 
 
 

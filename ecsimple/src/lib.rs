@@ -13,4 +13,5 @@ pub mod bngf2m;
 pub mod group;
 pub mod point;
 pub mod curve;
+pub mod signature;
 pub mod keys;
