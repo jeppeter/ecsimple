@@ -62,26 +62,45 @@ impl ECGf2mPrivateKey {
 	}
 
 	fn setup_sign(&self,realhash :&BigInt, hashlen :i64) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		let r :BigInt = zero();
+		let r :BigInt;
+		let mut rbn :BnGf2m;
 		let kinv :BigInt = zero();
 		let mut tmppnt :ECGf2mPoint = self.base.clone();
 		let zv :BnGf2m = BnGf2m::zero();
 		let ov :BigInt = one();
+		let order :BnGf2m;
 		tmppnt.set_x(&zv);
 		tmppnt.set_y(&zv);
 		tmppnt.set_z(&zv);
 		let mut k  :BigInt ;
+		let mut X :BnGf2m = BnGf2m::zero();
 		let blen = get_max_bits(&self.base.group.order);
 		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X}, tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
 		k = ov << blen;
-		ecsimple_log_trace!("k 0x{:X}",k);
-		k = ecsimple_rand_range(&self.base.group.order);
-		ecsimple_log_trace!("k 0x{:X} order 0x{:X} dlen 0x{:x}", k, self.base.group.order,((blen + 7 ) >> 3) as i64);
+		order = BnGf2m::new_from_bigint(&self.base.group.order);
+		loop {
+			ecsimple_log_trace!("k 0x{:X}",k);
+			k = ecsimple_rand_range(&self.base.group.order);
+			ecsimple_log_trace!("k 0x{:X} order 0x{:X} dlen 0x{:x}", k, self.base.group.order,((blen + 7 ) >> 3) as i64);
 
-		ecsimple_log_trace!("group.x 0x{:X} group.y 0x{:X} group.z 0x{:X}", self.base.group.generator.x,self.base.group.generator.y,self.base.group.generator.z);
-		tmppnt = self.base.mul_op(&k);
-		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
+			ecsimple_log_trace!("group.x 0x{:X} group.y 0x{:X} group.z 0x{:X}", self.base.group.generator.x,self.base.group.generator.y,self.base.group.generator.z);
+			tmppnt = self.base.mul_op(&k);
+			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
+
+			(X,_) = tmppnt.get_affine_points()?;
+
+			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
+			ecsimple_log_trace!("X 0x{:X}",X);
+
+			rbn = &X % &order;
+
+
+			if !rbn.is_zero() {
+				r = rbn.to_bigint();
+				break;
+			}
+		}
 		Ok((kinv,r))
 	}
 

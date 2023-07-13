@@ -155,7 +155,7 @@ pub fn ecsimple_rand_range(rangeval :&BigInt) -> BigInt {
 		let retv = EC_SIMPLE_RANDOP.write()	.unwrap().get_bytes(buflen as usize).unwrap();
 		//ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 		let mut bv = BigInt::from_bytes_be(Sign::Plus,&retv);
-		ecsimple_log_trace!("random out 0x{:X}", bv);
+		ecsimple_log_trace!("random number 0x{:X}", bv);
 		bv = bv % rangeval;
 		if bv != zero() {
 			ecsimple_log_trace!("result 0x{:X} range 0x{:X}", bv,rangeval);

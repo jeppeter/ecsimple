@@ -718,6 +718,13 @@ impl BnGf2m {
 
 	}
 
+	pub fn is_one(&self) -> bool {
+		if self.max_bits() == 1 {
+			return true;
+		}
+		return false;
+	}
+
 	pub fn is_odd(&self) -> bool {
 		let mut retv :bool = false;
 		if self.data.len() > 0 && (self.data[0] & 0x1) != 0 {

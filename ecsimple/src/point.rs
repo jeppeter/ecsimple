@@ -4,10 +4,13 @@ use crate::group::*;
 use crate::utils::*;
 use num_bigint::{BigInt};
 use num_traits::{zero};
+use std::error::Error;
 
 use crate::logger::*;
 use crate::randop::{ecsimple_rand_bits};
 
+
+ecsimple_error_class!{BnGf2mPointError}
 
 #[derive(Clone)]
 pub struct ECGf2mPoint {
@@ -96,7 +99,7 @@ impl ECGf2mPoint {
 		let retv :BnGf2m ;
 		retv = a * b;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		//ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
+		ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
 		return retv % ord;
 	}
 
@@ -104,7 +107,7 @@ impl ECGf2mPoint {
 		let retv :BnGf2m;
 		retv = a * a;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		//ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
+		ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
 		return retv % ord;		
 	}
 
@@ -112,15 +115,15 @@ impl ECGf2mPoint {
 		let mut bs :BigInt;
 		bs = ecsimple_rand_bits(bits,-1,0);
 		s.z = BnGf2m::new_from_bigint(&bs);
-		ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
+		//ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
 
 		s.x = self.field_mul(&(p.x),&(s.z));
-		ecsimple_log_trace!("s->X 0x{:X}", s.x);
+		//ecsimple_log_trace!("s->X 0x{:X}", s.x);
 
 
 		bs = ecsimple_rand_bits(bits,-1,0);
 		r.y = BnGf2m::new_from_bigint(&bs);
-		ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
+		//ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
 		r.z = self.field_sqr(&(p.x));
 		r.x = self.field_sqr(&(r.z));
 		r.x = &r.x + &self.group.b;
@@ -169,7 +172,9 @@ impl ECGf2mPoint {
 
 	fn field_inv(&self,a :&BnGf2m) -> BnGf2m {
 		let pbn :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
-		return a.inv_op(&pbn).unwrap();
+		let bn = a.inv_op(&pbn).unwrap();
+		ecsimple_log_trace!("r 0x{:X} * a 0x{:X} = 1 % 0x{:X}", bn,a,pbn);
+		return bn;
 	}
 
 	fn ladder_post(&self,r :&mut ECGf2mPoint,s :&ECGf2mPoint,p :&ECGf2mPoint) {
@@ -222,6 +227,7 @@ impl ECGf2mPoint {
 		let p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut s :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut r :ECGf2mPoint = ECGf2mPoint::new(&self.group);
+		let mut tmp :ECGf2mPoint;
 		let cardinal :BigInt;
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
@@ -276,43 +282,67 @@ impl ECGf2mPoint {
 
 
 
-		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
 		self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
 
 		i = (cardbits - 1) as i32;
 		while i >= 0 {
 			kbit = get_bit_set(&k,i) ^ pbit;
-			//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
-			//ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
-			//ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
 
 			if kbit != 0 {
-				(r,s) = (s,r);
+				tmp = s.clone();
+				s = r.clone();
+				r = tmp.clone();
 			}
 
-			//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
-			//ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
 			self.ladder_step(&mut r,&mut s,&p);
 
-			//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
-			//ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
-			//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
 			pbit ^= kbit;
 			i -= 1;
 		}
+
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+
+		if pbit != 0 {
+			tmp = s.clone();
+			s = r.clone();
+			r = tmp.clone();
+		}
+
 		
-		//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
-		//ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
 		self.ladder_post(&mut r,&mut s,&p);
 		//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
-		//ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
 		return r;
+	}
+
+	pub fn get_affine_points(&self) -> Result<(BnGf2m,BnGf2m),Box<dyn Error>> {
+		if self.infinity {
+			ecsimple_new_error!{BnGf2mPointError,"is infinity"}
+		}
+		if ! self.z.is_one() {
+			ecsimple_new_error!{BnGf2mPointError,"z 0x{:X}",self.z}
+		}
+
+
+		Ok((self.x.clone(),self.y.clone()))
 	}
 
 }
