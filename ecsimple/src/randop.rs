@@ -158,6 +158,7 @@ pub fn ecsimple_rand_range(rangeval :&BigInt) -> BigInt {
 		ecsimple_log_trace!("random out 0x{:X}", bv);
 		bv = bv % rangeval;
 		if bv != zero() {
+			ecsimple_log_trace!("result 0x{:X} range 0x{:X}", bv,rangeval);
 			return bv;	
 		}		
 	}
