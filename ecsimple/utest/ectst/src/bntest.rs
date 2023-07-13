@@ -272,7 +272,30 @@ fn randmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl
 	Ok(())
 }
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler)]
+fn bnmodpow_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let anum :BigInt;
+	let cnum :BigInt;
+	let pnum :BigInt;
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 3 {
+		extargs_new_error!{BinError,"need anum enum pnum"}
+	}
+
+	anum = parse_to_bigint(&sarr[0])?;
+	cnum = parse_to_bigint(&sarr[1])?;
+	pnum = parse_to_bigint(&sarr[2])?;
+
+	let cval :BigInt = anum.modpow(&cnum,&pnum);
+	println!("cval 0x{:X} = anum 0x{:X} ^ cnum 0x{:X} % pnum 0x{:X}", cval,anum,cnum,pnum);
+
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -305,6 +328,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		},
 		"randmod<randmod_handler>##rangevalue to set range value##" : {
 			"$" : "+"
+		},
+		"bnmodpow<bnmodpow_handler>##anum cnum pnum to anum.modpow(cnum,pnum)##" : {
+			"$" : 3
 		}
 	}
 	"#;

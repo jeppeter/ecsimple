@@ -64,7 +64,6 @@ impl ECGf2mPrivateKey {
 	fn setup_sign(&self,realhash :&BigInt, hashlen :i64) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		let r :BigInt;
 		let mut rbn :BnGf2m;
-		let kinv :BigInt = zero();
 		let mut tmppnt :ECGf2mPoint = self.base.clone();
 		let zv :BnGf2m = BnGf2m::zero();
 		let ov :BigInt = one();
@@ -101,7 +100,16 @@ impl ECGf2mPrivateKey {
 				break;
 			}
 		}
-		Ok((kinv,r))
+
+		ecsimple_log_trace!("X 0x{:X} r 0x{:X}", X,r);
+
+		let e :BigInt = &self.base.group.order - 2;
+		let kn = k.clone();
+
+		k = k.modpow(&e,&self.base.group.order);
+		ecsimple_log_trace!("(x 0x{:X} ^ e 0x{:X}) = (r 0x{:X}) = 1 % order 0x{:X}",kn,e,k,self.base.group.order);
+		ecsimple_log_trace!("k 0x{:X} r 0x{:X}",k,r);
+		Ok((k,r))
 	}
 
 	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
@@ -132,6 +140,7 @@ impl ECGf2mPrivateKey {
 
 		assert!(realhash <= self.base.group.order);
 		let (kinv,r) = self.setup_sign(&realhash,hashnum.len() as i64)?;
+		ecsimple_log_trace!("ckinv 0x{:X} r 0x{:X}",kinv,r);
 
 
 		let retv :ECSignature = ECSignature::new(&zv,&zv);
