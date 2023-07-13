@@ -76,7 +76,7 @@ impl ECGf2mPrivateKey {
 		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
 		k = ov << blen;
 		ecsimple_log_trace!("k 0x{:X}",k);
-		k = ecsimple_rand_range(((blen + 7 ) >> 3) as i64 + 8,&self.base.group.order);
+		k = ecsimple_rand_range(&self.base.group.order);
 		ecsimple_log_trace!("k 0x{:X} order 0x{:X} dlen 0x{:x}", k, self.base.group.order,((blen + 7 ) >> 3) as i64);
 
 		ecsimple_log_trace!("group.x 0x{:X} group.y 0x{:X} group.z 0x{:X}", self.base.group.generator.x,self.base.group.generator.y,self.base.group.generator.z);

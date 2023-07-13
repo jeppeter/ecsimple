@@ -109,17 +109,17 @@ impl ECGf2mPoint {
 	}
 
 	fn ladder_pre(&self, r :&mut ECGf2mPoint, s :&mut ECGf2mPoint, p :&ECGf2mPoint, bits :u64) {
-		let mut bs :Vec<u8>;
-		bs = ecsimple_rand_bits(bits);
-		s.z = BnGf2m::new_from_be(&bs);
+		let mut bs :BigInt;
+		bs = ecsimple_rand_bits(bits,-1,0);
+		s.z = BnGf2m::new_from_bigint(&bs);
 		ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
 
 		s.x = self.field_mul(&(p.x),&(s.z));
 		ecsimple_log_trace!("s->X 0x{:X}", s.x);
 
 
-		bs = ecsimple_rand_bits(bits);
-		r.y = BnGf2m::new_from_be(&bs);
+		bs = ecsimple_rand_bits(bits,-1,0);
+		r.y = BnGf2m::new_from_bigint(&bs);
 		ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
 		r.z = self.field_sqr(&(p.x));
 		r.x = self.field_sqr(&(r.z));
@@ -278,7 +278,7 @@ impl ECGf2mPoint {
 
 		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
-		self.ladder_pre(&mut r,&mut s, &p, (cardbits - 1) as u64);
+		self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
 
 		i = (cardbits - 1) as i32;
 		while i >= 0 {

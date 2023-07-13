@@ -29,6 +29,7 @@ use super::strop::*;
 use std::io::Write;
 
 use ecsimple::bngf2m::*;
+use ecsimple::randop::*;
 
 use num_bigint::{BigInt};
 use num_traits::{one};
@@ -210,7 +211,68 @@ fn bininv_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler)]
+fn randpriv_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let mut bits :u64 = 163;
+	let mut top : i32 = -1;
+	let mut bottom :i32 = 0;
+	let mut num :i32 = 1;
+	let mut idx :i32 = 0;
+	let mut rn :BigInt;
+
+	init_log(ns.clone())?;
+
+	if sarr.len() > 0 {
+		bits = s_atoi(&sarr[0])? as u64;
+	}
+	if sarr.len() > 1 {
+		top = s_atoi(&sarr[1])?;
+	}
+	if sarr.len() > 2 {
+		bottom = s_atoi(&sarr[2])?;
+	}
+	if sarr.len() > 3 {
+		num = s_atoi(&sarr[3])?;
+	}
+
+	while idx < num {
+		rn = ecsimple_rand_bits(bits,top,bottom);
+		println!("{} 0x{:X}", idx, rn);
+		idx += 1;
+	}
+
+
+	Ok(())
+}
+
+fn randmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let order :BigInt;
+	let mut num :i32 = 1;
+	let mut idx :i32 = 0;
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 1 {
+		extargs_new_error!{BinError,"need order at least"}
+	}
+
+	order = parse_to_bigint(&sarr[0])?;
+	if sarr.len() > 1 {
+		num = s_atoi(&sarr[1])?;
+	}
+
+
+	while idx < num {
+		let rn = ecsimple_rand_range(&order);
+		println!("{} 0x{:X}", idx, rn);
+		idx += 1;
+	}
+
+	Ok(())
+}
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -236,6 +298,12 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : "+"
 		},
 		"bininv<bininv_handler>##anum modnum to bin divide##" : {
+			"$" : "+"
+		},
+		"randpriv<randpriv_handler>##[bits] [top] [bottom] [num] to default bits 163 top -1 bottom 0 num 1##" : {
+			"$" : "*"
+		},
+		"randmod<randmod_handler>##rangevalue to set range value##" : {
 			"$" : "+"
 		}
 	}

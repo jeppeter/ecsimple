@@ -4,6 +4,7 @@ use rand;
 use crate::fileop::*;
 use crate::*;
 use crate::logger::*;
+use crate::utils::*;
 use std::error::Error;
 use num_bigint::{BigInt,Sign};
 use num_traits::{zero};
@@ -118,15 +119,39 @@ lazy_static ! {
 }
 
 
-pub (crate) fn ecsimple_rand_bits(bits :u64) -> Vec<u8> {
+pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 	let rnbytes : usize = ((bits+ 7) >> 3) as usize;
-	let retv = EC_SIMPLE_RANDOP.write().unwrap().get_bytes(rnbytes).unwrap();
-	//ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
-	return retv;
+	let bit :usize = ((bits + 8 - 1) % 8)  as usize;
+	let mask :u32 = (0xff << (bit + 1)) as u32;
+
+	let mut retv : Vec<u8> = EC_SIMPLE_RANDOP.write().unwrap().get_bytes(rnbytes).unwrap();
+	let mut bn :BigInt = BigInt::from_bytes_be(Sign::Plus,&retv);
+	ecsimple_log_trace!("random number 0x{:X}", bn);
+	if top >= 0 {
+		if top > 0 {
+			if bit == 0 {
+				retv[0] = 0;
+				retv[1] |= 0x80;
+			} else {
+				retv[0] |= (3 << (bit - 1)) as u8;
+			}
+		} else {
+			retv[0] |= (1 << bit) as u8;
+		}
+	}
+	retv[0] &= (!mask) as u8;
+	if bottom != 0 {
+		retv[(rnbytes - 1)] |= 1;
+	}
+	bn = BigInt::from_bytes_be(Sign::Plus,&retv);
+	ecsimple_log_trace!("bit [0x{:x}] mask [0x{:x}]", bit, mask);
+	ecsimple_log_trace!("rnd 0x{:X}",bn);
+	return bn;
 }
 
-pub (crate) fn ecsimple_rand_range(buflen :i64, rangeval :&BigInt) -> BigInt {
+pub fn ecsimple_rand_range(rangeval :&BigInt) -> BigInt {
 	loop {
+		let buflen = (get_max_bits(rangeval) + 7) / 8 + 8;
 		let retv = EC_SIMPLE_RANDOP.write()	.unwrap().get_bytes(buflen as usize).unwrap();
 		//ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 		let mut bv = BigInt::from_bytes_be(Sign::Plus,&retv);

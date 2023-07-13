@@ -53,6 +53,14 @@ pub fn parse_u64(instr :&str) -> Result<u64,Box<dyn Error>> {
 	Ok(retv)
 }
 
+pub fn s_atoi(s :&str) -> Result<i32,Box<dyn Error>> {
+	let i = match s.parse::<i32>() {
+	  Ok(i) => i,
+	  Err(_e) => extargs_new_error!{StrOpError,"{} not valid",s},
+	};
+	return Ok(i);
+}
+
 pub fn parse_to_bigint(instr :&str) -> Result<BigInt,Box<dyn Error>> {
 	let mut _cparse = format!("{}",instr);
 	let mut base :u32 = 10;
