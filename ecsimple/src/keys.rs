@@ -90,7 +90,7 @@ impl ECGf2mPrivateKey {
 			(X,_) = tmppnt.get_affine_points()?;
 
 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
-			ecsimple_log_trace!("X 0x{:X}",X);
+			ecsimple_log_trace!("X 0x{:X} order 0x{:X}",X,order);
 
 			rbn = &X % &order;
 
