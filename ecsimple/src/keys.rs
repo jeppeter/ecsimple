@@ -118,7 +118,6 @@ impl ECGf2mPrivateKey {
 	}
 
 	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
-		let zv :BigInt = zero();
 		let mut bs = hashnum.to_vec();
 		let orderbits = get_max_bits(&self.base.group.order);
 		ecsimple_log_trace!("begin sign");
@@ -126,8 +125,8 @@ impl ECGf2mPrivateKey {
 			bs = bs[0..(((orderbits as usize) +7) >> 3)].to_vec();
 		}
 		let mut realhash :BigInt = BigInt::from_bytes_be(Sign::Plus,&bs);
-		let r :BigInt = zero();
-		let s :BigInt = zero();
+		let mut s :BigInt = zero();
+		let mut r :BigInt = zero();
 		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
 		ecsimple_log_trace!("dgst 0x{:X}", realhash);
@@ -139,15 +138,19 @@ impl ECGf2mPrivateKey {
 
 		ecsimple_log_trace!("dgst rshift 0x{:X}", realhash);
 
-		(_, bs) = realhash.to_bytes_be();
 
 
 		assert!(realhash <= self.base.group.order);
-		let (kinv,r) = self.setup_sign(&realhash,hashnum.len() as i64)?;
+		let kinv :BigInt;
+		(kinv,r) = self.setup_sign(&realhash,hashnum.len() as i64)?;
 		ecsimple_log_trace!("ckinv 0x{:X} r 0x{:X}",kinv,r);
+		s = (&realhash + &self.privnum * &r) % &self.base.group.order;
+		ecsimple_log_trace!("s 0x{:X}",s);
+		s = (&s * &kinv) % &self.base.group.order;
+		ecsimple_log_trace!("s 0x{:X}",s);
 
 
-		let retv :ECSignature = ECSignature::new(&zv,&zv);
+		let retv :ECSignature = ECSignature::new(&r,&s);
 		Ok(retv)
 	}
 }
