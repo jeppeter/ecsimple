@@ -13,6 +13,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct ECGf2mPubKey {
 	base :ECGf2mPoint,
@@ -31,6 +32,7 @@ impl ECGf2mPubKey {
 		}
 	}
 
+	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		Ok(true)
 	}
@@ -61,9 +63,10 @@ impl ECGf2mPrivateKey {
 		retv
 	}
 
+	#[allow(unused_variables)]
+	#[allow(non_snake_case)]
 	fn setup_sign(&self,realhash :&BigInt, hashlen :i64) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		let r :BigInt;
-		let mut rbn :BnGf2m;
+		let mut r :BigInt;
 		let mut tmppnt :ECGf2mPoint = self.base.clone();
 		let zv :BnGf2m = BnGf2m::zero();
 		let ov :BigInt = one();
@@ -72,7 +75,7 @@ impl ECGf2mPrivateKey {
 		tmppnt.set_y(&zv);
 		tmppnt.set_z(&zv);
 		let mut k  :BigInt ;
-		let mut X :BnGf2m = BnGf2m::zero();
+		let mut X :BnGf2m;
 		let blen = get_max_bits(&self.base.group.order);
 		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X}, tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
@@ -92,11 +95,13 @@ impl ECGf2mPrivateKey {
 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 			ecsimple_log_trace!("X 0x{:X} order 0x{:X}",X,order);
 
-			rbn = &X % &order;
+
+			let xb :BigInt = X.to_bigint();
+
+			r = xb % &self.base.group.order;
 
 
-			if !rbn.is_zero() {
-				r = rbn.to_bigint();
+			if r != zero() {
 				break;
 			}
 		}
@@ -121,9 +126,8 @@ impl ECGf2mPrivateKey {
 			bs = bs[0..(((orderbits as usize) +7) >> 3)].to_vec();
 		}
 		let mut realhash :BigInt = BigInt::from_bytes_be(Sign::Plus,&bs);
-		let kinv :BigInt;
-		let mut r :BigInt = zero();
-		let mut s :BigInt = zero();
+		let r :BigInt = zero();
+		let s :BigInt = zero();
 		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
 		ecsimple_log_trace!("dgst 0x{:X}", realhash);
