@@ -35,6 +35,17 @@ impl ECGf2mPubKey {
 		}
 	}
 
+	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let b = ECGf2mPoint::new(grp);
+		if dercode.len() < 1 {
+			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
+		}
+		Ok(Self {
+			base : b.clone(),
+			pubk : b.clone(),
+		})
+	}
+
 	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
