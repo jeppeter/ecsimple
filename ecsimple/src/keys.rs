@@ -36,6 +36,7 @@ impl ECGf2mPubKey {
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		Ok(true)
 	}
+
 }
 
 #[derive(Clone)]

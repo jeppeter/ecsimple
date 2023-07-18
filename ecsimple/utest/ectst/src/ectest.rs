@@ -33,7 +33,7 @@ use num_bigint::{BigInt};
 use ecsimple::group::{ECGroupBnGf2m,get_bn_group_curve};
 use ecsimple::point::ECGf2mPoint;
 use ecsimple::signature::{ECSignature};
-use ecsimple::keys::{ECGf2mPrivateKey};
+use ecsimple::keys::{ECGf2mPrivateKey,ECGf2mPubKey};
 
 
 extargs_error_class!{EcError}
@@ -92,8 +92,33 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	Ok(())
 }
 
+fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
 
-#[extargs_map_function(ecgen_handler,ecsignbase_handler)]
+	init_log(ns.clone())?;
+
+	if sarr.len() < 4 {
+		extargs_new_error!{EcError,"need ecname and private number and hashnumber and signbin"}
+	}
+
+	let ecname = format!("{}",sarr[0]);
+	let privnum : BigInt = parse_to_bigint(&sarr[1])?;
+	let hashnum :BigInt = parse_to_bigint(&sarr[2])?;
+	let signbin = format!("{}",sarr[3]);
+
+
+	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
+	let privkey :ECGf2mPrivateKey = ECGf2mPrivateKey::new(&grp,&privnum);
+	let sigdata :Vec<u8> = read_file_bytes(&signbin)?;
+	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
+	let pubkey :ECGf2mPubKey = privkey.export_pubkey();
+	let ok :bool = pubkey.verify_base(&sig,&hashnum)?;
+	println!("verify 0x{:X} with signature [{}] {:?}", hashnum,signbin,ok);
+
+	Ok(())
+}
+
+#[extargs_map_function(ecgen_handler,ecsignbase_handler,ecvfybase_handler)]
 pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -101,6 +126,9 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : "+"
 		},
 		"ecsignbase<ecsignbase_handler>##ecname privatenum hashnum [hashlen] to generate sign values##" : {
+			"$" : "+"
+		},
+		"ecvfybase<ecvfybase_handler>##ecname privatenum hashnum signbin to verify sign##" : {
 			"$" : "+"
 		}
 	}
