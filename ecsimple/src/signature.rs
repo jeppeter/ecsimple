@@ -29,8 +29,8 @@ struct Asn1ECSignature {
 
 
 pub struct ECSignature {
-	r : BigInt,
-	s : BigInt,
+	pub r : BigInt,
+	pub s : BigInt,
 }
 
 impl ECSignature {
@@ -50,8 +50,8 @@ impl ECSignature {
 
 		let ur :Vec<u8> = objec.elem.val[0].r.val.to_bytes_be();
 		let us :Vec<u8> = objec.elem.val[0].s.val.to_bytes_be();
-		let r :BigInt = BigInt::from_bytes_le(Sign::Plus,&ur);
-		let s :BigInt = BigInt::from_bytes_le(Sign::Plus,&us);
+		let r :BigInt = BigInt::from_bytes_be(Sign::Plus,&ur);
+		let s :BigInt = BigInt::from_bytes_be(Sign::Plus,&us);
 		Ok(ECSignature::new(&r,&s))
 	}
 
@@ -62,8 +62,8 @@ impl ECSignature {
 		let us :Vec<u8>;
 		(_,ur ) = self.r.to_bytes_be();
 		(_,us ) = self.s.to_bytes_be();
-		elemec.r.val = BigUint::from_bytes_le(&ur);
-		elemec.s.val = BigUint::from_bytes_le(&us);
+		elemec.r.val = BigUint::from_bytes_be(&ur);
+		elemec.s.val = BigUint::from_bytes_be(&us);
 		objec.elem.val.push(elemec);
 		let rdata = objec.encode_asn1()?;
 		Ok(rdata)

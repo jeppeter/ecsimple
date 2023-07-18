@@ -1,4 +1,4 @@
-use num_bigint::{BigInt};
+use num_bigint::{BigInt,Sign};
 use num_traits::{zero,one};
 
 
@@ -15,6 +15,21 @@ pub (crate) fn get_max_bits(bn :&BigInt) -> i64 {
 		}
 		idx += 1;
 		cv <<= 1;
+	}
+	return retv;
+}
+
+pub (crate) fn format_bigint_as_order(bn :&BigInt, order :&BigInt) -> BigInt {
+	let obits :i64 = get_max_bits(order);
+	let mut bs :Vec<u8>;
+	(_,bs) = bn.to_bytes_be();
+	if (8 * bs.len()) > (obits as usize) {
+		bs = bs[0..(((obits as usize) +7) >> 3)].to_vec();
+	}
+
+	let mut retv :BigInt = BigInt::from_bytes_be(Sign::Plus,&bs);
+	if bs.len() * 8 > (obits as usize) {
+		retv = retv >> (8 - obits & 0x7);
 	}
 	return retv;
 }
