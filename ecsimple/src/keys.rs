@@ -1,5 +1,6 @@
 
 
+use crate::consts::*;
 use crate::point::*;
 use crate::group::*;
 use crate::bngf2m::*;
@@ -40,6 +41,15 @@ impl ECGf2mPubKey {
 		if dercode.len() < 1 {
 			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
 		}
+
+		if dercode[0] == EC_CODE_UNCOMPRESSED {
+
+		} else if dercode[0] == EC_CODE_COMPRESSED {
+
+		} else if dercode[0] == EC_CODE_HYBRID {
+
+		}
+
 		Ok(Self {
 			base : b.clone(),
 			pubk : b.clone(),
@@ -69,6 +79,14 @@ impl ECGf2mPubKey {
 	}
 
 }
+
+impl std::fmt::Display for ECGf2mPubKey {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"base {};\npoint {};\n",self.base,self.pubk)
+	}
+}
+
+
 
 #[derive(Clone)]
 pub struct ECGf2mPrivateKey {

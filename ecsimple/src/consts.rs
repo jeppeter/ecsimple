@@ -86,3 +86,8 @@ pub (crate) const EC_ENC_DATA_1_BYTE_MAX :usize = 0xff;
 pub (crate) const EC_ENC_DATA_2_BYTE_MAX :usize = 0xffff;
 pub (crate) const EC_ENC_DATA_3_BYTE_MAX :usize = 0xffffff;
 pub (crate) const EC_ENC_DATA_4_BYTE_MAX :usize = 0xffffffff;
+
+
+pub const EC_CODE_COMPRESSED : u8 = 0x2;
+pub const EC_CODE_UNCOMPRESSED : u8 = 0x4;
+pub const EC_CODE_HYBRID :u8 = 0x6;

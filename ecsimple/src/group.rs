@@ -1,6 +1,7 @@
 
 
 
+use crate::utils::*;
 use crate::bngf2m::*;
 use num_bigint::{BigInt,Sign};
 use num_traits::{zero,one};
@@ -18,6 +19,7 @@ pub trait ECGroup  {
 	fn x(&self) -> BigInt ;
 	fn y(&self) -> BigInt ;
 	fn z(&self) -> BigInt ;
+	fn degree(&self) -> i64;
 }
 
 #[derive(Clone)]
@@ -98,6 +100,10 @@ impl ECGroup for ECGroupBnGf2m {
 	fn z(&self) -> BigInt {
 		return self.generator.z.to_bigint();
 	}
+
+	fn degree(&self) -> i64 {
+		return get_max_bits(&self.p) - 1;
+	}
 }
 
 
@@ -138,6 +144,7 @@ impl std::default::Default for ECPrimeGenerator {
 #[derive(Clone)]
 pub struct ECGroupPrime {
 	pub generator :ECPrimeGenerator,
+	pub p :BigInt,
 	pub order :BigInt,
 	pub cofactor :BigInt,
 	pub curvename :String,
@@ -147,8 +154,8 @@ pub struct ECGroupPrime {
 
 impl std::fmt::Display for ECGroupPrime {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f,"curve {} generator {} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x}", 
-			self.curvename, self.generator,self.order,self.cofactor,self.a, self.b)
+		write!(f,"curve {} generator {} p 0x{:X} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x}", 
+			self.curvename, self.generator, self.p,self.order,self.cofactor,self.a, self.b)
 	}
 }
 
@@ -156,6 +163,7 @@ impl std::default::Default for ECGroupPrime {
 	fn default() -> Self {
 		ECGroupPrime {
 			generator : ECPrimeGenerator::default(),
+			p : zero(),
 			order :zero(),
 			cofactor :zero(),
 			curvename : "".to_string(),
@@ -177,6 +185,10 @@ impl ECGroup for ECGroupPrime {
 
 	fn z(&self) -> BigInt {
 		return self.generator.z.clone();
+	}
+
+	fn degree(&self) -> i64 {
+		return get_max_bits(&self.p) - 1;
 	}
 }
 

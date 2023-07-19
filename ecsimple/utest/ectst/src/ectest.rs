@@ -21,7 +21,6 @@ use std::any::Any;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-use super::*;
 use super::loglib::*;
 #[allow(unused_imports)]
 use super::fileop::*;
@@ -119,7 +118,28 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	Ok(())
 }
 
-#[extargs_map_function(ecgen_handler,ecsignbase_handler,ecvfybase_handler)]
+
+fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{EcError,"need ecname and ecpub"}
+	}
+
+	let ecname = format!("{}",sarr[0]);
+	let ecfile = format!("{}",sarr[1]);
+
+
+	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
+	let rdata :Vec<u8> = read_file_bytes(&ecfile)?;
+	let ecpub :ECGf2mPubKey = ECGf2mPubKey::from_der(&grp,&rdata)?;	
+	println!("load {} {} succ\n{}", ecname, ecfile,ecpub);
+
+	Ok(())
+}
+#[extargs_map_function(ecgen_handler,ecsignbase_handler,ecvfybase_handler,ecpubload_handler)]
 pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -131,6 +151,9 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		},
 		"ecvfybase<ecvfybase_handler>##ecname privatenum hashnum signbin to verify sign##" : {
 			"$" : "+"
+		},
+		"ecpubload<ecpubload_handler>##ecname pubbin to load ec public key##" : {
+			"$" : 2
 		}
 	}
 	"#;
