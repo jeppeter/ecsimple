@@ -42,7 +42,10 @@ impl ECGf2mPubKey {
 		let field :BnGf2m = BnGf2m::new_from_bigint(&b.group.p);
 		let x :BnGf2m = &xb % &field;
 		let mut y :BigInt = zero();
+		let mut yn :BnGf2m;
 		let mut tmp :BnGf2m;
+		let mut z :BnGf2m;
+		let mut z0 :u8;
 		ecsimple_log_trace!("x 0x{:X} = x_ 0x{:X} % group->field 0x{:X}",x,x_,field);
 		if x.is_zero() {
 			let yn = &b.group.b.mul_op(&b.group.b).mod_op(&field);
@@ -55,6 +58,19 @@ impl ECGf2mPubKey {
 			ecsimple_log_trace!("tmp 0x{:X} group->a 0x{:X}",tmp,b.group.a);
 			tmp = tmp.add_op(&x);
 			ecsimple_log_trace!("tmp 0x{:X} x 0x{:X}",tmp,x);
+			z = tmp.sqrt_quad_op(&field)?;
+			ecsimple_log_trace!("z 0x{:X}",z);
+			if z.is_odd() {
+				z0 = 1;
+			} else {
+				z0 = 0;
+			}
+			yn = b.field_mul(&x,&z);
+			if z0 != ybit {
+				yn = yn.add_op(&x);
+				ecsimple_log_trace!("y 0x{:X} x 0x{:X}",yn,x);
+			}
+			y = yn.to_bigint();
 		}
 		Ok(y)
 	}
@@ -116,6 +132,8 @@ impl ECGf2mPubKey {
 		pubk.set_y(&bval);
 		bval = BnGf2m::one();
 		pubk.set_z(&bval);
+		let _ = pubk.check_on_curve()?;
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X}", x,y);
 
 		Ok(Self {
 			base : b.clone(),

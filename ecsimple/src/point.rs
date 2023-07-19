@@ -354,4 +354,26 @@ impl ECGf2mPoint {
 		Ok((self.x.clone(),self.y.clone()))
 	}
 
+	pub fn check_on_curve(&self) -> Result<(),Box<dyn Error>> {
+		let mut lh :BnGf2m;
+		let mut y2 :BnGf2m;
+		if self.infinity {
+			return Ok(());
+		}
+		if !self.z.is_one() {
+			ecsimple_new_error!{BnGf2mPointError,"z 0x{:X} not one",self.z}
+		}
+		lh = self.x.add_op(&self.group.a);
+		lh = self.field_mul(&lh,&self.x);
+		lh = lh.add_op(&self.y);
+		lh =self.field_mul(&lh,&self.x);
+		lh = lh.add_op(&self.group.b);
+		y2 = self.field_sqr(&self.y);
+		lh = lh.add_op(&y2);
+		if !lh.is_zero() {
+			ecsimple_new_error!{BnGf2mPointError,"x 0x{:X} y 0x{:X} not on group {}",self.x,self.y,self.group.curvename}
+		}
+		Ok(())
+	}
+
 }
