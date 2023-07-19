@@ -137,7 +137,7 @@ impl ECGf2mPubKey {
 
 		Ok(Self {
 			base : b.clone(),
-			pubk : b.clone(),
+			pubk : pubk.clone(),
 		})
 	}
 
@@ -158,6 +158,9 @@ impl ECGf2mPubKey {
 
 		let u1 :BigInt = (&u2 * &m) % &order;
 		ecsimple_log_trace!("u1 0x{:X} = m 0x{:X} * tmp 0x{:X} % order 0x{:X}", u1,m,u2,order);
+
+		u2 = &(&u2 * &sig.r) % &order;
+		ecsimple_log_trace!("u2 0x{:X} sig->r 0x{:X} order 0x{:X}", u2,sig.r,order);
 
 
 		Ok(true)

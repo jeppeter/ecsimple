@@ -102,16 +102,16 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	}
 
 	let ecname = format!("{}",sarr[0]);
-	let privnum : BigInt = parse_to_bigint(&sarr[1])?;
+	let ecpubfile = format!("{}",sarr[1]);
 	let hashnum :BigInt = parse_to_bigint(&sarr[2])?;
 	let signbin = format!("{}",sarr[3]);
 
 
 	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
-	let privkey :ECGf2mPrivateKey = ECGf2mPrivateKey::new(&grp,&privnum);
+	let rdata :Vec<u8> = read_file_bytes(&ecpubfile)?;
+	let pubkey :ECGf2mPubKey = ECGf2mPubKey::from_der(&grp,&rdata)?;
 	let sigdata :Vec<u8> = read_file_bytes(&signbin)?;
 	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
-	let pubkey :ECGf2mPubKey = privkey.export_pubkey();
 	let ok :bool = pubkey.verify_base(&sig,&hashnum)?;
 	println!("verify 0x{:X} with signature [{}] {:?}", hashnum,signbin,ok);
 
