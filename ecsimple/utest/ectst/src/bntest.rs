@@ -294,8 +294,30 @@ fn bnmodpow_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImp
 	Ok(())
 }
 
+fn bndivmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler)]
+	init_log(ns.clone())?;
+
+	if sarr.len() < 3 {
+		extargs_new_error!{BinError,"need anum bnum and pnum"}
+	}
+	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
+	let bval :BnGf2m = get_bngf2m(&sarr[1])?;
+	let pval :BnGf2m = get_bngf2m(&sarr[2])?;
+
+
+	let cval :BnGf2m = bval.inv_op(&pval)?;
+	println!("0x{:X} * 0x{:X} = 1 % 0x{:X}", cval,bval,pval);
+
+	let dval :BnGf2m = cval.mul_op(&aval).mod_op(&pval);
+	println!("0x{:X} = ( 0x{:X}  * 0x{:X} ) % 0x{:X}",dval,cval,aval,pval );
+	println!("BN_GF2m_mod_div(0x{:X},0x{:X},0x{:X},0x{:X})",dval,aval,bval,pval);
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -330,6 +352,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : "+"
 		},
 		"bnmodpow<bnmodpow_handler>##anum cnum pnum to anum.modpow(cnum,pnum)##" : {
+			"$" : 3
+		},
+		"bndivmod<bndivmod_handler>##anum bnum pnum to (anum / bnum) % pnum for BnGf2m##" : {
 			"$" : 3
 		}
 	}

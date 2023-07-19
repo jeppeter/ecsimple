@@ -38,16 +38,41 @@ impl ECGf2mPubKey {
 
 	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECGf2mPoint::new(grp);
+		let mut pubk :ECGf2mPoint = b.clone();
 		if dercode.len() < 1 {
 			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
 		}
+		let code :u8 = dercode[0] & EC_CODE_MASK;
+		let ybit :u8 = dercode[0] & EC_CODE_YBIT;
+		let degr :i64 = grp.degree();
+		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let x :BigInt;
+		let y :BigInt;
 
-		if dercode[0] == EC_CODE_UNCOMPRESSED {
-
-		} else if dercode[0] == EC_CODE_COMPRESSED {
-
-		} else if dercode[0] == EC_CODE_HYBRID {
-
+		if code == EC_CODE_UNCOMPRESSED {
+			if dercode.len() < (1 + 2 *fieldsize) {
+				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}
+			}
+			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
+		} else if code == EC_CODE_COMPRESSED {
+			if dercode.len() < (1 + fieldsize) {
+				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} ", dercode.len(), fieldsize}	
+			}
+			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+		} else if code == EC_CODE_HYBRID {
+			if dercode.len() < (1 + 2 * fieldsize) {
+				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}	
+			}
+			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
+			if x == zero() && ybit != 0{
+				ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
+			} else {
+				
+			}
+		} else {
+			ecsimple_new_error!{EcKeyError,"unsupport code [0x{:X}] for public point", dercode[0]}
 		}
 
 		Ok(Self {
