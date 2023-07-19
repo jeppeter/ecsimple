@@ -36,6 +36,10 @@ impl ECGf2mPubKey {
 		}
 	}
 
+	fn uncompress_x_point(grp :&ECGroupBnGf2m, x :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
+		Ok(one())
+	}
+
 	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECGf2mPoint::new(grp);
 		let mut pubk :ECGf2mPoint = b.clone();
@@ -48,6 +52,7 @@ impl ECGf2mPubKey {
 		let fieldsize :usize = ((degr + 7) >> 3) as usize;
 		let x :BigInt;
 		let y :BigInt;
+		let ov :BigInt = one();
 
 		if code == EC_CODE_UNCOMPRESSED {
 			if dercode.len() < (1 + 2 *fieldsize) {
@@ -60,20 +65,36 @@ impl ECGf2mPubKey {
 				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} ", dercode.len(), fieldsize}	
 			}
 			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			y = ECGf2mPubKey::uncompress_x_point(grp,&x,ybit)?;
 		} else if code == EC_CODE_HYBRID {
 			if dercode.len() < (1 + 2 * fieldsize) {
 				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}	
 			}
 			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			ecsimple_log_trace!("x 0x{:X}",x);
 			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
+			ecsimple_log_trace!("y 0x{:X}",y);
 			if x == zero() && ybit != 0{
 				ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
 			} else {
-				
+				let xb :BnGf2m = BnGf2m::new_from_bigint(&x);
+				let yb :BnGf2m = BnGf2m::new_from_bigint(&y);
+				let ybi :BnGf2m = b.field_div(&yb,&xb)?;
+				ecsimple_log_trace!("yxi 0x{:X} y 0x{:X} x 0x{:X}",ybi,yb,xb);
+				if (ybit != 0 && !ybi.is_odd()) || (ybit == 0 && ybi.is_odd()) {
+					ecsimple_new_error!{EcKeyError,"ybi 0x{:X} not match ybit 0x{:X}", ybi,ybit}
+				}
 			}
 		} else {
 			ecsimple_new_error!{EcKeyError,"unsupport code [0x{:X}] for public point", dercode[0]}
 		}
+		let mut bval :BnGf2m;
+		bval = BnGf2m::new_from_bigint(&x);
+		pubk.set_x(&bval);
+		bval = BnGf2m::new_from_bigint(&y);
+		pubk.set_y(&bval);
+		bval = BnGf2m::one();
+		pubk.set_z(&bval);
 
 		Ok(Self {
 			base : b.clone(),

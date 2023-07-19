@@ -95,7 +95,7 @@ impl ECGf2mPoint {
 		return self.z.clone();
 	}
 
-	fn field_mul(&self,a :&BnGf2m, b :&BnGf2m) -> BnGf2m {
+	pub fn field_mul(&self,a :&BnGf2m, b :&BnGf2m) -> BnGf2m {
 		let retv :BnGf2m ;
 		retv = a * b;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
@@ -103,12 +103,21 @@ impl ECGf2mPoint {
 		return retv % ord;
 	}
 
-	fn field_sqr(&self,a :&BnGf2m) -> BnGf2m {
+	pub fn field_sqr(&self,a :&BnGf2m) -> BnGf2m {
 		let retv :BnGf2m;
 		retv = a * a;
 		let ord :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
 		ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
 		return retv % ord;		
+	}
+
+	pub fn field_div(&self,a :&BnGf2m, b:&BnGf2m) -> Result<BnGf2m,Box<dyn Error>> {
+		let fp :BnGf2m = BnGf2m::new_from_bigint(&self.group.p);
+		let invb :BnGf2m = b.inv_op(&fp)?;
+		ecsimple_log_trace!("0x{:X} * 0x{:X} = 1 % 0x{:X}",invb,b,fp);
+		let retv :BnGf2m = invb.mul_op(&a).mod_op(&fp);
+		ecsimple_log_trace!("r 0x{:X} = ( y 0x{:X} * xinv 0x{:X} % p 0x{:X} )",retv,a,invb,fp);
+		Ok(retv)
 	}
 
 	fn ladder_pre(&self, r :&mut ECGf2mPoint, s :&mut ECGf2mPoint, p :&ECGf2mPoint, bits :u64) {
