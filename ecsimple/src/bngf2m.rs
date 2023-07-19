@@ -1,6 +1,8 @@
 use num_bigint::{BigInt,Sign};
 
 use crate::*;
+use crate::consts::*;
+use crate::randop::*;
 #[allow(unused_imports)]
 use crate::logger::*;
 use std::ops::{Add,Sub,Mul,Div,Rem,Shl,Shr};
@@ -825,6 +827,85 @@ impl BnGf2m {
 		}
 
 		return Ok(b);
+	}
+
+	///  to find retv ^ 2 + retv = self % pnum values
+	/// 
+	/// 
+	pub fn sqrt_quad_op(&self,pnum :&BnGf2m) -> Result<BnGf2m,Box<dyn Error>> {
+		if pnum.polyarr.len() == 0 {
+			ecsimple_new_error!{BnGf2mError,"pnum zero"}
+		}
+
+		let a :BnGf2m = self.mod_op(pnum);
+		let mut r :BnGf2m = BnGf2m::zero();
+		let mut jdx :i32;
+		let mut z :BnGf2m = BnGf2m::zero();
+		let mut w :BnGf2m = BnGf2m::zero();
+		let mut w2 :BnGf2m = BnGf2m::zero();
+		let mut tmp :BnGf2m;
+
+		if a.is_zero() {
+			r = BnGf2m::zero();
+			return Ok(r);
+		}
+
+		if (pnum.polyarr[0] & 0x1) != 0 {
+			z = a.clone();
+			jdx = 1;
+			while jdx <= ((pnum.polyarr[0]-1) >> 1) {
+				z = &(&z * &z) % &pnum;
+				//ecsimple_log_trace!("[{}] z 0x{:X}",jdx,z);
+				z = &(&z * &z) % &pnum;
+				//ecsimple_log_trace!("[{}] z 0x{:X}",jdx,z);
+				z = z.add_op(&a);
+				//ecsimple_log_trace!("[{}] z 0x{:X} a 0x{:X}",jdx,z,a);
+				jdx += 1;
+			}
+		} else {
+			let mut count :i32 = 0;
+			while count < MAX_ITERATIONS {
+				let rhob :BigInt = ecsimple_rand_bits(pnum.polyarr[0] as u64,-1,0);
+				let mut rho :BnGf2m = BnGf2m::new_from_bigint(&rhob);
+				rho = rho.mod_op(&pnum);
+				//ecsimple_log_trace!("rho 0x{:X}",rho);
+				z = BnGf2m::zero();
+				w = rho.clone();
+				jdx = 1;
+				while jdx <= (pnum.polyarr[0] - 1) {
+					z = &(&z * &z) % &pnum;
+					//ecsimple_log_trace!("[{}] z 0x{:X}",jdx,z);
+					w2 = &(&w * &w) % &pnum;
+					//ecsimple_log_trace!("[{}] w2 0x{:X} w 0x{:X}",jdx,w2,w);
+					tmp = &(&w2 * &a) % &pnum;
+					//ecsimple_log_trace!("[{}] tmp 0x{:X} = ( w2 0x{:X} * a 0x{:X} )",jdx,tmp,w2,a);
+					z = z.add_op(&tmp);
+					//ecsimple_log_trace!("[{}] z 0x{:X}",jdx,z);
+					w = w2.add_op(&rho);
+					//ecsimple_log_trace!("[{}] w 0x{:X} w2 0x{:X} rho 0x{:X}",jdx,w,w2,rho);
+					jdx += 1;
+				}
+
+				if !w.is_zero() {
+					break;
+				}
+				count += 1;
+			}
+
+			if w.is_zero() {
+				ecsimple_new_error!{BnGf2mError,"can not resolv 0x{:X} pnum 0x{:X}",self,pnum}
+			}
+		}
+
+		w = &(&z * &z) % &pnum;
+		//ecsimple_log_trace!("w 0x{:X} z 0x{:X}",w,z);
+		w = w.add_op(&z);
+		//ecsimple_log_trace!("w 0x{:X} z 0x{:X} a 0x{:X}",w,z,a);
+		if !w.eq_op(&a) {
+			ecsimple_new_error!{BnGf2mError,"can not resolv 0x{:X} pnum 0x{:X}",self,pnum}
+		}
+		r = z.clone();
+		return Ok(r);
 	}
 
 }

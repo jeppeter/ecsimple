@@ -140,9 +140,12 @@ pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 		}
 	}
 	retv[0] &= (!mask) as u8;
+	ecsimple_log_trace!("buf[0] 0x{:x}", retv[0]);
 	if bottom != 0 {
 		retv[(rnbytes - 1)] |= 1;
+		ecsimple_log_trace!("buf[0x{:x}] = [0x{:x}]",rnbytes - 1,retv[(rnbytes-1)]);
 	}
+	ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"buffer");
 	bn = BigInt::from_bytes_be(Sign::Plus,&retv);
 	ecsimple_log_trace!("bit [0x{:x}] mask [0x{:x}]", bit, mask);
 	ecsimple_log_trace!("rnd 0x{:X}",bn);

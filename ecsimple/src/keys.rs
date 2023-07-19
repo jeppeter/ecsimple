@@ -36,8 +36,27 @@ impl ECGf2mPubKey {
 		}
 	}
 
-	fn uncompress_x_point(grp :&ECGroupBnGf2m, x :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
-		Ok(one())
+	fn uncompress_x_point(grp :&ECGroupBnGf2m, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
+		let b = ECGf2mPoint::new(grp);
+		let xb :BnGf2m = BnGf2m::new_from_bigint(&x_);
+		let field :BnGf2m = BnGf2m::new_from_bigint(&b.group.p);
+		let x :BnGf2m = &xb % &field;
+		let mut y :BigInt = zero();
+		let mut tmp :BnGf2m;
+		ecsimple_log_trace!("x 0x{:X} = x_ 0x{:X} % group->field 0x{:X}",x,x_,field);
+		if x.is_zero() {
+			let yn = &b.group.b.mul_op(&b.group.b).mod_op(&field);
+			y = yn.to_bigint();
+			ecsimple_log_trace!("y 0x{:X} = group->b 0x{:X} ^ 2 % field 0x{:X}",y,b.group.b,field);
+		} else {
+			tmp = b.field_sqr(&x);
+			tmp = b.field_div(&b.group.b,&tmp)?;
+			tmp = tmp.add_op(&b.group.a);
+			ecsimple_log_trace!("tmp 0x{:X} group->a 0x{:X}",tmp,b.group.a);
+			tmp = tmp.add_op(&x);
+			ecsimple_log_trace!("tmp 0x{:X} x 0x{:X}",tmp,x);
+		}
+		Ok(y)
 	}
 
 	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
@@ -59,12 +78,14 @@ impl ECGf2mPubKey {
 				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}
 			}
 			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			ecsimple_log_trace!("x 0x{:X}",x);
 			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
 		} else if code == EC_CODE_COMPRESSED {
 			if dercode.len() < (1 + fieldsize) {
 				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} ", dercode.len(), fieldsize}	
 			}
 			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			ecsimple_log_trace!("x 0x{:X}",x);
 			y = ECGf2mPubKey::uncompress_x_point(grp,&x,ybit)?;
 		} else if code == EC_CODE_HYBRID {
 			if dercode.len() < (1 + 2 * fieldsize) {

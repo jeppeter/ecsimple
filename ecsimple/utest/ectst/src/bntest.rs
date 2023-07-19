@@ -317,7 +317,24 @@ fn bndivmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImp
 }
 
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler)]
+fn bnquadmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and pnum"}
+	}
+	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
+	let pval :BnGf2m = get_bngf2m(&sarr[1])?;
+
+
+	let cval :BnGf2m = aval.sqrt_quad_op(&pval)?;
+	println!("BN_GF2m_mod_solve_quad(0x{:X},0x{:X},0x{:X})",cval,aval,pval);
+	Ok(())
+}
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -356,6 +373,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		},
 		"bndivmod<bndivmod_handler>##anum bnum pnum to (anum / bnum) % pnum for BnGf2m##" : {
 			"$" : 3
+		},
+		"bnquadmod<bnquadmod_handler>##anum pnum to get BN_GF2m_mod_solve_quad for BnGf2m##" : {
+			"$" : 2
 		}
 	}
 	"#;

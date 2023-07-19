@@ -93,3 +93,5 @@ pub const EC_CODE_YBIT :u8 = 0x1;
 pub const EC_CODE_COMPRESSED : u8 = 0x2;
 pub const EC_CODE_UNCOMPRESSED : u8 = 0x4;
 pub const EC_CODE_HYBRID :u8 = 0x6;
+
+pub (crate) const MAX_ITERATIONS :i32 = 50;
