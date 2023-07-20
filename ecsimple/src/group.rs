@@ -329,9 +329,49 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 }
 
 
+fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
+	let mut retv :HashMap<String,ECGroupPrime> = HashMap::new();
+	let mut bngrp :ECGroupPrime = ECGroupPrime::default();
+	let mut v8 :Vec<u8>;
+	let mut p :BigInt;
+	let ov :BigInt = one();
+
+	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD2088").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = p.clone();
+	v8 = Vec::from_hex("659EF8BA043916EEDE8911702B22").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = p.clone();
+	v8 = Vec::from_hex("09487239995A5EE76B55F9C2F098").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = p.clone();
+	v8 = Vec::from_hex("A89CE5AF8724C0A23E0E0FF77500").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = p.clone();
+	bngrp.generator.z = ov.clone();
+
+	v8 = Vec::from_hex("DB7C2ABF62E35E7628DFAC6561C5").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = SECP112r1_NAME.to_string();
+
+	retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
+
+	retv
+}
+
+
 lazy_static ! {
 	static ref ECC_BN_CURVES :HashMap<String,ECGroupBnGf2m> = {
 		create_group_bn_curves()	
+	};
+
+	static ref ECC_PRIME_CURVES :HashMap<String,ECGroupPrime> = {
+		create_group_prime_curves()
 	};
 
 
@@ -340,6 +380,17 @@ lazy_static ! {
 
 pub fn get_bn_group_curve(name :&str) -> Result<ECGroupBnGf2m,Box<dyn Error>> {
 	match ECC_BN_CURVES.get(name) {
+		Some(pv) => {
+			return Ok(pv.clone());
+		},
+		_ => {
+			ecsimple_new_error!{ECGroupError,"can not find [{}]",name}
+		}
+	}
+}
+
+pub fn get_prime_group_curve(name :&str) -> Result<ECGroupPrime,Box<dyn Error>> {
+	match ECC_PRIME_CURVES.get(name) {
 		Some(pv) => {
 			return Ok(pv.clone());
 		},

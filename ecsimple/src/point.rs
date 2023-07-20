@@ -503,4 +503,21 @@ impl ECPrimePoint {
 			infinity : false,
 		}
 	}
+
+	pub fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
+		Self {
+			x :x.clone(),
+			y :y.clone(),
+			z :z.clone(),
+			group :grp.clone(),
+			infinity : false,
+		}
+	}
+
+	#[allow(unused_variables)]
+	pub fn mul_op(&self, bn :&BigInt,copyxy :bool ) -> ECPrimePoint {
+		let bn = self.clone();
+		return bn;
+	}
+
 }

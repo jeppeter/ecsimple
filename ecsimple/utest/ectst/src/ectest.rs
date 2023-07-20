@@ -30,10 +30,10 @@ use std::io::Write;
 
 use num_bigint::{BigInt};
 
-use ecsimple::group::{ECGroupBnGf2m,get_bn_group_curve};
-use ecsimple::point::ECGf2mPoint;
+use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
+use ecsimple::point::ECPrimePoint;
 use ecsimple::signature::{ECSignature};
-use ecsimple::keys::{ECGf2mPrivateKey,ECGf2mPubKey};
+use ecsimple::keys::{ECPrimePrivateKey,ECPrimePubKey};
 
 
 extargs_error_class!{EcError}
@@ -50,10 +50,10 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let ecname :String = format!("{}",sarr[0]);
 	let bn : BigInt = parse_to_bigint(&sarr[1])?;
 
-	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
-	let pnt : ECGf2mPoint = ECGf2mPoint::new(&grp);
+	let grp :ECGroupPrime = get_prime_group_curve(&ecname)?;
+	let pnt : ECPrimePoint = ECPrimePoint::new(&grp);
 
-	let pubpnt :ECGf2mPoint = pnt.mul_op(&bn,false);
+	let pubpnt :ECPrimePoint = pnt.mul_op(&bn,false);
 
 	println!("from {} * 0x{:x} = {}",pnt,bn, pubpnt);
 	Ok(())
@@ -80,8 +80,8 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 		}
 	}
 
-	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
-	let privkey :ECGf2mPrivateKey = ECGf2mPrivateKey::new(&grp,&bn);
+	let grp :ECGroupPrime = get_prime_group_curve(&ecname)?;
+	let privkey :ECPrimePrivateKey = ECPrimePrivateKey::new(&grp,&bn);
 
 	let sig :ECSignature = privkey.sign_base(&bs)?;
 
@@ -107,9 +107,9 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let signbin = format!("{}",sarr[3]);
 
 
-	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
+	let grp :ECGroupPrime = get_prime_group_curve(&ecname)?;
 	let rdata :Vec<u8> = read_file_bytes(&ecpubfile)?;
-	let pubkey :ECGf2mPubKey = ECGf2mPubKey::from_der(&grp,&rdata)?;
+	let pubkey :ECPrimePubKey = ECPrimePubKey::from_der(&grp,&rdata)?;
 	let sigdata :Vec<u8> = read_file_bytes(&signbin)?;
 	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
 	let ok :bool = pubkey.verify_base(&sig,&hashnum)?;
@@ -132,9 +132,9 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let ecfile = format!("{}",sarr[1]);
 
 
-	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
+	let grp :ECGroupPrime = get_prime_group_curve(&ecname)?;
 	let rdata :Vec<u8> = read_file_bytes(&ecfile)?;
-	let ecpub :ECGf2mPubKey = ECGf2mPubKey::from_der(&grp,&rdata)?;	
+	let ecpub :ECPrimePubKey = ECPrimePubKey::from_der(&grp,&rdata)?;	
 	println!("load {} {} succ\n{}", ecname, ecfile,ecpub);
 
 	Ok(())

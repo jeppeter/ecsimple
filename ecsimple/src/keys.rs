@@ -17,7 +17,6 @@ use std::error::Error;
 ecsimple_error_class!{EcKeyError}
 
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct ECGf2mPubKey {
 	base :ECGf2mPoint,
@@ -287,5 +286,70 @@ impl ECGf2mPrivateKey {
 }
 
 
+#[derive(Clone)]
+pub struct ECPrimePubKey {
+	base :ECPrimePoint,
+	pubk :ECPrimePoint,
+}
+
+impl ECPrimePubKey {
+	pub fn new(grp :&ECGroupPrime,x :&BigInt,y :&BigInt) -> ECPrimePubKey {
+		let b = ECPrimePoint::new(grp);
+		let zn :BigInt = one();
+		ECPrimePubKey {
+			base : b,
+			pubk : ECPrimePoint::new_point(&x,&y,&zn,grp),
+		}
+	}
+
+
+	#[allow(unused_variables)]
+	pub fn from_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let b = ECPrimePoint::new(grp);
+		Ok(Self {
+			base : b.clone(),
+			pubk : b.clone(),
+		})
+	}
+
+	#[allow(unused_variables)]
+	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+		Ok(true)
+	}
+
+}
+
+impl std::fmt::Display for ECPrimePubKey {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"base {};\npoint {};\n",self.base,self.pubk)
+	}
+}
+
+
+
+#[allow(dead_code)]
+#[derive(Clone)]
+pub struct ECPrimePrivateKey {
+	base : ECPrimePoint,
+	privnum :BigInt,
+}
+
+impl ECPrimePrivateKey {
+	pub fn new(grp :&ECGroupPrime , privnum :&BigInt) -> ECPrimePrivateKey {
+		let b :ECPrimePoint = ECPrimePoint::new(grp);
+		ECPrimePrivateKey {
+			base : b,
+			privnum : privnum.clone(),
+		}
+	}
+
+
+	#[allow(unused_variables)]
+	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
+		let zv :BigInt = zero();
+		let retv :ECSignature = ECSignature::new(&zv,&zv);
+		Ok(retv)
+	}
+}
 
 
