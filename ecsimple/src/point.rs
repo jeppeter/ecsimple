@@ -514,6 +514,49 @@ impl ECPrimePoint {
 		}
 	}
 
+	pub fn field_mul(&self,a :&BigInt, b :&BigInt) -> BigInt {
+		let retv :BigInt ;
+		retv = a * b;
+		let ord :BigInt = self.group.p.clone();
+		ecsimple_log_trace!("a 0x{:X} * b 0x{:X} % ord 0x{:X} = 0x{:X}",a,b,ord, retv.clone() % ord.clone());
+		return retv % ord;
+	}
+
+	pub fn field_sqr(&self,a :&BigInt) -> BigInt {
+		let retv :BigInt;
+		retv = a * a;
+		let ord :BigInt = self.group.p.clone();
+		ecsimple_log_trace!("a 0x{:X} * a 0x{:X} % ord 0x{:X} = 0x{:X}",a,a, ord,retv.clone() % ord.clone());
+		return retv % ord;		
+	}
+
+
+
+	fn ladder_pre(&self, r :&mut ECPrimePoint, s :&mut ECPrimePoint, p :&ECPrimePoint, bits :u64) {
+		let mut bs :BigInt;
+		bs = ecsimple_rand_bits(bits,-1,0);
+		s.z = bs.clone();
+		//ecsimple_log_trace!("random s->Z 0x{:X}", s.z);
+
+		s.x = self.field_mul(&(p.x),&(s.z));
+		//ecsimple_log_trace!("s->X 0x{:X}", s.x);
+
+
+		bs = ecsimple_rand_bits(bits,-1,0);
+		r.y = bs.clone();
+		//ecsimple_log_trace!("random r->Y 0x{:X}",r.y);
+		r.z = self.field_sqr(&(p.x));
+		r.x = self.field_sqr(&(r.z));
+		r.x = &r.x + &self.group.b;
+		r.z = self.field_mul(&(r.z),&(r.y));
+		r.x = self.field_mul(&(r.x),&(r.y));
+
+		ecsimple_log_trace!("r->X 0x{:X} r->Y 0x{:X} r->Z 0x{:X}", r.x,r.y,r.z);
+
+		return;
+	}
+
+
 	#[allow(unused_variables)]
 	pub fn mul_op(&self, bn :&BigInt,copyxy :bool ) -> ECPrimePoint {
 		let zv :BigInt = zero();
@@ -584,7 +627,7 @@ impl ECPrimePoint {
 
 		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
-		//self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
+		self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
 
 		i = (cardbits - 1) as i32;
 		while i >= 0 {
