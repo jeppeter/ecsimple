@@ -168,6 +168,7 @@ impl std::fmt::Display for ECPrimeGenerator {
 	}
 }
 
+
 impl ECPrimeGenerator {
 	pub fn new(x :&BigInt, y :&BigInt,z :&BigInt) -> Self {
 		ECPrimeGenerator {
@@ -175,6 +176,22 @@ impl ECPrimeGenerator {
 			y :y.clone(),
 			z :z.clone(),
 		}
+	}
+
+	pub fn eq_op(&self,other :&ECPrimeGenerator) -> bool {
+		let mut retv :bool = true;
+		if self.x != other.x {
+			retv = false;
+		}
+
+		if self.y != other.y {
+			retv = false;
+		}
+
+		if self.z != other.z {
+			retv = false;
+		}
+		return retv;
 	}
 }
 
@@ -218,6 +235,40 @@ impl std::default::Default for ECGroupPrime {
 			a : zero(),
 			b : zero(),
 		}
+	}
+}
+
+impl ECGroupPrime {
+	pub fn eq_op(&self, other :&ECGroupPrime) -> bool {
+		let mut retv : bool = true;
+		if !self.generator.eq_op(&other.generator) {
+			retv = false;
+		}
+		if self.p != other.p {
+			retv = false;
+		}
+
+		if self.order != other.order {
+			retv = false;
+		}
+
+		if self.cofactor != other.cofactor {
+			retv = false;
+		}
+
+		if self.curvename != other.curvename {
+			retv = false;
+		}
+
+		if self.a != other.a {
+			retv = false;
+		}
+
+		if self.b != other.b {
+			retv = false;
+		}
+
+		return retv;
 	}
 }
 
@@ -282,6 +333,7 @@ lazy_static ! {
 	static ref ECC_BN_CURVES :HashMap<String,ECGroupBnGf2m> = {
 		create_group_bn_curves()	
 	};
+
 
 }
 
