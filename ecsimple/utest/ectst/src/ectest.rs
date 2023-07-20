@@ -53,7 +53,7 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let grp :ECGroupBnGf2m = get_bn_group_curve(&ecname)?;
 	let pnt : ECGf2mPoint = ECGf2mPoint::new(&grp);
 
-	let pubpnt :ECGf2mPoint = pnt.mul_op(&bn);
+	let pubpnt :ECGf2mPoint = pnt.mul_op(&bn,false);
 
 	println!("from {} * 0x{:x} = {}",pnt,bn, pubpnt);
 	Ok(())

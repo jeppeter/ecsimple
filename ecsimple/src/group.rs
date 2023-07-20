@@ -43,6 +43,22 @@ impl ECBnGf2mGenerator {
 			z :z.clone(),
 		}
 	}
+
+	pub fn eq_op(&self,other :&ECBnGf2mGenerator) -> bool {
+		let mut retv :bool = true;
+		if !self.x.eq_op(&other.x) {
+			retv = false;
+		}
+
+		if !self.y.eq_op(&other.y) {
+			retv = false;
+		}
+
+		if !self.z.eq_op(&other.z) {
+			retv = false;
+		}
+		return retv;
+	}
 }
 
 impl std::default::Default for ECBnGf2mGenerator {
@@ -85,6 +101,38 @@ impl std::default::Default for ECGroupBnGf2m {
 			a : BnGf2m::default(),
 			b : BnGf2m::default(),
 		}
+	}
+}
+
+impl ECGroupBnGf2m {
+	pub fn eq_op(&self,other :&ECGroupBnGf2m) -> bool {
+		let mut retv :bool = true;
+		if !self.generator.eq_op(&other.generator) {
+			retv = false;
+		}
+		if self.p != other.p {
+			retv= false;
+		}
+		if self.order != other.order {
+			retv = false;
+		}
+		if self.cofactor != other.cofactor {
+			retv = false;
+		}
+
+		if self.curvename != other.curvename {
+			retv = false;
+		}
+
+		if !self.a.eq_op(&other.a) {
+			retv = false;
+		}
+
+		if ! self.b.eq_op(&other.b) {
+			retv = false;
+		}
+
+		return retv;
 	}
 }
 

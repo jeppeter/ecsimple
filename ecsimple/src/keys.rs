@@ -41,11 +41,11 @@ impl ECGf2mPubKey {
 		let xb :BnGf2m = BnGf2m::new_from_bigint(&x_);
 		let field :BnGf2m = BnGf2m::new_from_bigint(&b.group.p);
 		let x :BnGf2m = &xb % &field;
-		let mut y :BigInt = zero();
+		let y :BigInt;
 		let mut yn :BnGf2m;
 		let mut tmp :BnGf2m;
-		let mut z :BnGf2m;
-		let mut z0 :u8;
+		let z :BnGf2m;
+		let z0 :u8;
 		ecsimple_log_trace!("x 0x{:X} = x_ 0x{:X} % group->field 0x{:X}",x,x_,field);
 		if x.is_zero() {
 			let yn = &b.group.b.mul_op(&b.group.b).mod_op(&field);
@@ -87,7 +87,6 @@ impl ECGf2mPubKey {
 		let fieldsize :usize = ((degr + 7) >> 3) as usize;
 		let x :BigInt;
 		let y :BigInt;
-		let ov :BigInt = one();
 
 		if code == EC_CODE_UNCOMPRESSED {
 			if dercode.len() < (1 + 2 *fieldsize) {
@@ -141,10 +140,10 @@ impl ECGf2mPubKey {
 		})
 	}
 
-	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
+		let vfypnt :ECGf2mPoint;
 		ecsimple_log_trace!("sig.r 0x{:X} sig.s 0x{:X}", sig.r,sig.s);
 		if sig.r == zero() || sig.s == zero() {
 			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
@@ -156,13 +155,19 @@ impl ECGf2mPubKey {
 		let m :BigInt = format_bigint_as_order(hashnum,&order);
 		ecsimple_log_trace!("dgst 0x{:X}",m);
 
-		let u1 :BigInt = (&u2 * &m) % &order;
+		let mut u1 :BigInt = (&u2 * &m) % &order;
 		ecsimple_log_trace!("u1 0x{:X} = m 0x{:X} * tmp 0x{:X} % order 0x{:X}", u1,m,u2,order);
 
 		u2 = &(&u2 * &sig.r) % &order;
 		ecsimple_log_trace!("u2 0x{:X} sig->r 0x{:X} order 0x{:X}", u2,sig.r,order);
 
-
+		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
+		let xn :BigInt = vfypnt.x().to_bigint();
+		u1 = &xn % &order;
+		ecsimple_log_trace!("u1 0x{:X} = X 0x{:X} % order 0x{:X} sig->r 0x{:X}",u1,xn,order,sig.r);
+		if u1 != sig.r {
+			return Ok(false);
+		}
 		Ok(true)
 	}
 
@@ -193,7 +198,7 @@ impl ECGf2mPrivateKey {
 
 	pub fn export_pubkey(&self) -> ECGf2mPubKey {
 		let ck : ECGf2mPoint;
-		ck = self.base.mul_op(&self.privnum);
+		ck = self.base.mul_op(&self.privnum,false);
 		let retv :ECGf2mPubKey = ECGf2mPubKey {
 			base : self.base.clone(),
 			pubk : ck.clone(),
@@ -225,7 +230,7 @@ impl ECGf2mPrivateKey {
 			ecsimple_log_trace!("k 0x{:X} order 0x{:X} dlen 0x{:x}", k, self.base.group.order,((blen + 7 ) >> 3) as i64);
 
 			ecsimple_log_trace!("group.x 0x{:X} group.y 0x{:X} group.z 0x{:X}", self.base.group.generator.x,self.base.group.generator.y,self.base.group.generator.z);
-			tmppnt = self.base.mul_op(&k);
+			tmppnt = self.base.mul_op(&k,false);
 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 
 			(X,_) = tmppnt.get_affine_points()?;

@@ -838,11 +838,11 @@ impl BnGf2m {
 		}
 
 		let a :BnGf2m = self.mod_op(pnum);
-		let mut r :BnGf2m = BnGf2m::zero();
+		let r :BnGf2m;
 		let mut jdx :i32;
 		let mut z :BnGf2m = BnGf2m::zero();
 		let mut w :BnGf2m = BnGf2m::zero();
-		let mut w2 :BnGf2m = BnGf2m::zero();
+		let mut w2 :BnGf2m;
 		let mut tmp :BnGf2m;
 
 		if a.is_zero() {

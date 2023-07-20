@@ -230,10 +230,87 @@ impl ECGf2mPoint {
 		return;
 	}
 
+	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECGf2mPoint,Box<dyn Error>> {
+		let retv :ECGf2mPoint;
+		let t :ECGf2mPoint = self.mul_op(bn1,false);
+		let r :ECGf2mPoint = self.mul_op(bn2,true);
+		retv = t.add_op_res(&r)?;
 
-	pub fn mul_op(&self, bn :&BigInt) -> ECGf2mPoint {
+		Ok(retv)
+	}
+
+	pub fn add_op_res(&self, other :&ECGf2mPoint) -> Result<ECGf2mPoint,Box<dyn Error>> {
+		if !self.group.eq_op(&other.group) {
+			ecsimple_new_error!{BnGf2mPointError,"self and other not same group"}
+		}
+		let mut retv :ECGf2mPoint = ECGf2mPoint::default();
+		let (x0,y0,x1,y1,mut x2,mut y2) : (BnGf2m,BnGf2m,BnGf2m,BnGf2m,BnGf2m,BnGf2m);
+		let (mut s, t) : (BnGf2m,BnGf2m);
+		if self.infinity || other.infinity {
+			if self.infinity {
+				retv = other.clone();
+			} else {
+				retv = self.clone();
+			}			
+			return Ok(retv);
+		} 
+		x0 = self.x.clone();
+		y0 = self.y.clone();
+		x1 = other.x.clone();
+		y1 = other.y.clone();
+		ecsimple_log_trace!("x0 0x{:X} y0 0x{:X}",x0,y0);
+		ecsimple_log_trace!("x1 0x{:X} y1 0x{:X}",x1,y1);
+		if !x0.eq_op(&x1) {
+			t = &x0 + &x1;
+			ecsimple_log_trace!("t 0x{:X} = x0 0x{:X} + x1 0x{:X}",t,x0,x1);
+			s = &y0 + &y1;
+			ecsimple_log_trace!("s 0x{:X} = y0 0x{:X} + y1 0x{:X}",s,y0,y1);
+			s = self.field_div(&s,&t)?;
+			x2 = self.field_sqr(&s);
+			x2 = &x2 + &self.group.a;
+			ecsimple_log_trace!("x2 0x{:X} group->a 0x{:X}",x2,self.group.a);
+			x2 = &x2 + &s;
+			ecsimple_log_trace!("x2 0x{:X} s 0x{:X}",x2,s);
+			x2 = &x2 + &t;
+			ecsimple_log_trace!("x2 0x{:X} t 0x{:X}",x2,t);
+		} else {
+			if y0.eq_op(&y1) || x1.is_one() {
+				retv = ECGf2mPoint::default();
+				retv.infinity = true;
+				return Ok(retv);
+			}
+			s = self.field_div(&y1,&x1)?;
+			s = &s + &x1;
+			ecsimple_log_trace!("s 0x{:X} x1 0x{:X}", s, x1);
+			x2 = self.field_sqr(&s);
+			x2 = &x2 + &s;
+			ecsimple_log_trace!("x2 0x{:X} s 0x{:X}",x2,s);
+			x2 = &x2 + &self.group.a;
+			ecsimple_log_trace!("x2 0x{:X} group->a 0x{:X}",x2,self.group.a);
+		}
+
+		y2 = &x1 + &x2;
+		ecsimple_log_trace!("y2 0x{:X} = x1 0x{:X} + x2 0x{:X}",y2,x1,x2);
+		y2 = self.field_mul(&y2,&s);
+		y2 = &y2 + &x2;
+		ecsimple_log_trace!("y2 0x{:X} x2 0x{:X}",y2,x2);
+		y2 = &y2 + &y1;
+		ecsimple_log_trace!("y2 0x{:X} y1 0x{:X}",y2,y1);
+
+		retv.x = x2.clone();
+		retv.y = y2.clone();
+		retv.z = BnGf2m::one();
+		retv.infinity = false;
+
+		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X}", retv.x,retv.y,retv.z);
+
+		Ok(retv)
+	}
+
+
+	pub fn mul_op(&self, bn :&BigInt,copyxy :bool) -> ECGf2mPoint {
 		let zv :BigInt = zero();
-		let p :ECGf2mPoint = ECGf2mPoint::new(&self.group);
+		let  p :ECGf2mPoint ;
 		let mut s :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut r :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut tmp :ECGf2mPoint;
@@ -249,6 +326,13 @@ impl ECGf2mPoint {
 		if self.infinity {
 			return self.clone();
 		}
+
+		if copyxy {
+			p = self.clone();
+		} else {
+			p = ECGf2mPoint::new(&self.group);
+		}
+
 
 		if self.group.order == zv || self.group.cofactor == zv {
 			panic!("group order 0x{:x} or group cofactor 0x{:x}", self.group.order, self.group.cofactor);
@@ -356,7 +440,7 @@ impl ECGf2mPoint {
 
 	pub fn check_on_curve(&self) -> Result<(),Box<dyn Error>> {
 		let mut lh :BnGf2m;
-		let mut y2 :BnGf2m;
+		let y2 :BnGf2m;
 		if self.infinity {
 			return Ok(());
 		}
