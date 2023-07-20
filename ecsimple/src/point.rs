@@ -516,8 +516,121 @@ impl ECPrimePoint {
 
 	#[allow(unused_variables)]
 	pub fn mul_op(&self, bn :&BigInt,copyxy :bool ) -> ECPrimePoint {
-		let bn = self.clone();
-		return bn;
+		let zv :BigInt = zero();
+		let  p :ECPrimePoint ;
+		let mut s :ECPrimePoint = ECPrimePoint::new(&self.group);
+		let mut r :ECPrimePoint = ECPrimePoint::new(&self.group);
+		let mut tmp :ECPrimePoint;
+		let cardinal :BigInt;
+		let mut lamda :BigInt = zero();
+		let mut k :BigInt = zero();
+		if bn <= &zv {
+			r = self.clone();
+			r.infinity = true;
+			return r;
+		}
+
+		if self.infinity {
+			return self.clone();
+		}
+
+		if copyxy {
+			p = self.clone();
+		} else {
+			p = ECPrimePoint::new(&self.group);
+		}
+
+
+		if self.group.order == zv || self.group.cofactor == zv {
+			panic!("group order 0x{:x} or group cofactor 0x{:x}", self.group.order, self.group.cofactor);
+		}
+
+		cardinal = &self.group.order * &self.group.cofactor;
+
+		//ecsimple_log_trace!("field 0x{:X} p 0x{:X}", self.group.p,self.group.p);
+		//ecsimple_log_trace!("group->a 0x{:X} a 0x{:X}", self.group.a,self.group.a);
+		//ecsimple_log_trace!("group->b 0x{:X} b 0x{:X}", self.group.b,self.group.b);
+		//ecsimple_log_trace!("cardinality 0x{:X} order 0x{:X} cofactor 0x{:X}",cardinal,self.group.order,self.group.cofactor);
+		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
+		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
+
+		k = bn.clone();
+		lamda = &k + &cardinal;
+		ecsimple_log_trace!("scalar 0x{:X} k 0x{:X}",k,k);
+		ecsimple_log_trace!("lambda 0x{:X}",lamda);
+
+		k = &lamda + &cardinal;
+		//ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X}",k,cardinal);
+
+		let cardbits = get_max_bits(&cardinal);
+		let mut i :i32;
+		let mut pbit :i32 = 1;
+		let mut kbit :i32;
+		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
+
+		s.x = zero();
+		s.y = zero();
+		s.z = zero();
+
+		r.x = zero();
+		r.y = zero();
+		r.z = zero();
+
+		//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		//ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+
+
+		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+		//self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
+
+		i = (cardbits - 1) as i32;
+		while i >= 0 {
+			kbit = get_bit_set(&k,i) ^ pbit;
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
+
+			if kbit != 0 {
+				tmp = s.clone();
+				s = r.clone();
+				r = tmp.clone();
+			}
+
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+
+			//self.ladder_step(&mut r,&mut s,&p);
+
+			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+			ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+			pbit ^= kbit;
+			i -= 1;
+		}
+
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+
+		if pbit != 0 {
+			tmp = s.clone();
+			s = r.clone();
+			r = tmp.clone();
+		}
+
+		
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+
+		//self.ladder_post(&mut r,&mut s,&p);
+		//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
+		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+		return r;
 	}
 
 }
