@@ -2,8 +2,9 @@
 use crate::bngf2m::*;
 use crate::group::*;
 use crate::utils::*;
+use crate::mont::*;
 use num_bigint::{BigInt};
-use num_traits::{zero};
+use num_traits::{zero,one};
 use std::error::Error;
 
 use crate::logger::*;
@@ -468,6 +469,7 @@ pub struct ECPrimePoint {
 	y :BigInt,
 	z :BigInt,
 	pub group :ECGroupPrime,
+	montv : MontNum,
 	infinity : bool,
 }
 
@@ -479,11 +481,14 @@ impl std::fmt::Display for ECPrimePoint {
 
 impl std::default::Default for ECPrimePoint {
 	fn default() -> Self {
+		let ov :BigInt = one();
+		let tv :BigInt = ov.clone() + ov.clone() + ov.clone();
 		ECPrimePoint {
 			x : zero(),
 			y : zero(),
 			z : zero(),
 			group : ECGroupPrime::default(),
+			montv : MontNum::new(&tv).unwrap(),
 			infinity : true,
 		}
 	}
@@ -495,23 +500,31 @@ impl ECPrimePoint {
 	}
 
 	pub fn new(grp :&ECGroupPrime) -> ECPrimePoint {
-		ECPrimePoint {
+		let mut pnt :ECPrimePoint = ECPrimePoint {
 			x : grp.generator.x.clone(),
 			y : grp.generator.y.clone(),
 			z : grp.generator.z.clone(),
 			group : grp.clone(),
+			montv : MontNum::new(&grp.order).unwrap(),
 			infinity : false,
-		}
+		};
+		pnt.x = pnt.montv.mont_to(&pnt.x);
+		pnt.y = pnt.montv.mont_to(&pnt.y);
+		return pnt;
 	}
 
 	pub fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
-		Self {
+		let mut pnt : ECPrimePoint = Self {
 			x :x.clone(),
 			y :y.clone(),
 			z :z.clone(),
 			group :grp.clone(),
+			montv : MontNum::new(&grp.order).unwrap(),
 			infinity : false,
-		}
+		};
+		pnt.x = pnt.montv.mont_to(&pnt.x);
+		pnt.y = pnt.montv.mont_to(&pnt.y);
+		return pnt;
 	}
 
 	pub fn field_mul(&self,a :&BigInt, b :&BigInt) -> BigInt {
