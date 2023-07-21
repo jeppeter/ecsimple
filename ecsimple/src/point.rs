@@ -500,6 +500,7 @@ impl ECPrimePoint {
 	}
 
 	pub fn new(grp :&ECGroupPrime) -> ECPrimePoint {
+		let ov :BigInt = one();
 		let mut pnt :ECPrimePoint = ECPrimePoint {
 			x : grp.generator.x.clone(),
 			y : grp.generator.y.clone(),
@@ -510,10 +511,12 @@ impl ECPrimePoint {
 		};
 		pnt.x = pnt.montv.mont_to(&pnt.x);
 		pnt.y = pnt.montv.mont_to(&pnt.y);
+		pnt.z = pnt.montv.mont_to(&ov);
 		return pnt;
 	}
 
 	pub fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
+		let ov :BigInt = one();
 		let mut pnt : ECPrimePoint = Self {
 			x :x.clone(),
 			y :y.clone(),
@@ -524,6 +527,7 @@ impl ECPrimePoint {
 		};
 		pnt.x = pnt.montv.mont_to(&pnt.x);
 		pnt.y = pnt.montv.mont_to(&pnt.y);
+		pnt.z = pnt.montv.mont_to(&ov);
 		return pnt;
 	}
 
