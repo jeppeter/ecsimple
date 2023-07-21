@@ -95,3 +95,4 @@ pub const EC_CODE_UNCOMPRESSED : u8 = 0x4;
 pub const EC_CODE_HYBRID :u8 = 0x6;
 
 pub (crate) const MAX_ITERATIONS :i32 = 50;
+pub (crate) const MONT_BIT_SIZE : i64 = 0x40;

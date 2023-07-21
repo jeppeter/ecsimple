@@ -30,6 +30,7 @@ use std::io::Write;
 
 use ecsimple::bngf2m::*;
 use ecsimple::randop::*;
+use ecsimple::mont::*;
 
 use num_bigint::{BigInt};
 use num_traits::{one};
@@ -334,7 +335,42 @@ fn bnquadmod_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	Ok(())
 }
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler)]
+fn montto_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and pnum"}
+	}
+	let aval :BigInt = parse_to_bigint(&sarr[0])?;
+	let pval :BigInt = parse_to_bigint(&sarr[1])?;
+
+	let montv :MontNum = MontNum::new(&pval)?;
+	let cval :BigInt = montv.mont_to(&aval);
+	println!("BN_to_montgomery(0x{:X},0x{:X},0x{:X})",cval,aval,pval);
+	Ok(())
+}
+
+fn montfrom_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum and pnum"}
+	}
+	let aval :BigInt = parse_to_bigint(&sarr[0])?;
+	let pval :BigInt = parse_to_bigint(&sarr[1])?;
+
+	let montv :MontNum = MontNum::new(&pval)?;
+	let cval :BigInt = montv.mont_from(&aval);
+	println!("BN_from_montgomery(0x{:X},0x{:X},0x{:X})",cval,aval,pval);
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -375,6 +411,12 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : 3
 		},
 		"bnquadmod<bnquadmod_handler>##anum pnum to get BN_GF2m_mod_solve_quad for BnGf2m##" : {
+			"$" : 2
+		},
+		"montto<montto_handler>##anum pnum to mimic for BN_to_montgomery(r,a,p)##" : {
+			"$" : 2
+		},
+		"montfrom<montfrom_handler>##anum pnum to mimic for BN_from_montgomery(r,a,p)##" : {
 			"$" : 2
 		}
 	}
