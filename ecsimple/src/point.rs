@@ -8,7 +8,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 use crate::logger::*;
-use crate::randop::{ecsimple_rand_bits};
+use crate::randop::{ecsimple_rand_bits,ecsimple_rand_range};
 
 
 ecsimple_error_class!{BnGf2mPointError}
@@ -526,11 +526,15 @@ impl ECPrimePoint {
 	}
 
 	pub fn field_sqr(&self,a :&BigInt) -> BigInt {
-		return self.montv.mont_mul(a,a);
+		let retv :BigInt = self.montv.mont_mul(a,a);
+		ecsimple_log_trace!("r 0x{:X} = a 0x{:X} ^ 2 % group.field 0x{:X}",retv,a,self.group.p);
+		return retv;
 	}
 
 	pub fn field_mul(&self,a :&BigInt,b :&BigInt) -> BigInt {
-		return self.montv.mont_mul(a,b);
+		let retv :BigInt = self.montv.mont_mul(a,b);
+		ecsimple_log_trace!("r 0x{:X} = a 0x{:X} * b 0x{:X} % m 0x{:X}",retv,a,b,self.group.p);
+		return retv;
 	}
 
 	fn sub_mod_quick(&self,a :&BigInt,b :&BigInt,m :&BigInt) -> BigInt {
@@ -555,9 +559,18 @@ impl ECPrimePoint {
 		return retv % m;
 	}
 
+	fn field_encode(&self,a :&BigInt) -> BigInt {
+		let retv :BigInt;
+		retv = self.montv.mont_to(a);
+		ecsimple_log_trace!("r 0x{:X} = BN_to_montgomery(a 0x{:X},field 0x{:X});",retv,a,self.group.p);
+		return retv;
+	}
+
 
 	#[allow(unused_variables)]
 	fn ladder_pre(&self, r :&mut ECPrimePoint, s :&mut ECPrimePoint, p :&ECPrimePoint, bits :u64) {
+		let mut rndv :BigInt;
+		let zv :BigInt = zero();
 		ecsimple_log_trace!("ladder_pre");
 		/*
 		* t1 s.z
@@ -583,6 +596,54 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("r.z 0x{:X} = add_mod_quick(group.b 0x{:X},r.z,group.field 0x{:X})",r.z,self.group.b,self.group.p);
 		r.z = self.lshift_mod_quick(&r.z,2,&self.group.p);
 		ecsimple_log_trace!("r.z 0x{:X} = lshift_mod_quick(r.z,2,group.field 0x{:X})", r.z,self.group.p);
+		ecsimple_log_trace!("before rnd points");
+		loop {
+			rndv = ecsimple_rand_bits(get_max_bits(&self.group.p) as u64,-1,0);
+			if rndv != zv {
+				r.y = rndv.clone();
+				break;
+			}	
+		}
+		
+		loop {
+			rndv = ecsimple_rand_bits(get_max_bits(&self.group.p) as u64,-1,0);
+			if rndv != zv {
+				s.z = rndv.clone();
+				break;
+			}
+		}
+		ecsimple_log_trace!("after rnd points");
+
+		r.y = self.field_encode(&r.y);
+		s.z = self.field_encode(&s.z);
+
+		r.z = self.field_mul(&r.z,&r.y);
+		r.x = self.field_mul(&r.x,&r.y);
+
+		s.x = self.field_mul(&p.x,&s.z);
+
+
+
+		return;
+	}
+
+	fn ladder_step(&self, r :&mut ECPrimePoint, s :&mut ECPrimePoint, p :&ECPrimePoint) {
+		r.y = self.field_mul(&(r.z),&(s.x));
+		s.x = self.field_mul(&(r.x),&(s.z));
+		s.y = self.field_sqr(&(r.z));
+
+		r.z = self.field_sqr(&(r.x));
+		s.z = &r.y + &s.x;
+		s.z = self.field_sqr(&(s.z));
+		s.x = self.field_mul(&(r.y),&(s.x));
+		r.y = self.field_mul(&(s.z),&(p.x));
+		s.x = &s.x + &r.y;
+
+		r.y = self.field_sqr(&(r.z));
+		r.z = self.field_mul(&(r.z),&(s.y));
+		s.y = self.field_sqr(&(s.y));
+		s.y = self.field_mul(&(s.y),&(self.group.b));
+		r.x = &r.y + &s.y;
 
 		return;
 	}
@@ -678,7 +739,7 @@ impl ECPrimePoint {
 			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
-			//self.ladder_step(&mut r,&mut s,&p);
+			self.ladder_step(&mut r,&mut s,&p);
 
 			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);

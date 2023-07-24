@@ -126,7 +126,7 @@ pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 
 	let mut retv : Vec<u8> = EC_SIMPLE_RANDOP.write().unwrap().get_bytes(rnbytes).unwrap();
 	let mut bn :BigInt = BigInt::from_bytes_be(Sign::Plus,&retv);
-	ecsimple_log_trace!("random number 0x{:X}", bn);
+	ecsimple_log_trace!("random number 0x{:X} bits 0x{:x} top {} bottom {}", bn,bits,top,bottom);
 	ecsimple_log_trace!("bit [0x{:x}] mask [0x{:x}]", bit, mask);
 	if top >= 0 {
 		if top > 0 {
