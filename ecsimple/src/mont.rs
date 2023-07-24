@@ -54,6 +54,7 @@ impl MontNum {
 
 	pub fn mont_to(&self,bn :&BigInt) -> BigInt {
 		let retv :BigInt = (bn * &self.RR * &self.INVR) % &self.N;
+		ecsimple_log_trace!("r 0x{:X} = (a 0x{:X} * b 0x{:X}) % mont->N 0x{:X}",retv,bn,self.R,self.N);
 		return retv;
 	}
 
@@ -66,19 +67,14 @@ impl MontNum {
 		let an :BigInt = a % &self.N;
 		let bn :BigInt = b % &self.N;
 		let prod :BigInt = &an * &bn;
-		ecsimple_log_trace!("prod 0x{:X}", prod);
 		let tm :BigInt = &prod & &self.MASK;
-		ecsimple_log_trace!("tm 0x{:X}", tm);
 		let tf :BigInt = &tm * &self.FACTOR;
-		ecsimple_log_trace!("tf 0x{:X}",tf);
 		let temp :BigInt = &tf & &self.MASK;
-		ecsimple_log_trace!("temp 0x{:X}", temp);
 		let mut reduced :BigInt = (&prod + &temp * &self.N) >> self.BL;
-		ecsimple_log_trace!("reduced 0x{:X}", reduced);
 		if reduced >= self.N {
 			reduced = &reduced - &self.N;
 		}
-		ecsimple_log_trace!("reduced 0x{:X}", reduced);
+		ecsimple_log_trace!("r 0x{:X} = (a 0x{:X} * b 0x{:X}) % mont->N 0x{:X}",reduced,a,b,self.N);
 		return reduced;
 	}
 }

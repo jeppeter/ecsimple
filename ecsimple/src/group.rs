@@ -9,6 +9,7 @@ use crate::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use crate::consts::*;
+use crate::mont::*;
 use std::error::Error;
 use hex::FromHex;
 
@@ -335,23 +336,25 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	let mut v8 :Vec<u8>;
 	let mut p :BigInt;
 	let ov :BigInt = one();
+	let mut montv :MontNum;
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD2088").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.a = p.clone();
+	bngrp.a = montv.mont_to(&p);
 	v8 = Vec::from_hex("659EF8BA043916EEDE8911702B22").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.b = p.clone();
+	bngrp.b = montv.mont_to(&p);
 	v8 = Vec::from_hex("09487239995A5EE76B55F9C2F098").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.x = p.clone();
+	bngrp.generator.x = montv.mont_to(&p);
 	v8 = Vec::from_hex("A89CE5AF8724C0A23E0E0FF77500").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.y = p.clone();
-	bngrp.generator.z = ov.clone();
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E7628DFAC6561C5").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
