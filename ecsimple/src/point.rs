@@ -553,6 +553,12 @@ impl ECPrimePoint {
 		return r % m;
 	}
 
+	fn lshift1_mod_quick(&self,a :&BigInt,m :&BigInt) -> BigInt {
+		let r :BigInt;
+		r = a << 1;
+		return r % m;
+	}
+
 	fn add_mod_quick(&self,a :&BigInt,b :&BigInt, m :&BigInt) -> BigInt {
 		let retv :BigInt;
 		retv = a + b;
@@ -628,23 +634,65 @@ impl ECPrimePoint {
 	}
 
 	fn ladder_step(&self, r :&mut ECPrimePoint, s :&mut ECPrimePoint, p :&ECPrimePoint) {
-		r.y = self.field_mul(&(r.z),&(s.x));
-		s.x = self.field_mul(&(r.x),&(s.z));
-		s.y = self.field_sqr(&(r.z));
+		let mut t0 :BigInt;
+		let mut t1 :BigInt;
+		let mut t2 :BigInt;
+		let mut t3 :BigInt;
+		let mut t4 :BigInt;
+		let mut t5 :BigInt;
+		let mut t6 :BigInt;
 
-		r.z = self.field_sqr(&(r.x));
-		s.z = &r.y + &s.x;
-		s.z = self.field_sqr(&(s.z));
-		s.x = self.field_mul(&(r.y),&(s.x));
-		r.y = self.field_mul(&(s.z),&(p.x));
-		s.x = &s.x + &r.y;
-
-		r.y = self.field_sqr(&(r.z));
-		r.z = self.field_mul(&(r.z),&(s.y));
-		s.y = self.field_sqr(&(s.y));
-		s.y = self.field_mul(&(s.y),&(self.group.b));
-		r.x = &r.y + &s.y;
-
+		t6 = self.field_mul(&r.x,&s.x);
+		t0 = self.field_mul(&r.z,&s.z);
+		t4 = self.field_mul(&r.x,&s.z);
+		t3 = self.field_mul(&r.z,&s.x);
+		t5 = self.field_mul(&self.group.a,&t0);
+		t5 = self.add_mod_quick(&t6,&t5,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t5 0x{:X},t6 0x{:X},t5,group.field 0x{:X})",t5,t6,self.group.p);
+		t6 = self.add_mod_quick(&t3,&t4,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t6 0x{:X},t3 0x{:X},t4 0x{:X},group.field 0x{:X})",t6,t3,t4,self.group.p);
+		t5 = self.field_mul(&t6,&t5);
+		t0 = self.field_sqr(&t0);
+		t2 = self.lshift_mod_quick(&self.group.b,2,&self.group.p);
+		ecsimple_log_trace!("mod_lshift_quick(t2 0x{:X},group.b 0x{:X},2,group.field 0x{:X})",t2,self.group.b,self.group.p);
+		t0 = self.field_mul(&t2,&t0);
+		t5 = self.lshift1_mod_quick(&t5 , &self.group.p);
+		ecsimple_log_trace!("lshift1_mod_quick(t5 0x{:X},t5,group.field 0x{:X})",t5,self.group.p);
+		t3 = self.sub_mod_quick(&t4,&t3,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(t3 0x{:X},t4 0x{:X},t3,group.field 0x{:X})",t3,t4,self.group.p);
+		s.z = self.field_sqr(&t3);
+		t4 = self.field_mul(&s.z,&p.x);
+		t0 = self.add_mod_quick(&t0,&t5,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t0 0x{:X},t0,t5 0x{:X},group.field 0x{:X})",t0,t5,self.group.p);
+		s.x = self.sub_mod_quick(&t0,&t4,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(s.x 0x{:X},t0 0x{:X},t4 0x{:X},group.field 0x{:X})",s.x,t0,t4,self.group.p);
+		t4 = self.field_sqr(&r.x);
+		t5 = self.field_sqr(&r.z);
+		t6 = self.field_mul(&t5,&self.group.a);
+		ecsimple_log_trace!("new t6 0x{:X}",t6);
+		t1 = self.add_mod_quick(&r.x,&r.z,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t1 0x{:X},r.x 0x{:X},r.z 0x{:X},group.field 0x{:X})",t1,r.x,r.z,self.group.p);
+		t1 = self.field_sqr(&t1);
+		t1 = self.sub_mod_quick(&t1,&t4,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(t1 0x{:X},t1,t4 0x{:X},group.field 0x{:X})",t1,t4,self.group.p);
+		t1 = self.sub_mod_quick(&t1,&t5,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(t1 0x{:X},t1,t5 0x{:X},group.field 0x{:X})",t1,t5,self.group.p);
+		t3 = self.sub_mod_quick(&t4,&t6,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(t3 0x{:X},t4 0x{:X},t6 0x{:X},group.field 0x{:X})",t3,t4,t6,self.group.p);
+		t3 = self.field_sqr(&t3);
+		t0 = self.field_mul(&t5,&t1);
+		t0 = self.field_mul(&t2,&t0);
+		r.x = self.sub_mod_quick(&t3,&t0,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(r.x 0x{:X},t3 0x{:X},t0 0x{:X},group.field 0x{:X})",r.x,t3,t0,self.group.p);
+		t3 = self.add_mod_quick(&t4,&t6,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t3 0x{:X},t4 0x{:X},t6 0x{:X},group.field 0x{:X})",t3,t4,t6,self.group.p);
+		t4 = self.field_sqr(&t5);
+		t4 = self.field_mul(&t4,&t2);
+		t1 = self.field_mul(&t1,&t3);
+		t1 = self.lshift1_mod_quick(&t1,&self.group.p);
+		ecsimple_log_trace!("lshift1_mod_quick(t1 0x{:X},t1,group.field 0x{:X})",t1,self.group.p);
+		r.z = self.add_mod_quick(&t4,&t1,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(r.z 0x{:X},t4 0x{:X},t1 0x{:X},group.field 0x{:X})",r.z,t4,t1,self.group.p);
 		return;
 	}
 

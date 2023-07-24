@@ -387,7 +387,26 @@ fn montmul_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl
 	Ok(())
 }
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler)]
+fn montpow_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 3 {
+		extargs_new_error!{BinError,"need anum enum and pnum"}
+	}
+	let aval :BigInt = parse_to_bigint(&sarr[0])?;
+	let eval :BigInt = parse_to_bigint(&sarr[1])?;
+	let pval :BigInt = parse_to_bigint(&sarr[2])?;
+
+	let montv :MontNum = MontNum::new(&pval)?;
+	let cval :BigInt = montv.mont_pow(&aval,&eval);
+	println!("BN_mod_exp_mont(0x{:X},0x{:X},0x{:X},0x{:X})",cval,aval,eval,pval);
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -438,6 +457,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		},
         "montmul<montmul_handler>##anum bnum pnum for BN_mod_mul_montgomery##" : {
             "$" : 3
+        },
+        "montpow<montpow_handler>##anum enum pnum for BN_mod_exp_mont##" : {
+        	"$" : 3
         }
 	}
 	"#;

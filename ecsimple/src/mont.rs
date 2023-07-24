@@ -18,11 +18,12 @@ pub struct MontNum {
 	BL :i64,
 	FACTOR : BigInt,
 	MASK :BigInt,
+	CONVERTDONE :BigInt,
 }
 
 impl std::fmt::Display for MontNum {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f,"N 0x{:X} R 0x{:X} INVR 0x{:X} RR 0x{:X} BL 0x{:X} FACTOR 0x{:X} MASK 0x{:X}", self.N,self.R,self.INVR,self.RR,self.BL,self.FACTOR,self.MASK)
+		write!(f,"N 0x{:X} R 0x{:X} INVR 0x{:X} RR 0x{:X} BL 0x{:X} FACTOR 0x{:X} MASK 0x{:X} CONVERTDONE 0x{:X}", self.N,self.R,self.INVR,self.RR,self.BL,self.FACTOR,self.MASK,self.CONVERTDONE)
 	}
 }
 
@@ -41,6 +42,7 @@ impl MontNum {
 		let invr :BigInt = r.modpow(&(modv.clone() - &tv), &modv);
 		let factor :BigInt = (&r * &invr - &ov) / modv;
 		let mask :BigInt = &r - &ov;
+		let convertdone :BigInt = (&mask + &ov) % modv.clone();
 		Ok(MontNum {
 			R : r,
 			RR : rr,
@@ -49,6 +51,7 @@ impl MontNum {
 			N : modv.clone(),
 			FACTOR : factor,
 			MASK : mask,
+			CONVERTDONE : convertdone,
 		})
 	}
 
@@ -74,5 +77,23 @@ impl MontNum {
 			reduced = &reduced - &self.N;
 		}
 		return reduced;
+	}
+
+	pub fn mont_pow(&self,a :&BigInt,e :&BigInt) -> BigInt {
+		let ov :BigInt = one();
+		let zv :BigInt = zero();
+		let mut nv :BigInt = e.clone();
+		let mut bx :BigInt = a % &self.N;
+		let mut retv :BigInt = self.CONVERTDONE.clone();
+		while nv != zv {
+			if (&nv & &ov) != zv {
+				retv = self.mont_mul(&retv,&bx);
+				ecsimple_log_trace!("nv 0x{:X} retv 0x{:X} = * bx 0x{:X}",nv,retv,bx);
+			}
+			bx = self.mont_mul(&bx,&bx);
+			ecsimple_log_trace!("bx 0x{:X}",bx);
+			nv = &nv >> 1;
+		}
+		return retv;
 	}
 }
