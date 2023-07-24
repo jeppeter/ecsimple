@@ -82,8 +82,10 @@ impl MontNum {
 	pub fn mont_pow(&self,a :&BigInt,e :&BigInt) -> BigInt {
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
-		let mut nv :BigInt = e.clone();
-		let mut bx :BigInt = a % &self.N;
+		let an :BigInt = self.mont_to(a);
+		let en :BigInt = self.mont_to(e);
+		let mut nv :BigInt = en.clone();
+		let mut bx :BigInt = an % &self.N;
 		let mut retv :BigInt = self.CONVERTDONE.clone();
 		while nv != zv {
 			if (&nv & &ov) != zv {
