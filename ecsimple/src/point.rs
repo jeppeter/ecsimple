@@ -697,7 +697,6 @@ impl ECPrimePoint {
 
 	fn field_decode(&self,a :&BigInt) -> BigInt {
 		let retv :BigInt =  self.montv.mont_from(a);
-		ecsimple_log_trace!("BN_from_montgomery(r 0x{:X},a 0x{:X},group.field 0x{:X})",retv,a,self.group.p);
 		return retv;
 	}
 
@@ -765,13 +764,14 @@ impl ECPrimePoint {
 		return;
 	}
 
-	fn get_affine_coordinates(&self,r :&mut ECPrimePoint)  {
+	fn get_affine_coordinates(&self,r :&ECPrimePoint) -> ECPrimePoint  {
 		ecsimple_log_trace!("point.X 0x{:X} point.Y 0x{:X} point.Z 0x{:X}",r.x,r.y,r.z);
-		r.z = self.montv.mont_from(&r.z);
-		r.x = self.montv.mont_from(&r.x);
-		r.y = self.montv.mont_from(&r.y);
-		ecsimple_log_trace!("x 0x{:X} y 0x{:X}",r.x,r.y);
-		return;
+		let (x,y,z) : (BigInt,BigInt,BigInt);
+		z = self.montv.mont_from(&r.z);
+		x = self.montv.mont_from(&r.x);
+		y = self.montv.mont_from(&r.y);
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X}",x,y,z);
+		return r.clone();
 	}
 
 
@@ -893,7 +893,7 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
 
-		self.get_affine_coordinates(&mut r);
+		r = self.get_affine_coordinates(&r);
 
 		return r;
 	}
