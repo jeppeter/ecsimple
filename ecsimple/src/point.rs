@@ -849,13 +849,13 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("lambda 0x{:X}",lamda);
 
 		k = &lamda + &cardinal;
-		//ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X}",k,cardinal);
+		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X}",k,cardinal);
 
 		let cardbits = get_max_bits(&cardinal);
 		let mut i :i32;
 		let mut pbit :i32 = 1;
 		let mut kbit :i32;
-		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
+		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
 
 		s.x = zero();
 		s.y = zero();
