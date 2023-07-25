@@ -4,6 +4,7 @@ use crate::*;
 use crate::consts::*;
 use crate::utils::*;
 use std::error::Error;
+#[allow(unused_imports)]
 use crate::logger::*;
 
 ecsimple_error_class!{MontError}
@@ -62,6 +63,7 @@ impl MontNum {
 
 	pub fn mont_from(&self,bn :&BigInt) -> BigInt {
 		let retv :BigInt = (bn * &self.INVR) % &self.N;
+		ecsimple_log_trace!("BN_from_montgomery(r 0x{:X},a 0x{:X},group.field 0x{:X})",retv,bn,self.N);
 		return retv;
 	}
 
@@ -80,22 +82,6 @@ impl MontNum {
 	}
 
 	pub fn mont_pow(&self,a :&BigInt,e :&BigInt) -> BigInt {
-		let ov :BigInt = one();
-		let zv :BigInt = zero();
-		let an :BigInt = self.mont_to(a);
-		let en :BigInt = self.mont_to(e);
-		let mut nv :BigInt = en.clone();
-		let mut bx :BigInt = an % &self.N;
-		let mut retv :BigInt = self.CONVERTDONE.clone();
-		while nv != zv {
-			if (&nv & &ov) != zv {
-				retv = self.mont_mul(&retv,&bx);
-				ecsimple_log_trace!("nv 0x{:X} retv 0x{:X} = * bx 0x{:X}",nv,retv,bx);
-			}
-			bx = self.mont_mul(&bx,&bx);
-			ecsimple_log_trace!("bx 0x{:X}",bx);
-			nv = &nv >> 1;
-		}
-		return retv;
+		return a.modpow(e,&self.N);
 	}
 }

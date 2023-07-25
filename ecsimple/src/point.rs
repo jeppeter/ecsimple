@@ -8,6 +8,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 use crate::logger::*;
+#[allow(unused_imports)]
 use crate::randop::{ecsimple_rand_bits,ecsimple_rand_range};
 
 
@@ -500,7 +501,6 @@ impl ECPrimePoint {
 	}
 
 	pub fn new(grp :&ECGroupPrime) -> ECPrimePoint {
-		let ov :BigInt = one();
 		let pnt :ECPrimePoint = ECPrimePoint {
 			x : grp.generator.x.clone(),
 			y : grp.generator.y.clone(),
@@ -513,7 +513,6 @@ impl ECPrimePoint {
 	}
 
 	pub fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
-		let ov :BigInt = one();
 		let pnt : ECPrimePoint = Self {
 			x :x.clone(),
 			y :y.clone(),
@@ -636,7 +635,7 @@ impl ECPrimePoint {
 	fn ladder_step(&self, r :&mut ECPrimePoint, s :&mut ECPrimePoint, p :&ECPrimePoint) {
 		let mut t0 :BigInt;
 		let mut t1 :BigInt;
-		let mut t2 :BigInt;
+		let t2 :BigInt;
 		let mut t3 :BigInt;
 		let mut t4 :BigInt;
 		let mut t5 :BigInt;
@@ -693,6 +692,85 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("lshift1_mod_quick(t1 0x{:X},t1,group.field 0x{:X})",t1,self.group.p);
 		r.z = self.add_mod_quick(&t4,&t1,&self.group.p);
 		ecsimple_log_trace!("add_mod_quick(r.z 0x{:X},t4 0x{:X},t1 0x{:X},group.field 0x{:X})",r.z,t4,t1,self.group.p);
+		return;
+	}
+
+	fn field_decode(&self,a :&BigInt) -> BigInt {
+		let retv :BigInt =  self.montv.mont_from(a);
+		ecsimple_log_trace!("BN_from_montgomery(r 0x{:X},a 0x{:X},group.field 0x{:X})",retv,a,self.group.p);
+		return retv;
+	}
+
+	fn field_inv(&self,a :&BigInt) -> BigInt {
+		let ov :BigInt = one();
+
+		let e :BigInt = &self.group.p - &ov - &ov;
+		let retv:BigInt =  self.montv.mont_pow(a,&e);
+		ecsimple_log_trace!("field_inv(r 0x{:X},a 0x{:X},e 0x{:X},group.field 0x{:X})",retv,a,e,self.group.p);
+		return retv;
+	}
+
+	fn set_to_one(&self) -> BigInt {
+		let retv :BigInt = self.group.generator.z.clone();
+		ecsimple_log_trace!("set_to_one(r 0x{:X})",retv);
+		return retv;
+	}
+
+	fn ladder_post(&self, r :&mut ECPrimePoint, s :&mut ECPrimePoint, p :&ECPrimePoint) {
+		let mut t0 :BigInt;
+		let mut t1 :BigInt;
+		let t2 :BigInt;
+		let t3 :BigInt;
+		let t4 :BigInt;
+		let t5 :BigInt;
+		let mut t6 :BigInt;
+
+		t4 = self.lshift1_mod_quick(&p.y,&self.group.p);
+		ecsimple_log_trace!("lshift1_mod_quick(t4 0x{:X},p.y 0x{:X},group.field 0x{:X})",t4,p.y,self.group.p);
+		t6 = self.field_mul(&r.x,&t4);
+		t6 = self.field_mul(&s.z,&t6);
+		t5 = self.field_mul(&r.z,&t6);
+
+		t1 = self.lshift1_mod_quick(&self.group.b,&self.group.p);
+		ecsimple_log_trace!("lshift1_mod_quick(t1 0x{:X},group.b 0x{:X},group.field 0x{:X})",t1,self.group.b,self.group.p);
+		t1 = self.field_mul(&s.z,&t1);
+		t3 = self.field_sqr(&r.z);
+		t2 = self.field_mul(&t3,&t1);
+		t6 = self.field_mul(&r.z,&self.group.a);
+		t1 = self.field_mul(&p.x,&r.x);
+		t1 = self.add_mod_quick(&t1,&t6,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t1 0x{:X},t1,t6 0x{:X},group.field 0x{:X})",t1,t6,self.group.p);
+		t1 = self.field_mul(&s.z,&t1);
+		t0 = self.field_mul(&p.x,&r.z);
+		t6 = self.add_mod_quick(&r.x,&t0,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t6 0x{:X},r.x 0x{:X},t0 0x{:X},group.field 0x{:X})",t6,r.x,t0,self.group.p);
+		t6 = self.field_mul(&t6,&t1);
+		t6 = self.add_mod_quick(&t6,&t2,&self.group.p);
+		ecsimple_log_trace!("add_mod_quick(t6 0x{:X},t6,t2 0x{:X},group.field 0x{:X})",t6,t2,self.group.p);
+		t0 = self.sub_mod_quick(&t0,&r.x,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(t0 0x{:X},t0,r.x 0x{:X},group.field 0x{:X})",t0,r.x,self.group.p);
+		t0 = self.field_sqr(&t0);
+		t0 = self.field_mul(&t0,&s.x);
+		t0 = self.sub_mod_quick(&t6,&t0,&self.group.p);
+		ecsimple_log_trace!("sub_mod_quick(t0 0x{:X},t6 0x{:X},t0,group.field 0x{:X})",t0,t6,self.group.p);
+		t1 = self.field_mul(&s.z,&t4);
+		t1 = self.field_mul(&t3,&t1);
+		t1 = self.field_decode(&t1);
+		t1 = self.field_inv(&t1);
+		t1 = self.field_encode(&t1);
+		r.x = self.field_mul(&t5,&t1);
+		r.y = self.field_mul(&t0,&t1);
+		r.z = self.set_to_one();
+
+		return;
+	}
+
+	fn get_affine_coordinates(&self,r :&mut ECPrimePoint)  {
+		ecsimple_log_trace!("point.X 0x{:X} point.Y 0x{:X} point.Z 0x{:X}",r.x,r.y,r.z);
+		r.z = self.montv.mont_from(&r.z);
+		r.x = self.montv.mont_from(&r.x);
+		r.y = self.montv.mont_from(&r.y);
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X}",r.x,r.y);
 		return;
 	}
 
@@ -810,10 +888,12 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 
-		//self.ladder_post(&mut r,&mut s,&p);
+		self.ladder_post(&mut r,&mut s,&p);
 		//ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 		//ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+
+		self.get_affine_coordinates(&mut r);
 
 		return r;
 	}

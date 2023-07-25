@@ -336,7 +336,8 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	let mut v8 :Vec<u8>;
 	let mut p :BigInt;
 	let ov :BigInt = one();
-	let mut montv :MontNum;
+	//let mut montv :MontNum;
+	let montv :MontNum;
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
