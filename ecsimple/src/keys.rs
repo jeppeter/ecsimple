@@ -346,8 +346,16 @@ impl ECPrimePrivateKey {
 
 	#[allow(unused_variables)]
 	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
-		let zv :BigInt = zero();
-		let retv :ECSignature = ECSignature::new(&zv,&zv);
+		let bn :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);
+		ecsimple_log_trace!("begin sign");
+		let mut s :BigInt = zero();
+		let mut r :BigInt = zero();
+		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
+		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
+
+		let realhash = format_bigint_as_order(&bn,&self.base.group.order);
+		ecsimple_log_trace!("dgst 0x{:X}", realhash);
+		let retv :ECSignature = ECSignature::new(&r,&s);
 		Ok(retv)
 	}
 }
