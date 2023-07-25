@@ -9,7 +9,7 @@ use std::error::Error;
 
 use crate::logger::*;
 #[allow(unused_imports)]
-use crate::randop::{ecsimple_rand_bits,ecsimple_rand_range};
+use crate::randop::*;
 
 
 ecsimple_error_class!{BnGf2mPointError}
@@ -524,6 +524,33 @@ impl ECPrimePoint {
 		return pnt;
 	}
 
+
+	pub fn set_x(&mut self, x :&BigInt) {
+		self.x = x.clone();
+	}
+
+	pub fn set_y(&mut self, y :&BigInt) {
+		self.y = y.clone();
+	}
+
+	pub fn set_z(&mut self, z :&BigInt) {
+		self.z = z.clone();
+	}
+
+
+	pub fn x(&self) -> BigInt {
+		return self.x.clone();
+	}
+
+	pub fn y(&self) -> BigInt {
+		return self.y.clone();
+	}
+
+	pub fn z(&self) -> BigInt {
+		return self.z.clone();
+	}
+
+
 	pub fn field_sqr(&self,a :&BigInt) -> BigInt {
 		let retv :BigInt = self.montv.mont_mul(a,a);
 		ecsimple_log_trace!("r 0x{:X} = a 0x{:X} ^ 2 % group.field 0x{:X}",retv,a,self.group.p);
@@ -603,7 +630,7 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("r.z 0x{:X} = lshift_mod_quick(r.z,2,group.field 0x{:X})", r.z,self.group.p);
 		ecsimple_log_trace!("before rnd points");
 		loop {
-			rndv = ecsimple_rand_bits(get_max_bits(&self.group.p) as u64,-1,0);
+			rndv = ecsimple_private_rand_range(&self.group.p);
 			if rndv != zv {
 				r.y = rndv.clone();
 				break;
@@ -611,7 +638,7 @@ impl ECPrimePoint {
 		}
 		
 		loop {
-			rndv = ecsimple_rand_bits(get_max_bits(&self.group.p) as u64,-1,0);
+			rndv = ecsimple_private_rand_range(&self.group.p);
 			if rndv != zv {
 				s.z = rndv.clone();
 				break;
@@ -800,6 +827,7 @@ impl ECPrimePoint {
 		} else {
 			p = ECPrimePoint::new(&self.group);
 		}
+		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X}",p.x,p.y,p.z);
 
 
 		if self.group.order == zv || self.group.cofactor == zv {

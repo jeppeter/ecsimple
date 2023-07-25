@@ -163,6 +163,15 @@ pub fn ecsimple_rand_range(rangeval :&BigInt) -> BigInt {
 			ecsimple_log_trace!("result 0x{:X} range 0x{:X}", bv,rangeval);
 			return bv;	
 		}		
+	}	
+}
+
+pub fn ecsimple_private_rand_range(rangeval :&BigInt) -> BigInt {
+	loop {
+		let buflen = get_max_bits(rangeval);
+		let retv :BigInt = ecsimple_rand_bits(buflen as u64,-1,0);
+		if retv < rangeval.clone() {
+			return retv;
+		}
 	}
-	
 }
