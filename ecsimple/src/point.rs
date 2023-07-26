@@ -567,7 +567,7 @@ impl ECPrimePoint {
 		return retv;
 	}
 
-	fn sub_mod_quick(&self,a :&BigInt,b :&BigInt,m :&BigInt) -> BigInt {
+	pub fn sub_mod_quick(&self,a :&BigInt,b :&BigInt,m :&BigInt) -> BigInt {
 		let mut r :BigInt;
 		let zv :BigInt = zero();
 		r = a - b;
@@ -577,19 +577,19 @@ impl ECPrimePoint {
 		return r;
 	}
 
-	fn lshift_mod_quick(&self,a :&BigInt,sn :i64, m :&BigInt) -> BigInt {
+	pub (crate) fn lshift_mod_quick(&self,a :&BigInt,sn :i64, m :&BigInt) -> BigInt {
 		let r :BigInt;
 		r = a << sn;
 		return r % m;
 	}
 
-	fn lshift1_mod_quick(&self,a :&BigInt,m :&BigInt) -> BigInt {
+	pub (crate) fn lshift1_mod_quick(&self,a :&BigInt,m :&BigInt) -> BigInt {
 		let r :BigInt;
 		r = a << 1;
 		return r % m;
 	}
 
-	fn add_mod_quick(&self,a :&BigInt,b :&BigInt, m :&BigInt) -> BigInt {
+	pub (crate) fn add_mod_quick(&self,a :&BigInt,b :&BigInt, m :&BigInt) -> BigInt {
 		let retv :BigInt;
 		retv = a + b;
 		return retv % m;
@@ -726,7 +726,7 @@ impl ECPrimePoint {
 		return;
 	}
 
-	fn field_decode(&self,a :&BigInt) -> BigInt {
+	pub (crate) fn field_decode(&self,a :&BigInt) -> BigInt {
 		let retv :BigInt =  self.montv.mont_from(a);
 		return retv;
 	}
@@ -933,6 +933,10 @@ impl ECPrimePoint {
 		r = self.get_affine_coordinates(&r);
 
 		return r;
+	}
+
+	pub fn check_on_curve(&self) -> Result<(),Box<dyn Error>> {
+		Ok(())
 	}
 
 }

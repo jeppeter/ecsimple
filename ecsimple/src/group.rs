@@ -3,6 +3,8 @@
 
 use crate::utils::*;
 use crate::bngf2m::*;
+use crate::logger::*;
+use crate::*;
 use num_bigint::{BigInt,Sign};
 use num_traits::{zero,one};
 use crate::*;
@@ -216,6 +218,7 @@ pub struct ECGroupPrime {
 	pub curvename :String,
 	pub a :BigInt,
 	pub b :BigInt,
+	pub is_minus3 :bool,
 }
 
 impl std::fmt::Display for ECGroupPrime {
@@ -235,6 +238,7 @@ impl std::default::Default for ECGroupPrime {
 			curvename : "".to_string(),
 			a : zero(),
 			b : zero(),
+			is_minus3 : false,
 		}
 	}
 }
@@ -335,6 +339,8 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	let mut bngrp :ECGroupPrime = ECGroupPrime::default();
 	let mut v8 :Vec<u8>;
 	let mut p :BigInt;
+	let mut tmpp :BigInt;
+	let mut tmpa :BigInt;
 	let ov :BigInt = one();
 	//let mut montv :MontNum;
 	let montv :MontNum;
@@ -343,8 +349,10 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
 	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD2088").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
 	bngrp.a = montv.mont_to(&p);
 	v8 = Vec::from_hex("659EF8BA043916EEDE8911702B22").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -362,6 +370,16 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	bngrp.order = p.clone();
 	bngrp.cofactor = ov.clone();
 	bngrp.curvename = SECP112r1_NAME.to_string();
+
+	ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		ecsimple_log_trace!("{} is_minus3 true",SECP112r1_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		ecsimple_log_trace!("{} is_minus3 false",SECP112r1_NAME);
+	}
+
 
 	retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
 

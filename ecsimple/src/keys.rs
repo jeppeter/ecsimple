@@ -304,43 +304,43 @@ impl ECPrimePubKey {
 
 	fn uncompress_x_point(grp :&ECGroupPrime, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
-		let xb :BigInt = x_.clone();
 		let field :BigInt = b.group.p.clone();
-		let x :BigInt = &xb % &field;
+		let x :BigInt = nmod(&x_,&grp.p);
+		ecsimple_log_trace!("nnmod(x 0x{:X},x_ 0x{:X},group.field 0x{:X})", x,x_,grp.p);
 		let y :BigInt;
-
-		let z :BnGf2m;
-		let z0 :u8;
-		ecsimple_log_trace!("x 0x{:X} = x_ 0x{:X} % group->field 0x{:X}",x,x_,field);
-		if x.is_zero() {
-			let yn = &b.group.b.mul_op(&b.group.b).mod_op(&field);
-			y = yn.to_bigint();
-			ecsimple_log_trace!("y 0x{:X} = group->b 0x{:X} ^ 2 % field 0x{:X}",y,b.group.b,field);
+		let mut tmp2 :BigInt;
+		let mut tmp1 :BigInt;
+		tmp2 = (x_.clone() * x_.clone()) % &field;
+		ecsimple_log_trace!("mod_sqr(tmp2 0x{:X},x_ 0x{:X},group.field 0x{:X})",tmp2,x_,grp.p);
+		tmp1 = (tmp2.clone() * x_.clone()) % &field;
+		ecsimple_log_trace!("mod_mul(tmp1 0x{:X},tmp2 0x{:X},x_ 0x{:X},group.field 0x{:X})",tmp1,tmp2,x_,field);
+		if grp.is_minus3 {
+			tmp2 = b.lshift1_mod_quick(&x,&field);
+			ecsimple_log_trace!("lshift1_mod_quick(tmp2 0x{:X},x 0x{:X},group.field 0x{:X})",tmp2,x,field);
+			tmp2 = b.add_mod_quick(&tmp2,&x,&field);
+			ecsimple_log_trace!("add_mod_quick(tmp2 0x{:X},tmp2,x 0x{:X},group.field 0x{:X})",tmp2,x,field);
+			tmp1 = b.sub_mod_quick(&tmp1,&tmp2,&field);
+			ecsimple_log_trace!("sub_mod_quick(tmp1 0x{:X},tmp1,tmp2 0x{:X},group.field 0x{:X})",tmp1,tmp2,field);
 		} else {
-			tmp = b.field_sqr(&x);
-			tmp = b.field_div(&b.group.b,&tmp)?;
-			tmp = tmp.add_op(&b.group.a);
-			ecsimple_log_trace!("tmp 0x{:X} group->a 0x{:X}",tmp,b.group.a);
-			tmp = tmp.add_op(&x);
-			ecsimple_log_trace!("tmp 0x{:X} x 0x{:X}",tmp,x);
-			z = tmp.sqrt_quad_op(&field)?;
-			ecsimple_log_trace!("z 0x{:X}",z);
-			if z.is_odd() {
-				z0 = 1;
-			} else {
-				z0 = 0;
-			}
-			yn = b.field_mul(&x,&z);
-			if z0 != ybit {
-				yn = yn.add_op(&x);
-				ecsimple_log_trace!("y 0x{:X} x 0x{:X}",yn,x);
-			}
-			y = yn.to_bigint();
+			tmp2 = b.field_decode(&grp.a);
+			tmp2 = (tmp2.clone() * x.clone()) % &field;
+			ecsimple_log_trace!("mod_mul(tmp2 0x{:X},tmp2,x 0x{:X},group.field 0x{:X})",tmp2,x,field);
+
+			tmp1 = b.add_mod_quick(&tmp1,&tmp2,&field);
+			ecsimple_log_trace!("add_mod_quick(tmp1 0x{:X},tmp1,tmp2 0x{:X},group.field 0x{:X})",tmp1,tmp2,field);
 		}
+
+		tmp2 = b.field_decode(&grp.b);
+		tmp1 = b.add_mod_quick(&tmp1,&tmp2,&field);
+		ecsimple_log_trace!("add_mod_quick(tmp1 0x{:X},tmp1,tmp2 0x{:X},group.field 0x{:X})",tmp1,tmp2,field);
+
+		y = mod_sqrt(&tmp1,&field)?;
+		ecsimple_log_trace!("mod_sqr(y 0x{:X},tmp1 0x{:X},group.field 0x{:X})",y,tmp1,field);
+
 		Ok(y)
 	}
 
-	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+	pub fn from_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
 		let mut pubk :ECPrimePoint = b.clone();
 		if dercode.len() < 1 {
