@@ -805,6 +805,11 @@ impl ECPrimePoint {
 		return retv;
 	}
 
+	pub fn set_affine_coordinates(&self,x :&BigInt,y :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
+		let mut retv :ECPrimePoint = ECPrimePoint::new(&self.group);
+		Ok(retv)
+	}
+
 
 	#[allow(unused_variables)]
 	pub fn mul_op(&self, bn :&BigInt,copyxy :bool ) -> ECPrimePoint {

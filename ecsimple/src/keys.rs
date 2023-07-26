@@ -307,9 +307,11 @@ impl ECPrimePubKey {
 		let field :BigInt = b.group.p.clone();
 		let x :BigInt = nmod(&x_,&grp.p);
 		ecsimple_log_trace!("nnmod(x 0x{:X},x_ 0x{:X},group.field 0x{:X})", x,x_,grp.p);
-		let y :BigInt;
+		let mut y :BigInt;
 		let mut tmp2 :BigInt;
 		let mut tmp1 :BigInt;
+		let mut kbit :i32;
+		let zv :BigInt = zero();
 		tmp2 = (x_.clone() * x_.clone()) % &field;
 		ecsimple_log_trace!("mod_sqr(tmp2 0x{:X},x_ 0x{:X},group.field 0x{:X})",tmp2,x_,grp.p);
 		tmp1 = (tmp2.clone() * x_.clone()) % &field;
@@ -336,6 +338,18 @@ impl ECPrimePubKey {
 
 		y = mod_sqrt(&tmp1,&field)?;
 		ecsimple_log_trace!("mod_sqr(y 0x{:X},tmp1 0x{:X},group.field 0x{:X})",y,tmp1,field);
+		kbit = get_bit_set(&y,0);
+		if kbit != ybit as i32 {
+			if y == zv {
+				ecsimple_new_error!{EcKeyError,"not valid y 0x{:X}",y}
+			}
+			y = &field - &y;
+			ecsimple_log_trace!("usub(y 0x{:X},group.field 0x{:X},y)",y,field);
+		}
+		kbit = get_bit_set(&y,0);
+		if kbit != ybit as i32 {
+			ecsimple_new_error!{EcKeyError,"y 0x{:X} not valid for bit",y}
+		}
 
 		Ok(y)
 	}
