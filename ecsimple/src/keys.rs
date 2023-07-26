@@ -302,15 +302,98 @@ impl ECPrimePubKey {
 	}
 
 
-	#[allow(unused_variables)]
-	pub fn from_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+	fn uncompress_x_point(grp :&ECGroupPrime, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
-		Ok(Self {
-			base : b.clone(),
-			pubk : b.clone(),
-		})
+		let xb :BigInt = x_.clone();
+		let field :BigInt = b.group.p.clone();
+		let x :BigInt = &xb % &field;
+		let y :BigInt;
+
+		let z :BnGf2m;
+		let z0 :u8;
+		ecsimple_log_trace!("x 0x{:X} = x_ 0x{:X} % group->field 0x{:X}",x,x_,field);
+		if x.is_zero() {
+			let yn = &b.group.b.mul_op(&b.group.b).mod_op(&field);
+			y = yn.to_bigint();
+			ecsimple_log_trace!("y 0x{:X} = group->b 0x{:X} ^ 2 % field 0x{:X}",y,b.group.b,field);
+		} else {
+			tmp = b.field_sqr(&x);
+			tmp = b.field_div(&b.group.b,&tmp)?;
+			tmp = tmp.add_op(&b.group.a);
+			ecsimple_log_trace!("tmp 0x{:X} group->a 0x{:X}",tmp,b.group.a);
+			tmp = tmp.add_op(&x);
+			ecsimple_log_trace!("tmp 0x{:X} x 0x{:X}",tmp,x);
+			z = tmp.sqrt_quad_op(&field)?;
+			ecsimple_log_trace!("z 0x{:X}",z);
+			if z.is_odd() {
+				z0 = 1;
+			} else {
+				z0 = 0;
+			}
+			yn = b.field_mul(&x,&z);
+			if z0 != ybit {
+				yn = yn.add_op(&x);
+				ecsimple_log_trace!("y 0x{:X} x 0x{:X}",yn,x);
+			}
+			y = yn.to_bigint();
+		}
+		Ok(y)
 	}
 
+	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let b = ECPrimePoint::new(grp);
+		let mut pubk :ECPrimePoint = b.clone();
+		if dercode.len() < 1 {
+			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
+		}
+		let code :u8 = dercode[0] & EC_CODE_MASK;
+		let ybit :u8 = dercode[0] & EC_CODE_YBIT;
+		let degr :i64 = grp.degree();
+		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let x :BigInt;
+		let y :BigInt;
+
+		if code == EC_CODE_UNCOMPRESSED {
+			if dercode.len() < (1 + 2 *fieldsize) {
+				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}
+			}
+			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			ecsimple_log_trace!("x 0x{:X}",x);
+			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
+		} else if code == EC_CODE_COMPRESSED {
+			if dercode.len() < (1 + fieldsize) {
+				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} ", dercode.len(), fieldsize}	
+			}
+			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			ecsimple_log_trace!("x 0x{:X}",x);
+			y = ECPrimePubKey::uncompress_x_point(grp,&x,ybit)?;
+		} else if code == EC_CODE_HYBRID {
+			if dercode.len() < (1 + 2 * fieldsize) {
+				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}	
+			}
+			x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
+			ecsimple_log_trace!("x 0x{:X}",x);
+			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
+			ecsimple_log_trace!("y 0x{:X}",y);
+			if x == zero() && ybit != 0{
+				ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
+			} else {
+			}
+		} else {
+			ecsimple_new_error!{EcKeyError,"unsupport code [0x{:X}] for public point", dercode[0]}
+		}
+		pubk.set_x(&x);
+		pubk.set_y(&y);
+		let bval :BigInt = one();
+		pubk.set_z(&bval);
+		let _ = pubk.check_on_curve()?;
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X}", x,y);
+
+		Ok(Self {
+			base : b.clone(),
+			pubk : pubk.clone(),
+		})
+	}
 	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		Ok(true)
