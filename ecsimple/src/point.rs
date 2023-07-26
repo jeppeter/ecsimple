@@ -361,6 +361,10 @@ impl ECGf2mPoint {
 		let mut i :i32;
 		let mut pbit :i32 = 1;
 		let mut kbit :i32;
+		kbit = get_bit_set(&lamda,cardbits as i32);
+		if kbit != 0 {
+			(lamda,k) = (k,lamda);
+		}
 		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
 
 		s.x = BnGf2m::zero();
@@ -791,14 +795,14 @@ impl ECPrimePoint {
 		return;
 	}
 
-	fn get_affine_coordinates(&self,r :&ECPrimePoint) -> ECPrimePoint  {
+	pub fn get_affine_coordinates(&self,r :&ECPrimePoint) -> ECPrimePoint  {
 		ecsimple_log_trace!("point.X 0x{:X} point.Y 0x{:X} point.Z 0x{:X}",r.x,r.y,r.z);
-		let (x,y,z) : (BigInt,BigInt,BigInt);
-		z = self.montv.mont_from(&r.z);
-		x = self.montv.mont_from(&r.x);
-		y = self.montv.mont_from(&r.y);
-		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X}",x,y,z);
-		return r.clone();
+		let mut retv :ECPrimePoint = r.clone();
+		retv.z = self.montv.mont_from(&r.z);
+		retv.x = self.montv.mont_from(&r.x);
+		retv.y = self.montv.mont_from(&r.y);
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X}",retv.x,retv.y,retv.z);
+		return retv;
 	}
 
 
@@ -848,13 +852,18 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("scalar 0x{:X} k 0x{:X}",k,k);
 		ecsimple_log_trace!("lambda 0x{:X}",lamda);
 
+		let mut kbit :i32;
 		k = &lamda + &cardinal;
 		ecsimple_log_trace!("k 0x{:X} cardinality 0x{:X}",k,cardinal);
 
 		let cardbits = get_max_bits(&cardinal);
+		kbit = get_bit_set(&lamda,cardbits as i32);
+		if kbit != 0 {
+			(lamda,k) = (k,lamda);
+		}
+
 		let mut i :i32;
 		let mut pbit :i32 = 1;
-		let mut kbit :i32;
 		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
 
 		s.x = zero();

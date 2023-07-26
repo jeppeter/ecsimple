@@ -345,10 +345,12 @@ impl ECPrimePrivateKey {
 
 	#[allow(non_snake_case)]
 	fn setup_sign(&self) -> Result<(BigInt,BigInt),Box<dyn Error>> {
-		let mut r :BigInt = zero();
+		let mut r :BigInt;
 		let mut tmppnt :ECPrimePoint = self.base.clone();
 		let zv :BigInt = zero();
 		let ov :BigInt = one();
+		let mut X :BigInt;
+		let e :BigInt;
 		tmppnt.set_x(&zv);
 		tmppnt.set_y(&zv);
 		tmppnt.set_z(&zv);
@@ -356,7 +358,7 @@ impl ECPrimePrivateKey {
 		let blen = get_max_bits(&self.base.group.order);
 		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X}, tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
-		k = ov << blen;
+		k = ov.clone() << blen;
 		loop {
 			ecsimple_log_trace!("k 0x{:X}",k);
 			k = ecsimple_rand_range(&self.base.group.order);
@@ -365,8 +367,19 @@ impl ECPrimePrivateKey {
 			ecsimple_log_trace!("group.x 0x{:X} group.y 0x{:X} group.z 0x{:X}", self.base.group.generator.x,self.base.group.generator.y,self.base.group.generator.z);
 			tmppnt = self.base.mul_op(&k,false);
 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
-			break;
+			X = tmppnt.x();
+			r = nmod(&X,&self.base.group.order);
+			ecsimple_log_trace!("X 0x{:X} r 0x{:X}", X,r);
+			if r != zv {
+				break;
+			}
 		}
+
+		e = self.base.group.order.clone() - ov.clone() - ov.clone();
+		ecsimple_log_trace!("k 0x{:X}",k);
+		k = k.modpow(&e,&self.base.group.order);
+		ecsimple_log_trace!("k 0x{:X} r 0x{:X}",k,r);
+
 
 		Ok((k,r))
 	}
@@ -378,13 +391,19 @@ impl ECPrimePrivateKey {
 		ecsimple_log_trace!("begin sign");
 		let mut s :BigInt = zero();
 		let mut r :BigInt = zero();
-		let k :BigInt;
+		let kinv :BigInt;
 		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
 
 		let realhash = format_bigint_as_order(&bn,&self.base.group.order);
 		ecsimple_log_trace!("dgst 0x{:X}", realhash);
-		(k,r) = self.setup_sign()?;
+		(kinv,r) = self.setup_sign()?;
+		ecsimple_log_trace!("ckinv 0x{:X} r 0x{:X}",kinv,r);
+		s = (&realhash + &self.privnum * &r) % &self.base.group.order;
+		ecsimple_log_trace!("s 0x{:X}",s);
+		s = (&s * &kinv) % &self.base.group.order;
+		ecsimple_log_trace!("s 0x{:X}",s);
+		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		let retv :ECSignature = ECSignature::new(&r,&s);
 		Ok(retv)
 	}

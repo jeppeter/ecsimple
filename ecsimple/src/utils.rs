@@ -43,3 +43,13 @@ pub (crate) fn get_bit_set(bn :&BigInt,i :i32) -> i32 {
 	}
 	return retv;
 }
+
+pub (crate) fn nmod(a :&BigInt,m :&BigInt) -> BigInt {
+	let mut retv :BigInt;
+	let zv :BigInt = zero();
+	retv = a % m;
+	if retv < zv {
+		retv += m;
+	}
+	return retv;
+}
