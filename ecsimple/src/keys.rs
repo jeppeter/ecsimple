@@ -408,6 +408,17 @@ impl ECPrimePubKey {
 	}
 	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+		let u2 :BigInt;
+		let order :BigInt = self.base.group.order.clone();
+		ecsimple_log_trace!("sig.r 0x{:X} sig.s 0x{:X}", sig.r,sig.s);
+		if sig.r == zero() || sig.s == zero() {
+			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
+		}
+	
+		let e :BigInt = &order - 2;
+		u2 = sig.s.modpow(&e,&order);
+		ecsimple_log_trace!("s 0x{:X} u2 0x{:X}",sig.s,u2);
+
 		Ok(true)
 	}
 
