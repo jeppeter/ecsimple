@@ -399,7 +399,7 @@ impl ECPrimePubKey {
 		let z :BigInt = one();
 		let pubk = pubk.set_affine_coordinates(&x,&y,&z)?;
 		let _ = pubk.check_on_curve()?;
-		ecsimple_log_trace!("point.x 0x{:X} point.y 0x{:X} point.z 0x{:X}",pubk.x(),pubk.y(),pubk.z());
+		ecsimple_log_trace!("pubkey.x 0x{:X} pubkey.y 0x{:X} pubkey.z 0x{:X}",pubk.x(),pubk.y(),pubk.z());
 
 		Ok(Self {
 			base : b.clone(),
