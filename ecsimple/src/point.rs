@@ -805,10 +805,29 @@ impl ECPrimePoint {
 		return retv;
 	}
 
-	pub fn set_affine_coordinates(&self,x :&BigInt,y :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
+	pub fn set_affine_coordinates(&self,x :&BigInt,y :&BigInt,z :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let mut retv :ECPrimePoint = ECPrimePoint::new(&self.group);
+		ecsimple_log_trace!("field 0x{:X}",self.group.p);
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X}",x,y,z);
+		retv.x = nmod(x,&self.group.p);
+		ecsimple_log_trace!("point->X 0x{:X} = x 0x{:X} % group->field 0x{:X}", retv.x,x,self.group.p);
+		retv.x = self.field_encode(&retv.x);
+		ecsimple_log_trace!("field_encode point->X 0x{:X}",retv.x);
+
+		retv.y = nmod(y,&self.group.p);
+		ecsimple_log_trace!("point->Y 0x{:X} = y 0x{:X} % group->field 0x{:X}", retv.y,y,self.group.p);
+		retv.y = self.field_encode(&retv.y);
+		ecsimple_log_trace!("field_encode point->Y 0x{:X}",retv.y);
+
+		retv.z = nmod(z,&self.group.p);
+		ecsimple_log_trace!("point->Z 0x{:X} = z 0x{:X} % group->field 0x{:X}",retv.z,z,self.group.p);
+		retv.z = self.set_to_one();
+		ecsimple_log_trace!("field_set_to_one point->Z 0x{:X}",retv.z);
+
 		Ok(retv)
 	}
+
+
 
 
 	#[allow(unused_variables)]

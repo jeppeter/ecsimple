@@ -396,12 +396,10 @@ impl ECPrimePubKey {
 		} else {
 			ecsimple_new_error!{EcKeyError,"unsupport code [0x{:X}] for public point", dercode[0]}
 		}
-		pubk.set_x(&x);
-		pubk.set_y(&y);
-		let bval :BigInt = one();
-		pubk.set_z(&bval);
+		let z :BigInt = one();
+		let pubk = pubk.set_affine_coordinates(&x,&y,&z)?;
 		let _ = pubk.check_on_curve()?;
-		ecsimple_log_trace!("x 0x{:X} y 0x{:X}", x,y);
+		ecsimple_log_trace!("point.x 0x{:X} point.y 0x{:X} point.z 0x{:X}",pubk.x(),pubk.y(),pubk.z());
 
 		Ok(Self {
 			base : b.clone(),
