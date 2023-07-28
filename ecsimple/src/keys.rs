@@ -408,7 +408,7 @@ impl ECPrimePubKey {
 	}
 	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
-		let u2 :BigInt;
+		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
 		ecsimple_log_trace!("sig.r 0x{:X} sig.s 0x{:X}", sig.r,sig.s);
 		if sig.r == zero() || sig.s == zero() {
@@ -418,6 +418,18 @@ impl ECPrimePubKey {
 		let e :BigInt = &order - 2;
 		u2 = sig.s.modpow(&e,&order);
 		ecsimple_log_trace!("s 0x{:X} u2 0x{:X}",sig.s,u2);
+		let m :BigInt = format_bigint_as_order(hashnum,&order);
+		ecsimple_log_trace!("dgst 0x{:X}",m);
+
+		let mut u1 :BigInt = (&u2 * &m) % &order;
+		ecsimple_log_trace!("u1 0x{:X} = m 0x{:X} * tmp 0x{:X} % order 0x{:X}", u1,m,u2,order);
+
+		u2 = &(&u2 * &sig.r) % &order;
+		ecsimple_log_trace!("u2 0x{:X} sig->r 0x{:X} order 0x{:X}", u2,sig.r,order);
+		let vfypnt :ECPrimePoint;
+
+		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
+
 
 		Ok(true)
 	}

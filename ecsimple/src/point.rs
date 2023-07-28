@@ -1009,4 +1009,10 @@ impl ECPrimePoint {
 		Ok(())
 	}
 
+	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
+		let retv :ECPrimePoint = self.clone();
+
+		Ok(retv)
+	}
+
 }
