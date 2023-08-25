@@ -22,6 +22,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 use super::loglib::*;
+use super::*;
 #[allow(unused_imports)]
 use super::fileop::*;
 use super::strop::*;
@@ -33,7 +34,7 @@ use ecsimple::randop::*;
 use ecsimple::mont::*;
 
 use num_bigint::{BigInt};
-use num_traits::{one};
+use num_traits::{one,zero};
 //use std::ops::{Add,Mul,Div,Rem};
 
 
@@ -405,8 +406,52 @@ fn montpow_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl
 	Ok(())
 }
 
+fn wnaf_value(bn :&BigInt,shifti :i32) -> Result<Vec<u8>,Box<dyn Error>> {
+	let mut retv :Vec<u8> = Vec::new();
+	let zv :BigInt = zero();
+	let mut cv :BigInt = bn.clone();
+	let ov :BigInt = one();
+	let tv :BigInt = ov.clone() + ov.clone();
+	let maskv :BigInt = ov.clone() << shifti;
+	while cv > zv {
+		let dv :u8;
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler)]
+		if (cv.clone() % tv.clone()) != zv {
+			let dc = cv.clone() % maskv.clone();
+			let (_,vv) = dc.to_bytes_le();
+			dv = vv[0];
+		} else {
+			dv = 0;
+		}
+		retv.push(dv);
+		cv = cv.clone() >> 1;		
+	}
+	Ok(retv)
+}
+
+fn wnaf_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum enum and pnum"}
+	}
+	let aval :BigInt = parse_to_bigint(&sarr[0])?;
+	let shifval :BigInt = parse_to_bigint(&sarr[1])?;
+	let (_,bvecs) = shifval.to_bytes_le();
+	let mut idx :usize = 0;
+	let mut shifti :i32 = 0;
+	while idx < bvecs.len() && idx < 4 {
+		shifti |= (bvecs[idx] as i32) << (idx * 8);
+		idx += 1;
+	}
+	let retv :Vec<u8> = wnaf_value(&aval,shifti)?;
+	debug_buffer_trace!(retv.as_ptr(),retv.len(),"to 0x{:X} 0x{:x} wnaf",aval,shifti);
+	Ok(())
+}
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler,wnaf_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -460,6 +505,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
         },
         "montpow<montpow_handler>##anum enum pnum for BN_mod_exp_mont##" : {
         	"$" : 3
+        },
+        "wnaf<wnaf_handler>##anum wnum for bn_compute_wNAF##" : {
+        	"$" : 2
         }
 	}
 	"#;
