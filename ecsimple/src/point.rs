@@ -1015,23 +1015,31 @@ impl ECPrimePoint {
 		Ok((curnaf,wnaf_bit))
 	}
 
+	fn dbl(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+		Ok(self.clone())
+	}
+
 
 	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let retv :ECPrimePoint = self.clone();
 
-		let mut val_sub :Vec<ECPrimePoint> = Vec::new();
+		let mut val_sub :Vec<Vec<ECPrimePoint>> = Vec::new();
 		let mut wnaf_bits :Vec<i32> = Vec::new();
 		let mut wnaf :Vec<Vec<u8>> = Vec::new();
 		let mut curnaf :Vec<u8>;
 		let mut bits :i32;
+		let mut cv :Vec<ECPrimePoint>;
 		(curnaf,bits) = self.get_wnaf_variable(bn2)?;
 		wnaf_bits.push(bits);
 		wnaf.push(curnaf.clone());
 		ecsimple_log_trace!("scalars[0] 0x{:X}",bn2);
 		ecsimple_debug_buffer_trace!(curnaf.as_ptr(),curnaf.len(),"wNAF wsize[0] 0x{:x}",wnaf_bits[0]);
 		wnaf.push(curnaf.clone());
-		val_sub.push(self.clone());
-		ecsimple_log_trace!("val_sub[0][0].X 0x{:X} val_sub[0][0].Y 0x{:X} val_sub[0][0].Z 0x{:X}",val_sub[0].x(),val_sub[0].y(),val_sub[0].z());
+		cv = Vec::new();
+		cv.push(self.clone());
+		val_sub.push(cv.clone());
+		ecsimple_log_trace!("val_sub[0][0].X 0x{:X} val_sub[0][0].Y 0x{:X} val_sub[0][0].Z 0x{:X}",val_sub[0][0].x(),val_sub[0][0].y(),val_sub[0][0].z());
+
 
 
 		(curnaf,bits) = self.get_wnaf_variable(bn1)?;
@@ -1039,8 +1047,39 @@ impl ECPrimePoint {
 		ecsimple_log_trace!("scalar 0x{:X}",bn1);
 		ecsimple_debug_buffer_trace!(curnaf.as_ptr(),curnaf.len(),"wNAF wsize[1] 0x{:x}",wnaf_bits[1]);
 		wnaf.push(curnaf.clone());
-		val_sub.push(ECPrimePoint::new(&self.group));
-		ecsimple_log_trace!("val_sub[1][0].X 0x{:X} val_sub[1][0].Y 0x{:X} val_sub[1][0].Z 0x{:X}",val_sub[1].x(),val_sub[1].y(),val_sub[1].z());
+		cv = Vec::new();
+		cv.push(ECPrimePoint::new(&self.group));
+		val_sub.push(cv.clone());
+		ecsimple_log_trace!("val_sub[1][0].X 0x{:X} val_sub[1][0].Y 0x{:X} val_sub[1][0].Z 0x{:X}",val_sub[1][0].x(),val_sub[1][0].y(),val_sub[1][0].z());
+
+		let mut idx :usize = 0;
+		let mut tmp :ECPrimePoint;
+		while idx < wnaf_bits.len() {
+			while val_sub[idx].len() < wnaf_bits.len() {
+				val_sub[idx].push(ECPrimePoint::new(&self.group));
+			}
+			idx += 1;
+		}
+
+		idx = 0;
+		while idx < val_sub.len() {
+			if idx == 0 {
+				ecsimple_log_trace!("[{}] copy points [{}]",idx,idx);
+				val_sub[idx][0] = self.clone();
+			} else {
+				ecsimple_log_trace!("[{}] copy generator",idx);
+				val_sub[idx][0] = ECPrimePoint::new(&self.group);
+			}
+
+			ecsimple_log_trace!("val_sub[{}][0].X 0x{:X} val_sub[{}][0].Y 0x{:X} val_sub[{}][0].Z 0x{:X}",idx,val_sub[idx][0].x(),idx,val_sub[idx][0].y(),idx,val_sub[idx][0].z());
+
+			if wnaf[idx].len() > 1 {
+				tmp = val_sub[idx][0].dbl()?;
+			}
+
+			idx += 1;
+		}
+
 
 		Ok(retv)
 	}
