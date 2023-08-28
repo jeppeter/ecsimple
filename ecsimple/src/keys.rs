@@ -406,6 +406,8 @@ impl ECPrimePubKey {
 			pubk : pubk.clone(),
 		})
 	}
+
+
 	#[allow(unused_variables)]
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
