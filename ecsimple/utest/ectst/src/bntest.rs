@@ -406,25 +406,75 @@ fn montpow_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl
 	Ok(())
 }
 
-fn wnaf_value(bn :&BigInt,shifti :i32) -> Result<Vec<u8>,Box<dyn Error>> {
+pub (crate) fn get_max_bits(bn :&BigInt) -> i64 {
+	let mut retv : i64 = -1;
+	let mut idx : i64 = 0 ;
+	let zv :BigInt = zero();
+	let mut cv : BigInt = one();
+
+	while bn >= &cv {
+		if (&cv & bn) != zv {
+			/*for expand*/
+			retv = idx + 1;
+		}
+		idx += 1;
+		cv <<= 1;
+	}
+	return retv;
+}
+
+
+fn wnaf_value(bn :&BigInt,w :i32) -> Result<Vec<u8>,Box<dyn Error>> {
 	let mut retv :Vec<u8> = Vec::new();
 	let zv :BigInt = zero();
-	let mut cv :BigInt = bn.clone();
 	let ov :BigInt = one();
-	let tv :BigInt = ov.clone() + ov.clone();
-	let maskv :BigInt = ov.clone() << shifti;
-	while cv > zv {
-		let dv :u8;
-
-		if (cv.clone() % tv.clone()) != zv {
-			let dc = cv.clone() % maskv.clone();
-			let (_,vv) = dc.to_bytes_le();
-			dv = vv[0];
-		} else {
-			dv = 0;
+	if w < 1 || w > 7 {
+		panic!("w {} < 1 || > 7",w);
+	}
+	let bit :BigInt = ov.clone() << w;
+	let next_bit :BigInt = bit.clone() << 1;
+	let mask :BigInt = next_bit.clone() - ov.clone();
+	let mut window_val :BigInt;
+	let mut j :i32 = 0;
+	let lenv :i32;
+	window_val = bn.clone() & mask.clone();
+	lenv = get_max_bits(bn) as i32;
+	while window_val != zv || (j+ w + 1) < lenv {
+		let mut digit : BigInt = zv.clone();
+		if (window_val.clone() & ov.clone()) != zv {
+			if (window_val.clone() & bit.clone()) != zv {
+				digit = window_val.clone() - next_bit.clone();
+				if (j + w + 1) >= lenv {
+					digit = window_val.clone() & (mask.clone() >> 1);
+				}
+			} else {
+				digit = window_val.clone();
+			}
+			if digit.clone() <= - bit.clone() || digit.clone() >=bit.clone() ||  (digit.clone() & ov.clone()) == zv {
+				extargs_new_error!{BinError,"internal error on digit"}
+			}
+			window_val -= digit.clone();
 		}
-		retv.push(dv);
-		cv = cv.clone() >> 1;		
+		let (_,vecs) = digit.to_bytes_le();
+		if digit >= zv {
+			retv.push(vecs[0]);		
+		} else {
+			retv.push((0xff - vecs[0] + 1) as u8);
+		}
+		
+		j += 1;
+		window_val = window_val.clone() >> 1;
+		if (bn.clone() & (ov.clone() << (j + w))) != zv  {
+			window_val += bit.clone();
+		}
+
+		if window_val > next_bit.clone() {
+			extargs_new_error!{BinError,"window_val 0x{:X} > next_bit 0x{:X}", window_val,next_bit}
+		}
+	}
+
+	if j > (lenv + 1) {
+		extargs_new_error!{BinError,"j {} > lenv {} + 1",j,lenv}
 	}
 	Ok(retv)
 }
