@@ -112,6 +112,7 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let pubkey :ECPrimePubKey = ECPrimePubKey::from_der(&grp,&rdata)?;
 	let sigdata :Vec<u8> = read_file_bytes(&signbin)?;
 	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
+	println!("sig.r 0x{:X} sig.s 0x{:X}",sig.r,sig.s);
 	let ok :bool = pubkey.verify_base(&sig,&hashnum)?;
 	println!("verify 0x{:X} with signature [{}] {:?}", hashnum,signbin,ok);
 

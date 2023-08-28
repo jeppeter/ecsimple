@@ -1012,6 +1012,27 @@ impl ECPrimePoint {
 	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let retv :ECPrimePoint = self.clone();
 
+		let mut val_sub :Vec<ECPrimePoint> = Vec::new();
+		let mut wnaf_bits :Vec<i32> = Vec::new();
+		let mut wnaf :Vec<Vec<u8>> = Vec::new();
+		let mut curnaf :Vec<u8>;
+		wnaf_bits.push(get_wnaf_bits(bn2));
+		curnaf = wnaf_value(bn2,get_wnaf_bits(bn2))?;
+		ecsimple_log_trace!("scalars[0] 0x{:X}",bn2);
+		ecsimple_debug_buffer_trace!(curnaf.as_ptr(),curnaf.len(),"wNAF wsize[0] 0x{:x}",wnaf_bits[0]);
+		wnaf.push(curnaf.clone());
+		val_sub.push(self.clone());
+		ecsimple_log_trace!("val_sub[0][0].X 0x{:X} val_sub[0][0].Y 0x{:X} val_sub[0][0].Z 0x{:X}",val_sub[0].x(),val_sub[0].y(),val_sub[0].z());
+
+
+		wnaf_bits.push(get_wnaf_bits(bn1));
+		curnaf = wnaf_value(bn1,get_wnaf_bits(bn1))?;
+		ecsimple_log_trace!("scalar 0x{:X}",bn1);
+		ecsimple_debug_buffer_trace!(curnaf.as_ptr(),curnaf.len(),"wNAF wsize[1] 0x{:x}",wnaf_bits[1]);
+		wnaf.push(curnaf.clone());
+		val_sub.push(ECPrimePoint::new(&self.group));
+		ecsimple_log_trace!("val_sub[1][0].X 0x{:X} val_sub[1][0].Y 0x{:X} val_sub[1][0].Z 0x{:X}",val_sub[1].x(),val_sub[1].y(),val_sub[1].z());
+
 		Ok(retv)
 	}
 

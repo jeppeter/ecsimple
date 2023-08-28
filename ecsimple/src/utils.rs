@@ -256,3 +256,74 @@ pub (crate) fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>>
 
     ecsimple_new_error!{ECUtilsError,"no square root for [{}:0x{:x}] [{}:0x{:x}]", ac,ac,p,p}
 }
+
+pub (crate) fn get_wnaf_bits(bn :&BigInt) -> i32 {
+    let bbits :i64 = get_max_bits(bn);
+    if bbits >= 2000 {
+        return 6;
+    } else if bbits >= 800 {
+        return 5;
+    } else if bbits >= 300 {
+        return 4;
+    } else if bbits >= 70 {
+        return 3;
+    } else if bbits >= 20 {
+        return 2;
+    }
+    return 1;
+}
+
+pub (crate) fn wnaf_value(bn :&BigInt,w :i32) -> Result<Vec<u8>,Box<dyn Error>> {
+    let mut retv :Vec<u8> = Vec::new();
+    let zv :BigInt = zero();
+    let ov :BigInt = one();
+    if w < 1 || w > 7 {
+        ecsimple_new_error!{ECUtilsError,"w {} < 1 || > 7", w};
+    }
+    let bit :BigInt = ov.clone() << w;
+    let next_bit :BigInt = bit.clone() << 1;
+    let mask :BigInt = next_bit.clone() - ov.clone();
+    let mut window_val :BigInt;
+    let mut j :i32 = 0;
+    let lenv :i32;
+    window_val = bn.clone() & mask.clone();
+    lenv = get_max_bits(bn) as i32;
+    while window_val != zv || (j+ w + 1) < lenv {
+        let mut digit : BigInt = zv.clone();
+        if (window_val.clone() & ov.clone()) != zv {
+            if (window_val.clone() & bit.clone()) != zv {
+                digit = window_val.clone() - next_bit.clone();
+                if (j + w + 1) >= lenv {
+                    digit = window_val.clone() & (mask.clone() >> 1);
+                }
+            } else {
+                digit = window_val.clone();
+            }
+            if digit.clone() <= - bit.clone() || digit.clone() >=bit.clone() ||  (digit.clone() & ov.clone()) == zv {
+                ecsimple_new_error!{ECUtilsError,"internal error on digit"}
+            }
+            window_val -= digit.clone();
+        }
+        let (_,vecs) = digit.to_bytes_le();
+        if digit >= zv {
+            retv.push(vecs[0]);     
+        } else {
+            retv.push((0xff - vecs[0] + 1) as u8);
+        }
+        
+        j += 1;
+        window_val = window_val.clone() >> 1;
+        if (bn.clone() & (ov.clone() << (j + w))) != zv  {
+            window_val += bit.clone();
+        }
+
+        if window_val > next_bit.clone() {
+            ecsimple_new_error!{ECUtilsError,"window_val 0x{:X} > next_bit 0x{:X}", window_val,next_bit}
+        }
+    }
+
+    if j > (lenv + 1) {
+        ecsimple_new_error!{ECUtilsError,"j {} > lenv {} + 1",j,lenv}
+    }
+    Ok(retv)
+}
