@@ -479,6 +479,7 @@ pub struct ECPrimePoint {
 	pub group :ECGroupPrime,
 	montv : MontNum,
 	infinity : bool,
+	z_is_one : bool,
 }
 
 impl std::fmt::Display for ECPrimePoint {
@@ -498,6 +499,7 @@ impl std::default::Default for ECPrimePoint {
 			group : ECGroupPrime::default(),
 			montv : MontNum::new(&tv).unwrap(),
 			infinity : true,
+			z_is_one : true,
 		}
 	}
 }
@@ -515,6 +517,7 @@ impl ECPrimePoint {
 			group : grp.clone(),
 			montv : MontNum::new(&grp.p).unwrap(),
 			infinity : false,
+			z_is_one : true,
 		};
 		return pnt;
 	}
@@ -527,6 +530,7 @@ impl ECPrimePoint {
 			group :grp.clone(),
 			montv : MontNum::new(&grp.p).unwrap(),
 			infinity : false,
+			z_is_one : true,
 		};
 		return pnt;
 	}
@@ -1016,7 +1020,35 @@ impl ECPrimePoint {
 	}
 
 	fn dbl(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
-		Ok(self.clone())
+		let mut retv :ECPrimePoint = ECPrimePoint::new(&self.group);
+		let zv :BigInt = zero();
+		let field :BigInt = self.group.p.clone();
+		let mut n0 :BigInt;
+		let mut n1 :BigInt;
+		let mut n2 :BigInt;
+		let mut n3 :BigInt;
+		let mut n4 :BigInt;
+
+		if self.infinity {
+			retv.z = zv.clone();
+			retv.z_is_one = false;
+			return Ok(retv);
+		}
+
+		if self.z_is_one {
+			n0 = self.field_sqr(&self.x);
+			n1 = self.lshift1_mod_quick(&n0,&field);
+			ecsimple_log_trace!("mod_lshift_quick(n1 0x{:X},n0 0x{:X},p 0x{:X})",n1,n0,field);
+			n0 = self.add_mod_quick(&n0,&n1,&field);
+			ecsimple_log_trace!("mod_add_quick(n0 0x{:X},n0,n1 0x{:X},p 0x{:X})",n0,n1,field);
+			n1 = self.add_mod_quick(&n0,&self.group.a,&field);
+			ecsimple_log_trace!("mod_add_quick(n1 0x{:X},n0 0x{:X},group.a 0x{:X},p 0x{:X})",n1,n0,self.group.a,field);
+			/* n1 = 3 * X_a^2 + a_curve */
+		} else if self.group.is_minus3 {
+			
+		}
+
+		Ok(retv)
 	}
 
 
