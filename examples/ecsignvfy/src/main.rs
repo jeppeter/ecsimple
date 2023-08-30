@@ -1,5 +1,5 @@
 use ecsimple::keys::{PrivateKey,PublicKey};
-use ecsimple::consts::{SECT163k1_NAME,EC_SSLEAY_TYPE,EC_UNCOMPRESSED};
+use ecsimple::consts::*;
 use ecsimple::signature::{ECCSignature};
 use ecsimple::{ecsimple_error_class,ecsimple_new_error};
 use ecsimple::curves::{get_ecc_curve_by_name};
@@ -75,9 +75,23 @@ fn sha1_calc(data :&[u8]) -> Vec<u8> {
 
 fn main() -> Result<(),Box<dyn Error>> {
 	let privkey :PrivateKey;
-	let eccurve = get_ecc_curve_by_name(SECT163k1_NAME)?;
+	let mut ecname :String = SECP224k1_NAME.to_string();
+	let mut basefile :String = "examples.txt".to_string();
+	let argv :Vec<String> = std::env::args().collect();
+	if argv.len() > 2 {
+		ecname = format!("{}",argv[2]);
+	}
+	if argv.len() > 1 {
+		if argv[1] == "-h" || argv[1] == "--help" {
+			println!("{} [basefile] [ecname]", argv[0]);
+			return Ok(());
+		}
+
+		basefile = format!("{}",argv[1]);
+	}
+	let eccurve = get_ecc_curve_by_name(&ecname)?;
 	privkey = PrivateKey::generate(&eccurve,None)?;
-	let r = read_file_bytes("examples.txt")?;
+	let r = read_file_bytes(&basefile)?;
 	let digdata = sha1_calc(&r);
 	println!("digdata {:?}", digdata);
 	loop {
@@ -101,5 +115,7 @@ fn main() -> Result<(),Box<dyn Error>> {
 	let sigvret :ECCSignature = ECCSignature::from_der(&vdata)?;
 	let bval = pubkey.verify_digest(&digdata,&sigvret);
 	println!("sign verfiy {:?}", bval);
+	println!("privkey {:?}", privkey);
+	println!("pubkey {:?}", pubkey);
 	Ok(())
 }
