@@ -1370,6 +1370,7 @@ impl ECPrimePoint {
 		let mut tmp :ECPrimePoint;
 		let mut jdx :usize;
 		let mut affinepoints :Vec<ECPrimePoint> = Vec::new();
+		let mut affidx :usize;
 		(curnaf,bits) = self.get_wnaf_variable(bn2)?;
 		wnaf_bits.push(bits);
 		wnaf.push(curnaf.clone());
@@ -1448,6 +1449,20 @@ impl ECPrimePoint {
 		}
 
 		self.points_make_affine(&mut affinepoints)?;
+
+		idx = 0;
+		affidx = 0;
+		while idx < val_sub.len() {
+			jdx = 0;
+			while jdx < val_sub[idx].len() {
+				val_sub[idx][jdx] = affinepoints[affidx].clone();
+				affidx += 1;
+				jdx += 1;
+			}
+			idx += 1;
+		}
+
+		
 
 
 		Ok(retv)
