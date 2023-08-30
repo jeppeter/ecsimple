@@ -412,6 +412,7 @@ impl ECPrimePubKey {
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
+		let mut x :BigInt;
 		ecsimple_log_trace!("sig.r 0x{:X} sig.s 0x{:X}", sig.r,sig.s);
 		if sig.r == zero() || sig.s == zero() {
 			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
@@ -431,8 +432,10 @@ impl ECPrimePubKey {
 		let vfypnt :ECPrimePoint;
 
 		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
-
-
+		(x,_) = vfypnt.get_affine_points()?;
+		if x != sig.r {
+			return Ok(false);
+		}
 		Ok(true)
 	}
 
