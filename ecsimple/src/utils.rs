@@ -327,3 +327,34 @@ pub (crate) fn wnaf_value(bn :&BigInt,w :i32) -> Result<Vec<u8>,Box<dyn Error>> 
     }
     Ok(retv)
 }
+
+pub (crate) fn bnusub(anum :&BigInt,bnum :&BigInt) -> BigInt {
+    let retv :BigInt;
+    if anum > bnum {
+        retv = anum - bnum;
+    } else {
+        let curv :BigInt = anum - bnum;
+        let mut curvecs :Vec<u8>;
+        let mut maskvecs :Vec<u8> = Vec::new();
+        let mut resvecs :Vec<u8> = Vec::new();
+        let mut idx :usize;
+        (_ , curvecs) = curv.to_bytes_le();
+        while (curvecs.len() % 8) != 0 {
+            curvecs.push(0);
+        }
+
+        while maskvecs.len() < curvecs.len() {
+            maskvecs.push(0xff);
+            resvecs.push(0);
+        }
+        idx = 0;
+        while idx < maskvecs.len() {
+            resvecs[idx] = maskvecs[idx] ^ curvecs[idx];
+            idx += 1;
+        }
+        resvecs[0] += 1;
+        retv = BigInt::from_bytes_le(Sign::Plus,&resvecs);
+    }
+
+    return retv;
+}

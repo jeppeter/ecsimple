@@ -3,6 +3,7 @@ use crate::bngf2m::*;
 use crate::group::*;
 use crate::utils::*;
 use crate::mont::*;
+use crate::consts::*;
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use std::error::Error;
@@ -1359,14 +1360,40 @@ impl ECPrimePoint {
 	fn invert(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let mut retv :ECPrimePoint = self.clone();
 		let zv :BigInt = zero();
-		if retv.infinity || retv.y == zv {
+		let field :BigInt = self.group.p.clone();
+		if retv.z == zv || retv.y == zv {
 			return Ok(retv);
 		}
+
+		retv.y = bnusub(&field,&retv.y);
+		ecsimple_log_trace!("BN_usub(p.y 0x{:X},group.field 0x{:X},p.y)",retv.y,field);
 		Ok(retv)
 	}
 
-	fn blind_coordinate(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+	fn blind_coordinate2(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let mut retv :ECPrimePoint = self.clone();
+		let zv :BigInt = zero();
+		let mut lambda :BigInt;
+		let mut temp :BigInt;
+		loop {
+			lambda = ecsimple_private_rand_range(&self.group.p);
+			if lambda != zv {
+				break;
+			}
+		}
+
+		lambda = self.field_encode(&lambda);
+		retv.z = self.field_mul(&retv.z,&lambda);
+		temp = self.field_sqr(&lambda);
+		retv.x = self.field_mul(&retv.x,&temp);
+		temp = self.field_mul(&temp,&lambda);
+		retv.y = self.field_mul(&retv.y,&temp);
+		retv.z_is_one = false;
+
+		Ok(retv)
+	}
+	fn blind_coordinate(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+		let retv :ECPrimePoint = self.clone();
 		Ok(retv)
 	}
 

@@ -33,7 +33,7 @@ use ecsimple::bngf2m::*;
 use ecsimple::randop::*;
 use ecsimple::mont::*;
 
-use num_bigint::{BigInt};
+use num_bigint::{BigInt,Sign};
 use num_traits::{one,zero};
 //use std::ops::{Add,Mul,Div,Rem};
 
@@ -501,7 +501,56 @@ fn wnaf_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>
 	Ok(())
 }
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler,wnaf_handler)]
+
+fn bnusub(anum :&BigInt,bnum :&BigInt) -> BigInt {
+	let retv :BigInt;
+	if anum > bnum {
+		retv = anum - bnum;
+	} else {
+		let curv :BigInt = anum - bnum;
+		let mut curvecs :Vec<u8>;
+		let mut maskvecs :Vec<u8> = Vec::new();
+		let mut resvecs :Vec<u8> = Vec::new();
+		let mut idx :usize;
+		(_ , curvecs) = curv.to_bytes_le();
+		while (curvecs.len() % 8) != 0 {
+			curvecs.push(0);
+		}
+
+		while maskvecs.len() < curvecs.len() {
+			maskvecs.push(0xff);
+			resvecs.push(0);
+		}
+		idx = 0;
+		while idx < maskvecs.len() {
+			resvecs[idx] = maskvecs[idx] ^ curvecs[idx];
+			idx += 1;
+		}
+		resvecs[0] += 1;
+		retv = BigInt::from_bytes_le(Sign::Plus,&resvecs);
+	}
+
+	return retv;
+}
+
+fn bnusub_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum enum and pnum"}
+	}
+	let aval :BigInt = parse_to_bigint(&sarr[0])?;
+	let bval :BigInt = parse_to_bigint(&sarr[1])?;
+	let rval :BigInt;
+	rval = bnusub(&aval,&bval);
+	println!("BN_usub(0x{:X},0x{:X},0x{:X})",rval,aval,bval);
+	Ok(())
+}
+
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler,wnaf_handler,bnusub_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -557,6 +606,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
         	"$" : 3
         },
         "wnaf<wnaf_handler>##anum wnum for bn_compute_wNAF##" : {
+        	"$" : 2
+        },
+        "bnusub<bnusub_handler>##anum bnum to call BN_usub(rval,anum,bnum)##" : {
         	"$" : 2
         }
 	}
