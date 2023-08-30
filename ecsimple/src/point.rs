@@ -1126,6 +1126,140 @@ impl ECPrimePoint {
 
 	fn add(&self,b :&ECPrimePoint) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let mut retv :ECPrimePoint = ECPrimePoint::new(&self.group);
+		let mut n0 :BigInt;
+		let mut n1 :BigInt;
+		let mut n2 :BigInt;
+		let mut n3 :BigInt;
+		let mut n4 :BigInt;
+		let mut n5 :BigInt;
+		let mut n6 :BigInt;
+		let field :BigInt = self.group.p.clone();
+		let zv :BigInt = zero();
+		let ov :BigInt = one();
+		let tv :BigInt = ov.clone() + ov.clone();
+		if self.group != b.group {
+			ecsimple_new_error!{ECPrimePointError,"not valid group point"}
+		}
+		if self == b {
+			return self.dbl();
+		} else if self.infinity {
+			retv = b.clone();
+			return Ok(retv);
+		} else if b.infinity {
+			retv= self.clone();
+			return Ok(retv);
+		}
+
+		if b.z_is_one {
+			n1 = self.x.clone();
+			ecsimple_log_trace!("BN_copy(n1 0x{:X},a.x 0x{:X})",n1,self.x);
+			n2 = self.y.clone();
+			ecsimple_log_trace!("BN_copy(n2 0x{:X},a.y 0x{:X})",n2,self.y);
+	        /* n1 = X_a */
+	        /* n2 = Y_a */
+		} else {
+			n0 = self.field_sqr(&b.z);
+			n1 = self.field_mul(&self.x,&n0);
+			/* n1 = X_a * Z_b^2 */
+
+			n0 = self.field_mul(&n0,&b.z);
+			n2 = self.field_mul(&self.y,&n0);
+			/* n2 = Y_a * Z_b^3 */
+		}
+
+		if self.z_is_one {
+			n3 = b.x.clone();
+			ecsimple_log_trace!("BN_copy(n3 0x{:X},b.x 0x{:X})",n3,b.x);
+			n4 = b.y.clone();
+			ecsimple_log_trace!("BN_copy(n4 0x{:X},b.y 0x{:X})",n4,b.y);
+	        /* n3 = X_b */
+	        /* n4 = Y_b */
+		} else {
+			n0 = self.field_sqr(&self.z);
+			n3 = self.field_mul(&b.x,&n0);
+			/* n3 = X_b * Z_a^2 */
+
+			n0 = self.field_mul(&n0,&self.z);
+			n4 = self.field_mul(&b.y,&n0);
+			/* n4 = Y_b * Z_a^3 */
+		}
+
+		n5 = self.sub_mod_quick(&n1,&n3,&field);
+		ecsimple_log_trace!("mod_sub_quick(n5 0x{:X},n1 0x{:X},n3 0x{:X},p 0x{:X})",n5,n1,n3,field);
+		n6 = self.sub_mod_quick(&n2,&n4,&field);
+		ecsimple_log_trace!("mod_sub_quick(n6 0x{:X},n2 0x{:X},n4 0x{:X},p 0x{:X})",n6,n2,n4,field);
+	    /* n5 = n1 - n3 */
+	    /* n6 = n2 - n4 */
+
+	    if n5 == zv {
+	    	if n6 == zv {
+	    		retv = self.dbl()?;
+	    		ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X}",self.x,self.y,self.z);
+	    		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X}",retv.x,retv.y,retv.z);
+	    		return Ok(retv);
+	    	} else {
+	    		retv.z = zv.clone();
+	    		retv.z_is_one = false;
+	    		ecsimple_log_trace!("r.z 0");
+	    		return Ok(retv);
+	    	}
+	    }
+
+	    n1 = self.add_mod_quick(&n1,&n3,&field);
+	    ecsimple_log_trace!("mod_add_quick(n1 0x{:X},n1,n3 0x{:X},p 0x{:X})",n1,n3,field);
+	    n2 = self.add_mod_quick(&n2,&n4,&field);
+	    ecsimple_log_trace!("mod_add_quick(n2 0x{:X},n2,n4 0x{:X},p 0x{:X})",n2,n4,field);
+	    /* 'n7' = n1 + n3 */
+	    /* 'n8' = n2 + n4 */
+
+	    if self.z_is_one && b.z_is_one {
+	    	retv.z = n5.clone();
+	    	ecsimple_log_trace!("BN_copy(r.z 0x{:X},n5 0x{:X})",retv.z,n5);
+	    } else {
+	    	if self.z_is_one {
+	    		n0 = b.z.clone();
+	    		ecsimple_log_trace!("BN_copy(n0 0x{:X},b.z 0x{:X})",n0,b.z);
+	    	} else if b.z_is_one {
+	    		n0 = self.z.clone();
+	    		ecsimple_log_trace!("BN_copy(n0 0x{:X},a.z 0x{:X})",n0,self.z);
+	    	} else {
+	    		n0 = self.field_mul(&self.z,&b.z);
+	    	}
+
+	    	retv.z = self.field_mul(&n0,&n5);
+	    }
+	    retv.z_is_one = false;
+	    /* Z_r = Z_a * Z_b * n5 */
+
+	    n0 = self.field_sqr(&n6);
+	    n4 = self.field_sqr(&n5);
+	    n3 = self.field_mul(&n1,&n4);
+	    retv.x = self.sub_mod_quick(&n0,&n3,&field);
+	    ecsimple_log_trace!("mod_sub_quick(r.x 0x{:X},n0 0x{:X},n3 0x{:X},p 0x{:X})",retv.x,n0,n3,field);
+	    /* X_r = n6^2 - n5^2 * 'n7' */
+
+	    n0 = self.lshift1_mod_quick(&retv.x,&field);
+	    ecsimple_log_trace!("mod_lshift_quick(n0 0x{:X},r.x 0x{:X},p 0x{:X})",n0,retv.x,field);
+	    n0 = self.sub_mod_quick(&n3,&n0,&field);
+	    ecsimple_log_trace!("mod_sub_quick(n0 0x{:X},n3 0x{:X},n0,p 0x{:X})",n0,n3,field);
+	    /* n9 = n5^2 * 'n7' - 2 * X_r */
+
+	    n0 = self.field_mul(&n0,&n6);
+	    n5 = self.field_mul(&n4,&n5);
+	    n1 = self.field_mul(&n2,&n5);
+	    n0 = self.sub_mod_quick(&n0,&n1,&field);
+	    ecsimple_log_trace!("mod_sub_quick(n0 0x{:X},n0,n1 0x{:X},p 0x{:X})",n0,n1,field);
+
+	    if (n0.clone() % tv.clone()) != zv {
+	    	n0 = n0.clone() + field.clone();
+	    	ecsimple_log_trace!("BN_add(n0 0x{:X},n0,p 0x{:X})",n0,field);
+	    }
+	    /* now  0 <= n0 < 2*p,  and n0 is even */
+
+	    retv.y = n0.clone() >> 1;
+	    ecsimple_log_trace!("BN_rshift1(r.y 0x{:X},n0 0x{:X})",retv.y,n0);
+	    /* Y_r = (n6 * 'n9' - 'n8' * 'n5^3') / 2 */
+
 		Ok(retv)
 	}
 
