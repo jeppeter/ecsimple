@@ -1356,9 +1356,29 @@ impl ECPrimePoint {
 		Ok(())
 	}
 
+	fn invert(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+		let mut retv :ECPrimePoint = self.clone();
+		let zv :BigInt = zero();
+		if retv.infinity || retv.y == zv {
+			return Ok(retv);
+		}
+		Ok(retv)
+	}
+
+	fn blind_coordinate(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+		let mut retv :ECPrimePoint = self.clone();
+		Ok(retv)
+	}
+
+	fn point_set_infinity(&mut self) {
+		self.z_is_one = false;
+		self.z = zero();
+		self.infinity = true;
+		return;
+	}
 
 	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
-		let retv :ECPrimePoint = self.clone();
+		let mut retv :ECPrimePoint = self.clone();
 
 		let mut val_sub :Vec<Vec<ECPrimePoint>> = Vec::new();
 		let mut wnaf_bits :Vec<i32> = Vec::new();
@@ -1371,6 +1391,10 @@ impl ECPrimePoint {
 		let mut jdx :usize;
 		let mut affinepoints :Vec<ECPrimePoint> = Vec::new();
 		let mut affidx :usize;
+		let mut r_is_at_infinity :bool;
+		let mut max_len :i32=0;
+		let mut k :i32;
+		let mut r_is_inversted :bool = false;
 		(curnaf,bits) = self.get_wnaf_variable(bn2)?;
 		wnaf_bits.push(bits);
 		wnaf.push(curnaf.clone());
@@ -1398,6 +1422,10 @@ impl ECPrimePoint {
 		while idx < wnaf_bits.len() {
 			while val_sub[idx].len() < (1 << (wnaf_bits[idx] - 1)) as usize {
 				val_sub[idx].push(ECPrimePoint::new(&self.group));
+			}
+
+			if max_len < (1 << (wnaf_bits[idx] - 1)) as i32 {
+				max_len = (1 << (wnaf_bits[idx]-1)) as i32;
 			}
 			idx += 1;
 		}
@@ -1462,7 +1490,53 @@ impl ECPrimePoint {
 			idx += 1;
 		}
 
-		
+		r_is_at_infinity = true;
+		k = max_len -1 ;
+		while k >= 0 {
+			if ! r_is_at_infinity {
+				retv = retv.dbl()?;
+			}
+			idx = 0;
+			while idx < wnaf.len() {
+				if wnaf[idx].len() as i32 > k {
+					let mut digit :u8 = wnaf[idx][k as usize];
+					let mut is_neg :bool = false;
+					if digit != 0 {
+						if (digit & 0x80) != 0 {
+							is_neg = true;
+							digit = 0xff - digit + 1;
+						}
+
+						if is_neg != r_is_inversted {
+							if ! r_is_at_infinity {
+								retv = retv.invert()?;
+							}
+							r_is_inversted = !r_is_inversted;
+						}
+
+						if r_is_at_infinity {
+							retv = val_sub[idx][(digit >> 1) as usize].clone();
+							retv = retv.blind_coordinate()?;
+							r_is_at_infinity = false;
+						} else {
+							retv = retv.add(&val_sub[idx][(digit >> 1) as usize])?;
+						}
+					}
+				}
+				idx += 1;
+			}
+
+			k -= 1;
+		}
+
+		if r_is_at_infinity {
+			retv.point_set_infinity();
+		} else {
+			if r_is_inversted {
+				retv = retv.invert()?;
+			}
+		}
+
 
 
 		Ok(retv)
