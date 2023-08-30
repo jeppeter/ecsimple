@@ -1370,7 +1370,7 @@ impl ECPrimePoint {
 		Ok(retv)
 	}
 
-	fn blind_coordinate2(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+	fn blind_coordinate(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let mut retv :ECPrimePoint = self.clone();
 		let zv :BigInt = zero();
 		let mut lambda :BigInt;
@@ -1383,16 +1383,22 @@ impl ECPrimePoint {
 		}
 
 		lambda = self.field_encode(&lambda);
+		ecsimple_log_trace!("field_encode");
 		retv.z = self.field_mul(&retv.z,&lambda);
+		ecsimple_log_trace!("field_mul");
 		temp = self.field_sqr(&lambda);
+		ecsimple_log_trace!("field_sqr");
 		retv.x = self.field_mul(&retv.x,&temp);
+		ecsimple_log_trace!("field_mul");
 		temp = self.field_mul(&temp,&lambda);
+		ecsimple_log_trace!("field_mul");
 		retv.y = self.field_mul(&retv.y,&temp);
+		ecsimple_log_trace!("field_mul");
 		retv.z_is_one = false;
 
 		Ok(retv)
 	}
-	fn blind_coordinate(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
+	fn blind_coordinate2(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let retv :ECPrimePoint = self.clone();
 		Ok(retv)
 	}
@@ -1427,7 +1433,6 @@ impl ECPrimePoint {
 		wnaf.push(curnaf.clone());
 		ecsimple_log_trace!("scalars[0] 0x{:X}",bn2);
 		ecsimple_debug_buffer_trace!(curnaf.as_ptr(),curnaf.len(),"wNAF wsize[0] 0x{:x}",wnaf_bits[0]);
-		wnaf.push(curnaf.clone());
 		cv = Vec::new();
 		cv.push(self.clone());
 		val_sub.push(cv.clone());
@@ -1450,9 +1455,13 @@ impl ECPrimePoint {
 			while val_sub[idx].len() < (1 << (wnaf_bits[idx] - 1)) as usize {
 				val_sub[idx].push(ECPrimePoint::new(&self.group));
 			}
+			idx += 1;
+		}
 
-			if max_len < (1 << (wnaf_bits[idx] - 1)) as i32 {
-				max_len = (1 << (wnaf_bits[idx]-1)) as i32;
+		idx = 0;
+		while idx < wnaf.len() {
+			if max_len < wnaf[idx].len() as i32 {
+				max_len = wnaf[idx].len() as i32;
 			}
 			idx += 1;
 		}
@@ -1518,12 +1527,13 @@ impl ECPrimePoint {
 		}
 
 		r_is_at_infinity = true;
+		ecsimple_log_trace!("max_len {} wnaf.len() {}",max_len,wnaf.len());
 		k = max_len -1 ;
 		while k >= 0 {
 			if ! r_is_at_infinity {
 				retv = retv.dbl()?;
 			}
-			idx = 0;
+			idx = 0;			
 			while idx < wnaf.len() {
 				if wnaf[idx].len() as i32 > k {
 					let mut digit :u8 = wnaf[idx][k as usize];
@@ -1533,6 +1543,7 @@ impl ECPrimePoint {
 							is_neg = true;
 							digit = 0xff - digit + 1;
 						}
+						ecsimple_log_trace!("digit [{}]",digit);
 
 						if is_neg != r_is_inversted {
 							if ! r_is_at_infinity {
@@ -1542,10 +1553,13 @@ impl ECPrimePoint {
 						}
 
 						if r_is_at_infinity {
+							ecsimple_log_trace!("digit [{}]",digit);
 							retv = val_sub[idx][(digit >> 1) as usize].clone();
 							retv = retv.blind_coordinate()?;
 							r_is_at_infinity = false;
 						} else {
+							ecsimple_log_trace!("digit [{}]",digit);
+							ecsimple_log_trace!("will get [{}][{}]",idx,(digit >> 1));
 							retv = retv.add(&val_sub[idx][(digit >> 1) as usize])?;
 						}
 					}
