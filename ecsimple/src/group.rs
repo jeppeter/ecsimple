@@ -364,7 +364,7 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	let mut tmpa :BigInt;
 	let ov :BigInt = one();
 	//let mut montv :MontNum;
-	let montv :MontNum;
+	let mut montv :MontNum;
 
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -400,9 +400,45 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		ecsimple_log_trace!("{} is_minus3 false",SECP112r1_NAME);
 	}
-
-
 	retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
+
+
+	v8 = Vec::from_hex("fffffffffffffffffffffffffffffffeffffffffffffffff").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("fffffffffffffffffffffffffffffffefffffffffffffffc").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("07192b95ffc8da78631011ed6b24cdd573f977a11e794811").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("ffffffffffffffffffffffff99def836146bc9b1b4d22831").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = PRIME192v1_NAME.to_string();
+
+	ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		ecsimple_log_trace!("{} is_minus3 true",PRIME192v1_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		ecsimple_log_trace!("{} is_minus3 false",PRIME192v1_NAME);
+	}
+	retv.insert(PRIME192v1_NAME.to_string(),bngrp.clone());
+
 
 	retv
 }
