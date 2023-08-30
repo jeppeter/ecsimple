@@ -14,6 +14,7 @@ use crate::consts::*;
 use crate::mont::*;
 use std::error::Error;
 use hex::FromHex;
+use std::cmp::PartialEq;
 
 ecsimple_error_class!{ECGroupError}
 
@@ -198,6 +199,16 @@ impl ECPrimeGenerator {
 	}
 }
 
+impl PartialEq for ECPrimeGenerator {
+	fn eq(&self, other:&Self) -> bool {
+		return self.eq_op(other);
+	}
+
+	fn ne(&self, other:&Self) -> bool {
+		return ! self.eq_op(other);
+	}
+}
+
 impl std::default::Default for ECPrimeGenerator {
 	fn default() -> Self {
 		ECPrimeGenerator {
@@ -274,6 +285,16 @@ impl ECGroupPrime {
 		}
 
 		return retv;
+	}
+}
+
+impl PartialEq for ECGroupPrime {
+	fn eq(&self, other:&Self) -> bool {
+		return self.eq_op(other);
+	}
+
+	fn ne(&self, other:&Self) -> bool {
+		return ! self.eq_op(other);
 	}
 }
 

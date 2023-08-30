@@ -6,6 +6,7 @@ use crate::mont::*;
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use std::error::Error;
+use std::cmp::PartialEq;
 
 use crate::logger::*;
 #[allow(unused_imports)]
@@ -487,6 +488,17 @@ impl std::fmt::Display for ECPrimePoint {
 		write!(f,"curve[{}] isinfinity {} x 0x{:x} y 0x{:x} z 0x{:x}", self.group,self.infinity,self.x,self.y,self.z)
 	}
 }
+
+impl PartialEq for ECPrimePoint {
+	fn eq(&self, other:&Self) -> bool {
+		return self.eq_op(other);
+	}
+
+	fn ne(&self, other:&Self) -> bool {
+		return ! self.eq_op(other);
+	}
+}
+
 
 impl std::default::Default for ECPrimePoint {
 	fn default() -> Self {
@@ -1112,6 +1124,38 @@ impl ECPrimePoint {
 		Ok(retv)
 	}
 
+	fn add(&self,b :&ECPrimePoint) -> Result<ECPrimePoint,Box<dyn Error>> {
+		let mut retv :ECPrimePoint = ECPrimePoint::new(&self.group);
+		Ok(retv)
+	}
+
+	pub fn eq_op(&self, other :&ECPrimePoint) -> bool {
+		if self.group != other.group {
+			return false;
+		}
+		if self.infinity != other.infinity {
+			return false;
+		}
+
+		if self.infinity && other.infinity {
+			return true;
+		}
+
+		if self.x != other.x {
+			return false;
+		}
+
+		if self.y != other.y {
+			return false;
+		}
+
+		if self.z != other.z {
+			return false;
+		}
+
+		return true;
+	}
+
 
 	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let retv :ECPrimePoint = self.clone();
@@ -1122,6 +1166,9 @@ impl ECPrimePoint {
 		let mut curnaf :Vec<u8>;
 		let mut bits :i32;
 		let mut cv :Vec<ECPrimePoint>;
+		let mut idx :usize;
+		let mut tmp :ECPrimePoint;
+		let mut jdx :usize;
 		(curnaf,bits) = self.get_wnaf_variable(bn2)?;
 		wnaf_bits.push(bits);
 		wnaf.push(curnaf.clone());
@@ -1145,10 +1192,9 @@ impl ECPrimePoint {
 		val_sub.push(cv.clone());
 		ecsimple_log_trace!("val_sub[1][0].X 0x{:X} val_sub[1][0].Y 0x{:X} val_sub[1][0].Z 0x{:X}",val_sub[1][0].x(),val_sub[1][0].y(),val_sub[1][0].z());
 
-		let mut idx :usize = 0;
-		let mut tmp :ECPrimePoint;
+		idx = 0;
 		while idx < wnaf_bits.len() {
-			while val_sub[idx].len() < wnaf_bits.len() {
+			while val_sub[idx].len() < (1 << (wnaf_bits[idx] - 1)) as usize {
 				val_sub[idx].push(ECPrimePoint::new(&self.group));
 			}
 			idx += 1;
@@ -1170,6 +1216,14 @@ impl ECPrimePoint {
 				tmp = val_sub[idx][0].dbl()?;
 				ecsimple_log_trace!("val_sub[{}][0].x 0x{:X} val_sub[{}][0].y 0x{:X} val_sub[{}][0].z 0x{:X}",idx,val_sub[idx][0].x,idx,val_sub[idx][0].y,idx,val_sub[idx][0].z);
 				ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}",tmp.x,tmp.y,tmp.z);
+				jdx = 1;
+				while jdx < (1 << (wnaf_bits[idx]-1)) as usize {
+					val_sub[idx][jdx] = val_sub[idx][jdx-1].add(&tmp)?;
+					ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X}",idx,jdx-1,val_sub[idx][jdx-1].x,idx,jdx-1,val_sub[idx][jdx-1].y,idx,jdx-1,val_sub[idx][jdx-1].z);
+					ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X}",idx,jdx,val_sub[idx][jdx].x,idx,jdx,val_sub[idx][jdx].y,idx,jdx,val_sub[idx][jdx].z);
+					jdx += 1;
+				}
+
 			}
 
 			idx += 1;
