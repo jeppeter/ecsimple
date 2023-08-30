@@ -356,7 +356,7 @@ impl ECPrimePubKey {
 
 	pub fn from_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
-		let mut pubk :ECPrimePoint = b.clone();
+		let pubk :ECPrimePoint = b.clone();
 		if dercode.len() < 1 {
 			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
 		}
@@ -412,7 +412,7 @@ impl ECPrimePubKey {
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
-		let mut x :BigInt;
+		let x :BigInt;
 		ecsimple_log_trace!("sig.r 0x{:X} sig.s 0x{:X}", sig.r,sig.s);
 		if sig.r == zero() || sig.s == zero() {
 			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
@@ -424,7 +424,7 @@ impl ECPrimePubKey {
 		let m :BigInt = format_bigint_as_order(hashnum,&order);
 		ecsimple_log_trace!("dgst 0x{:X}",m);
 
-		let mut u1 :BigInt = (&u2 * &m) % &order;
+		let u1 :BigInt = (&u2 * &m) % &order;
 		ecsimple_log_trace!("u1 0x{:X} = m 0x{:X} * tmp 0x{:X} % order 0x{:X}", u1,m,u2,order);
 
 		u2 = &(&u2 * &sig.r) % &order;

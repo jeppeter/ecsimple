@@ -57,7 +57,7 @@ pub (crate) fn nmod(a :&BigInt,m :&BigInt) -> BigInt {
 	return retv;
 }
 
-fn polynomial_reduce_mod(_poly :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Vec<BigInt> {
+fn polynomial_reduce_mod(_poly :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Result<Vec<BigInt>,Box<dyn Error>> {
     let ov :BigInt = one();
     let zv :BigInt = zero();
     let mut poly :Vec<BigInt> = _poly.to_vec().clone();
@@ -66,9 +66,14 @@ fn polynomial_reduce_mod(_poly :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Vec<
     let mut lastk :usize;
     if polymod.len() > 0 {
         lasti = polymod.len() - 1;
-        assert!(polymod[lasti] == (- ov));
+        if polymod[lasti] != -ov {
+            ecsimple_new_error!{ECUtilsError,"[{}] {}!= -1",lasti,polymod[lasti] }
+        }
     }
-    assert!(polymod.len() > 1);
+    if polymod.len() <= 1 {
+        ecsimple_new_error!{ECUtilsError,"len [{}] <= 1",polymod.len()}
+    }
+
 
     while poly.len() >= polymod.len() {
         lasti = poly.len() - 1;
@@ -83,12 +88,12 @@ fn polynomial_reduce_mod(_poly :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Vec<
         lasti = poly.len() - 1;
         poly = poly[0..lasti].to_vec().clone();
     }
-    return poly;
+    return Ok(poly);
 
 
 }
 
-fn polynomial_multiply_mod(m1 :&[BigInt],m2 :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Vec<BigInt> {
+fn polynomial_multiply_mod(m1 :&[BigInt],m2 :&[BigInt],polymod :&[BigInt],p :&BigInt) -> Result<Vec<BigInt>,Box<dyn Error>> {
     let zv :BigInt = zero();
     let mut prod :Vec<BigInt> = Vec::new();
     let mut idx :usize = 0;
@@ -108,7 +113,8 @@ fn polynomial_multiply_mod(m1 :&[BigInt],m2 :&[BigInt],polymod :&[BigInt],p :&Bi
 
 
 
-fn polynomial_exp_mod(base :&[BigInt],exponent :&BigInt,polymod :&[BigInt],p :&BigInt) -> Vec<BigInt> {
+#[allow(non_snake_case)]
+fn polynomial_exp_mod(base :&[BigInt],exponent :&BigInt,polymod :&[BigInt],p :&BigInt) -> Result<Vec<BigInt>,Box<dyn Error>> {
     let zv :BigInt = zero();
     let ov :BigInt = one();
     let tv :BigInt = &ov + &ov;
@@ -118,7 +124,7 @@ fn polynomial_exp_mod(base :&[BigInt],exponent :&BigInt,polymod :&[BigInt],p :&B
     assert!(exponent < p);
     if exponent.eq(&zv) {
         s = vec![ov.clone()];
-        return s;
+        return Ok(s);
     }
 
     G = base.to_vec().clone();
@@ -132,12 +138,12 @@ fn polynomial_exp_mod(base :&[BigInt],exponent :&BigInt,polymod :&[BigInt],p :&B
 
     while k > ov {
         k /= &tv;
-        G = polynomial_multiply_mod(&G,&G,polymod,p);
+        G = polynomial_multiply_mod(&G,&G,polymod,p)?;
         if ((&k) % &tv) == ov {
-            s = polynomial_multiply_mod(&G,&s,polymod,p);
+            s = polynomial_multiply_mod(&G,&s,polymod,p)?;
         }
     }
-    return s;
+    return Ok(s);
 
 }
 
@@ -242,7 +248,7 @@ pub (crate) fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>>
             let f :Vec<BigInt> = vec![a.clone(),- b.clone(),ov.clone()];
             let cf :Vec<BigInt> = vec![zv.clone(),ov.clone()];
             let p12 :BigInt = (p + &ov) / &tv;
-            let ff :Vec<BigInt> = polynomial_exp_mod(&cf,&p12,&f,p);
+            let ff :Vec<BigInt> = polynomial_exp_mod(&cf,&p12,&f,p)?;
             if ff.len() < 2 {
                 ecsimple_new_error!{ECUtilsError,"ff len [{}] < 2", ff.len()}
             }

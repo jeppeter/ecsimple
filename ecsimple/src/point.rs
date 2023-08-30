@@ -3,7 +3,7 @@ use crate::bngf2m::*;
 use crate::group::*;
 use crate::utils::*;
 use crate::mont::*;
-use crate::consts::*;
+//use crate::consts::*;
 use num_bigint::{BigInt};
 use num_traits::{zero,one};
 use std::error::Error;
@@ -319,8 +319,8 @@ impl ECGf2mPoint {
 		let mut r :ECGf2mPoint = ECGf2mPoint::new(&self.group);
 		let mut tmp :ECGf2mPoint;
 		let cardinal :BigInt;
-		let mut lamda :BigInt = zero();
-		let mut k :BigInt = zero();
+		let lamda :BigInt;
+		let mut k :BigInt;
 		if bn <= &zv {
 			r = self.clone();
 			r.infinity = true;
@@ -348,7 +348,7 @@ impl ECGf2mPoint {
 		//ecsimple_log_trace!("group->a 0x{:X} a 0x{:X}", self.group.a,self.group.a);
 		//ecsimple_log_trace!("group->b 0x{:X} b 0x{:X}", self.group.b,self.group.b);
 		//ecsimple_log_trace!("cardinality 0x{:X} order 0x{:X} cofactor 0x{:X}",cardinal,self.group.order,self.group.cofactor);
-		ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
+		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
 		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X}", k, lamda);
 
 		k = bn.clone();
@@ -365,7 +365,8 @@ impl ECGf2mPoint {
 		let mut kbit :i32;
 		kbit = get_bit_set(&lamda,cardbits as i32);
 		if kbit != 0 {
-			(lamda,k) = (k,lamda);
+			//(lamda,k) = (k,lamda);
+			k = lamda;
 		}
 		//ecsimple_log_trace!("k 0x{:X} lambda 0x{:X} cardinality_bits 0x{:x}",k,lamda,cardbits);
 
@@ -1133,7 +1134,7 @@ impl ECPrimePoint {
 	 	let mut n3 :BigInt;
 	 	let mut n4 :BigInt;
 	 	let mut n5 :BigInt;
-	 	let mut n6 :BigInt;
+	 	let n6 :BigInt;
 	 	let field :BigInt = self.group.p.clone();
 	 	let zv :BigInt = zero();
 	 	let ov :BigInt = one();
@@ -1296,7 +1297,6 @@ impl ECPrimePoint {
 	 	let mut tmp_z :BigInt;
 	 	let mut prod_z :Vec<BigInt> = Vec::new();
 	 	let zv :BigInt = zero();
-	 	let ov :BigInt = one();
 	 	let mut idx :usize;
 	 	if points.len() == 0 {
 	 		return Ok(());
@@ -1398,10 +1398,6 @@ impl ECPrimePoint {
 
 	 	Ok(retv)
 	 }
-	 fn blind_coordinate2(&self) -> Result<ECPrimePoint,Box<dyn Error>> {
-	 	let retv :ECPrimePoint = self.clone();
-	 	Ok(retv)
-	 }
 
 	 fn point_set_infinity(&mut self) {
 	 	self.z_is_one = false;
@@ -1422,7 +1418,7 @@ impl ECPrimePoint {
 	 	let mut idx :usize;
 	 	let mut tmp :ECPrimePoint;
 	 	let mut jdx :usize;
-	 	let mut affinepoints :Vec<ECPrimePoint> = Vec::new();
+	 	let mut affinepoints :Vec<ECPrimePoint>;
 	 	let mut affidx :usize;
 	 	let mut r_is_at_infinity :bool;
 	 	let mut max_len :i32=0;
@@ -1583,8 +1579,8 @@ impl ECPrimePoint {
 	 pub fn get_affine_points(&self) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 	 	let zv :BigInt = zero();
 	 	let ov :BigInt = one();
-	 	let mut x :BigInt = ov.clone();
-	 	let mut y :BigInt = ov.clone();
+	 	let x :BigInt;
+	 	let y :BigInt;
 	 	let z :BigInt;
 	 	let z_ :BigInt;
 	 	let z_1 :BigInt;
