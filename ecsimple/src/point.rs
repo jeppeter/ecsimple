@@ -759,7 +759,7 @@ impl ECPrimePoint {
 		return retv;
 	}
 
-	fn set_to_one(&self) -> BigInt {
+	fn field_set_to_one(&self) -> BigInt {
 		let retv :BigInt = self.group.generator.z.clone();
 		ecsimple_log_trace!("set_to_one(r 0x{:X})",retv);
 		return retv;
@@ -809,7 +809,7 @@ impl ECPrimePoint {
 		t1 = self.field_encode(&t1);
 		r.x = self.field_mul(&t5,&t1);
 		r.y = self.field_mul(&t0,&t1);
-		r.z = self.set_to_one();
+		r.z = self.field_set_to_one();
 
 		return;
 	}
@@ -840,7 +840,7 @@ impl ECPrimePoint {
 
 		retv.z = nmod(z,&self.group.p);
 		ecsimple_log_trace!("point->Z 0x{:X} = z 0x{:X} % group->field 0x{:X}",retv.z,z,self.group.p);
-		retv.z = self.set_to_one();
+		retv.z = self.field_set_to_one();
 		ecsimple_log_trace!("field_set_to_one point->Z 0x{:X}",retv.z);
 
 		Ok(retv)
@@ -1290,6 +1290,72 @@ impl ECPrimePoint {
 		return true;
 	}
 
+	fn points_make_affine(&self,points :&mut [ECPrimePoint]) -> Result<(),Box<dyn Error>> {
+		let mut tmp :BigInt;
+		let mut tmp_z :BigInt;
+		let mut prod_z :Vec<BigInt> = Vec::new();
+		let zv :BigInt = zero();
+		let ov :BigInt = one();
+		let mut idx :usize;
+		if points.len() == 0 {
+			return Ok(());
+		}
+		while prod_z.len() < points.len() {
+			prod_z.push(zv.clone());
+		}
+
+		if points[0].z != zv {
+			prod_z[0] = points[0].z.clone();
+			ecsimple_log_trace!("BN_copy(prod_Z[0] 0x{:X},points[0].z 0x{:X})",prod_z[0],points[0].z);
+		} else {
+			prod_z[0] = self.field_set_to_one();
+		}
+
+		idx = 1;
+		while idx < points.len() {
+			if points[idx].z != zv {
+				prod_z[idx] = self.field_mul(&prod_z[idx-1],&points[idx].z);
+			} else {
+				prod_z[idx] = prod_z[idx-1].clone();
+				ecsimple_log_trace!("BN_copy(prod_Z[{}] 0x{:X},prod_Z[{}] 0x{:X})",idx,prod_z[idx],idx-1,prod_z[idx-1]);
+			}
+			idx += 1;
+ 		}
+
+ 		tmp = self.field_inv(&prod_z[prod_z.len() - 1]);
+
+ 		tmp = self.field_encode(&tmp);
+ 		tmp = self.field_encode(&tmp);
+
+ 		idx = points.len() - 1;
+ 		while idx > 0 {
+ 			if points[idx].z != zv {
+ 				tmp_z = self.field_mul(&prod_z[idx-1],&tmp);
+ 				tmp = self.field_mul(&tmp,&points[idx].z);
+ 				points[idx].z = tmp_z.clone();
+ 			}
+ 			idx -= 1;
+ 		}
+
+ 		if points[0].z != zv  {
+ 			points[0].z = tmp.clone();
+ 		}
+
+ 		idx = 0;
+ 		while idx < points.len() {
+ 			if points[idx].z != zv {
+ 				tmp = self.field_sqr(&points[idx].z);
+ 				points[idx].x = self.field_mul(&points[idx].x,&tmp);
+ 				tmp = self.field_mul(&tmp,&points[idx].z);
+ 				points[idx].y = self.field_mul(&points[idx].y,&tmp);
+ 				points[idx].z = self.field_set_to_one();
+ 				points[idx].z_is_one = true;
+ 			}
+ 			idx += 1;
+ 		}
+		Ok(())
+	}
+
 
 	pub fn mulex_op(&self,bn1 :&BigInt,bn2 :&BigInt) -> Result<ECPrimePoint,Box<dyn Error>> {
 		let retv :ECPrimePoint = self.clone();
@@ -1303,6 +1369,7 @@ impl ECPrimePoint {
 		let mut idx :usize;
 		let mut tmp :ECPrimePoint;
 		let mut jdx :usize;
+		let mut affinepoints :Vec<ECPrimePoint> = Vec::new();
 		(curnaf,bits) = self.get_wnaf_variable(bn2)?;
 		wnaf_bits.push(bits);
 		wnaf.push(curnaf.clone());
@@ -1362,6 +1429,25 @@ impl ECPrimePoint {
 
 			idx += 1;
 		}
+
+		idx = 0;
+		affinepoints = Vec::new();
+		while idx < val_sub.len() {
+			jdx = 0;
+			while jdx < val_sub[idx].len() {
+				affinepoints.push(val_sub[idx][jdx].clone());
+				jdx += 1;
+			}
+			idx += 1;
+		}
+
+		idx = 0;
+		while idx < affinepoints.len() {
+			ecsimple_log_trace!("val[{}].x 0x{:X} val[{}].y 0x{:X} val[{}].z 0x{:X}",idx,affinepoints[idx].x,idx,affinepoints[idx].y,idx,affinepoints[idx].z);
+			idx += 1;
+		}
+
+		self.points_make_affine(&mut affinepoints)?;
 
 
 		Ok(retv)
