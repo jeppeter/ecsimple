@@ -1027,7 +1027,6 @@ impl ECPrimePoint {
 		let mut n1 :BigInt;
 		let mut n2 :BigInt;
 		let mut n3 :BigInt;
-		let mut n4 :BigInt;
 
 		if self.infinity {
 			retv.z = zv.clone();
@@ -1045,8 +1044,70 @@ impl ECPrimePoint {
 			ecsimple_log_trace!("mod_add_quick(n1 0x{:X},n0 0x{:X},group.a 0x{:X},p 0x{:X})",n1,n0,self.group.a,field);
 			/* n1 = 3 * X_a^2 + a_curve */
 		} else if self.group.is_minus3 {
-			
+			n1 = self.field_sqr(&self.z);
+			n0 = self.add_mod_quick(&self.x,&n1,&field);
+			ecsimple_log_trace!("mod_add_quick(n0 0x{:X},a.x 0x{:X},n1 0x{:X},p 0x{:X})",n0,self.x,n1,field);
+			n2 = self.sub_mod_quick(&self.x,&n1,&field);
+			ecsimple_log_trace!("mod_sub_quick(n2 0x{:X},a.x 0x{:X},n1 0x{:X},p 0x{:X})",n2,self.x,n1,field);
+			n1 = self.field_mul(&n0,&n2);
+			n0 = self.lshift1_mod_quick(&n1,&field);
+			ecsimple_log_trace!("mod_lshift_quick(n0 0x{:X},n1 0x{:X},p 0x{:X})",n0, n1,field);
+			n1 = self.add_mod_quick(&n0,&n1,&field);
+			ecsimple_log_trace!("mod_add_quick(n1 0x{:X},n0 0x{:X},n1,p 0x{:X})",n1,n0,field);
+	        /*-
+	         * n1 = 3 * (X_a + Z_a^2) * (X_a - Z_a^2)
+	         *    = 3 * X_a^2 - 3 * Z_a^4
+	         */
+		} else {
+			n0 = self.field_sqr(&self.x);
+			n1 = self.lshift1_mod_quick(&n0,&field);
+			ecsimple_log_trace!("mod_lshift_quick(n1 0x{:X},n0 0x{:X},p 0x{:X})",n1,n0,field);
+			n0 = self.add_mod_quick(&n0,&n1,&field);
+			ecsimple_log_trace!("mod_add_quick(n0 0x{:X},n0,n1 0x{:X},p 0x{:X})",n0,n1,field);
+			n1 = self.field_sqr(&self.z);
+			n1 = self.field_sqr(&n1);
+			n1 = self.field_mul(&n1,&self.group.a);
+			n1 = self.add_mod_quick(&n1,&n0,&field);
+			ecsimple_log_trace!("mod_add_quick(n1 0x{:X},n1,n0 0x{:X},p 0x{:X})",n1,n0,field);
+			/* n1 = 3 * X_a^2 + a_curve * Z_a^4 */
 		}
+
+		if self.z_is_one {
+			n0 = self.y.clone();
+			ecsimple_log_trace!("BN_copy(n0 0x{:X},a.y 0x{:X})",n0,self.y);
+		} else {
+			n0 = self.field_mul(&self.y,&self.z);
+		}
+		retv.z = self.lshift1_mod_quick(&n0,&field);
+		ecsimple_log_trace!("mod_lshift_quick(r.z 0x{:X},n0 0x{:X},p 0x{:X})",retv.z,n0,field);
+		retv.z_is_one = false;
+		/* Z_r = 2 * Y_a * Z_a */
+
+		n3 = self.field_sqr(&self.y);
+		n2 = self.field_mul(&self.x,&n3);
+		n2 = self.lshift_mod_quick(&n2,2,&field);
+		ecsimple_log_trace!("mod_lshift_quick(n2 0x{:X},n2,0x2,p 0x{:X})",n2,field);
+		/* n2 = 4 * X_a * Y_a^2 */
+
+		n0 = self.lshift1_mod_quick(&n2,&field);
+		ecsimple_log_trace!("mod_lshift_quick(n0 0x{:X},n2 0x{:X},p 0x{:X})",n0,n2,field);
+		retv.x = self.field_sqr(&n1);
+		retv.x = self.sub_mod_quick(&retv.x,&n0,&field);
+		ecsimple_log_trace!("mod_sub_quick(r.x 0x{:X},r.x,n0 0x{:X},p 0x{:X})",retv.x,n0,field);
+		/* X_r = n1^2 - 2 * n2 */
+
+
+		n0 = self.field_sqr(&n3);
+		n3 = self.lshift_mod_quick(&n0,0x3,&field);
+		ecsimple_log_trace!("mod_lshift_quick(n3 0x{:X},n0 0x{:X},0x3,p 0x{:X})",n3,n0,field);
+		/* n3 = 8 * Y_a^4 */
+
+		n0 = self.sub_mod_quick(&n2,&retv.x,&field);
+		ecsimple_log_trace!("mod_sub_quick(n0 0x{:X},n2 0x{:X},r.x 0x{:X},p 0x{:X})",n0,n2,retv.x,field);
+		n0 = self.field_mul(&n1,&n0);
+		retv.y = self.sub_mod_quick(&n0,&n3,&field);
+		ecsimple_log_trace!("mod_sub_quick(r.y 0x{:X},n0 0x{:X},n3 0x{:X},p 0x{:X})",retv.y,n0,n3,field);
+		/* Y_r = n1 * (n2 - X_r) - n3 */
 
 		Ok(retv)
 	}
@@ -1107,6 +1168,8 @@ impl ECPrimePoint {
 
 			if wnaf[idx].len() > 1 {
 				tmp = val_sub[idx][0].dbl()?;
+				ecsimple_log_trace!("val_sub[{}][0].x 0x{:X} val_sub[{}][0].y 0x{:X} val_sub[{}][0].z 0x{:X}",idx,val_sub[idx][0].x,idx,val_sub[idx][0].y,idx,val_sub[idx][0].z);
+				ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}",tmp.x,tmp.y,tmp.z);
 			}
 
 			idx += 1;
