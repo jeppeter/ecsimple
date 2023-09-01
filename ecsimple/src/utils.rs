@@ -450,7 +450,6 @@ pub fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
 
         /* t := y^2^(e - i - 1) */
         t = y.clone();
-        ecsimple_log_trace!("BN_copy(t 0x{:X},y 0x{:X})",t,y);
         let mut j :i32;
         j = e - i - 1;
         while j > 0 {
