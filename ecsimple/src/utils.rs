@@ -14,9 +14,9 @@ fn bn_is_odd(a :&BigInt) -> bool {
     let tv :BigInt = ov.clone() + ov.clone();
 
     if (a % &tv) == zv {
-        return true;
+        return false;
     }
-    return false;
+    return true;
 }
 
 pub (crate) fn format_bigint_as_order(bn :&BigInt, order :&BigInt) -> BigInt {
@@ -57,7 +57,7 @@ pub (crate) fn nmod(a :&BigInt,m :&BigInt) -> BigInt {
 fn verify_mod_sqrt(retv :&BigInt,ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
     let cv :BigInt;
     cv = retv.clone() * retv.clone() % p.clone();
-    if cv != ac {
+    if cv != ac.clone() {
         ecsimple_new_error!{ECUtilsError,"check 0x{:X} for mod_sqrt(0x{:X},0x{:X}) error",retv,ac,p}
     }
     return Ok(retv.clone());
@@ -69,15 +69,29 @@ lazy_static ! {
         let  retv :Vec<i32> = vec![0,1,0,-1,0,-1,0,1];
         retv
     };
+}
 
+fn get_lsw(v :&BigInt, mask :u32) -> u32 {
+    let vecs :Vec<u8>;
+    let mut retv :u32=0;
+    (_,vecs) = v.to_bytes_le();
+    let mut idx :usize = 0;
+    while idx < vecs.len() && idx < 4 {
+        retv |= (vecs[idx] as u32) << (idx * 8);
+        idx += 1;
+    }
+    return retv & mask;
+}
 
+#[allow(non_snake_case)]
 fn kronecker_value(a :&BigInt,b :&BigInt) -> i32 {
-    let mut ret :i32 = -2;
+    let mut ret :i32;
     let mut A :BigInt;
     let mut B :BigInt;
     let zv :BigInt = zero();
     let ov :BigInt = one();
-    let tv :BigInt = ov.clone() + ov.clone();
+    let mut i :i32;
+    let mut tmp :BigInt;
 
     A = a.clone();
     B = b.clone();
@@ -96,27 +110,102 @@ fn kronecker_value(a :&BigInt,b :&BigInt) -> i32 {
         }
         ecsimple_log_trace!("ret {}",ret);
         return ret;
-     }
+    }
 
-     if ! bn_is_odd(&A) && !bn_is_odd(&B) {
+    if !bn_is_odd(&A) && !bn_is_odd(&B) {
         ret = 0;
         ecsimple_log_trace!("ret 0");
         return ret;
-     }
+    }
 
-    return ret;
+    i = 0;
+    while get_bit_set(&B,i) == 0 {
+        i += 1;
+    }
+    ecsimple_log_trace!("B 0x{:X} i {}",B,i);
+    B = B.clone() >> i;
+    ecsimple_log_trace!("B 0x{:X}",B);
+
+    if (i & 1) != 0 {
+        ret = KRONTAB[get_lsw(&A,7) as usize];
+        ecsimple_log_trace!("ret {} tab[BN_lsw(0x{:X})&7 = 0x{:x}]", ret, A,get_lsw(&A,7));
+    } else {
+        ret = 1;
+        ecsimple_log_trace!("ret 1");
+    }
+
+    if B < zv {
+        B = -B.clone();
+        if A < zv {
+            ret = -ret;
+            ecsimple_log_trace!("A net ret {}",ret);
+        }
+    }
+
+    loop {
+        if A == zv {
+            if B != ov {
+                ret = 0;
+            }
+            ecsimple_log_trace!("B 0x{:X} ret {}",B,ret);
+            return ret;
+        }
+
+        i = 0;
+        while get_bit_set(&A,i) == 0{
+            i += 1;
+        }
+        ecsimple_log_trace!("A 0x{:X} i {}",A,i);
+        A = A.clone() >> i;
+        ecsimple_log_trace!("A 0x{:X}",A);
+
+        if (i & 1) != 0 {
+            ecsimple_log_trace!("ret {} = ret {} * tab[BN_lsw(0x{:X})&7 = 0x{:x}]",ret * KRONTAB[get_lsw(&B,7) as usize], ret,B,get_lsw(&B,7));
+            ret = ret * KRONTAB[get_lsw(&B,7) as usize];
+        }
+
+        let mut rv :u32;
+
+        if A < zv {
+            rv = get_lsw(&A,0xffffffff);
+            rv = !rv;
+        } else {
+            rv = get_lsw(&A,0xffffffff) & get_lsw(&B,0xffffffff) & 0x2;
+        }
+
+        if rv != 0 {
+            let mut negv :String=format!("0");
+            if A < zv {
+                negv = format!("1");
+            }
+            ecsimple_log_trace!("A->neg {} A 0x{:X} B 0x{:X}",negv,A,B);
+            ret = -ret;
+        }
+
+        B = nmod(&B,&A);
+        ecsimple_log_trace!("nnmod(B 0x{:X},B,A 0x{:X})",B,A);
+
+        tmp = A.clone();
+        A = B.clone();
+        B = tmp.clone();
+        ecsimple_log_trace!("A 0x{:X} B 0x{:X}",A,B);
+        if B < zv {
+            B = -B;
+        }
+    }
 }
 
+#[allow(non_snake_case)]
 pub fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
-    let mut retv :BigInt = one();
+    let mut retv :BigInt = zero();
     let ov :BigInt = one();
     let zv :BigInt = zero();
     let tv :BigInt = ov.clone() + ov.clone();
-    let mut A :BigInt;
+    let A :BigInt;
     let mut b :BigInt;
     let mut q :BigInt;
     let mut t :BigInt;
-    let mut x :BigInt;
+    let mut x :BigInt = zv.clone();
     let mut y :BigInt;
     let mut e :i32;
     let mut vecs :Vec<u8>;
@@ -190,52 +279,52 @@ pub fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
          */
 
 
-        /* t := 2*a */
-        t = (A.clone() << 1) % p.clone();
-        ecsimple_log_trace!("BN_mod_lshift1_quick(t 0x{:X},A 0x{:X},p 0x{:X})",t,A,p);
-        /* b := (2*a)^((|p|-5)/8) */
-        q = p.clone() >> 3;
-        ecsimple_log_trace!("BN_rshift(q 0x{:X},p 0x{:X},0x3)",q,p);
-        /*to set plus*/
-        (_,vecs) = q.to_bytes_le();
-        q = BigInt::from_bytes_le(Sign::Plus,&vecs);
+         /* t := 2*a */
+         t = (A.clone() << 1) % p.clone();
+         ecsimple_log_trace!("BN_mod_lshift1_quick(t 0x{:X},A 0x{:X},p 0x{:X})",t,A,p);
+         /* b := (2*a)^((|p|-5)/8) */
+         q = p.clone() >> 3;
+         ecsimple_log_trace!("BN_rshift(q 0x{:X},p 0x{:X},0x3)",q,p);
+         /*to set plus*/
+         (_,vecs) = q.to_bytes_le();
+         q = BigInt::from_bytes_le(Sign::Plus,&vecs);
 
-        b = t.modpow(&q,p);
-        ecsimple_log_trace!("BN_mod_exp(b 0x{:X},t 0x{:X},q 0x{:X},p 0x{:X})",b,t,q,p);
+         b = t.modpow(&q,p);
+         ecsimple_log_trace!("BN_mod_exp(b 0x{:X},t 0x{:X},q 0x{:X},p 0x{:X})",b,t,q,p);
 
-        /* y := b^2 */
-        y = b.modpow(&tv,p);
-        ecsimple_log_trace!("BN_mod_sqr(y 0x{:X},b 0x{:X},p 0x{:X})",y,b,p);
+         /* y := b^2 */
+         y = b.modpow(&tv,p);
+         ecsimple_log_trace!("BN_mod_sqr(y 0x{:X},b 0x{:X},p 0x{:X})",y,b,p);
 
-        /* t := (2*a)*b^2 - 1 */
-        t = t.clone() * y.clone() % p.clone();
-        ecsimple_log_trace!("BN_mod_mul(t 0x{:X},t,y 0x{:X},p 0x{:X})",t,y,p);
-        t -= ov.clone();
-        ecsimple_log_trace!("BN_sub_word(t 0x{:X},1)",t);
+         /* t := (2*a)*b^2 - 1 */
+         t = t.clone() * y.clone() % p.clone();
+         ecsimple_log_trace!("BN_mod_mul(t 0x{:X},t,y 0x{:X},p 0x{:X})",t,y,p);
+         t -= ov.clone();
+         ecsimple_log_trace!("BN_sub_word(t 0x{:X},1)",t);
 
-        /* x = a*b*t */
-        x = A.clone() * b.clone() % p.clone();
-        ecsimple_log_trace!("BN_mod_mul(x 0x{:X},A 0x{:X},b 0x{:X},p 0x{:X})",x,A,b,p);
-        x = x.clone() * t.clone() % p.clone();
-        ecsimple_log_trace!("BN_mod_mul(x 0x{:X},x,t 0x{:X},p 0x{:X})",x,t,p);
-        retv = x.clone();
-        ecsimple_log_trace!("BN_copy(ret 0x{:X},x 0x{:X})",retv,x);
-        return verify_mod_sqrt(&retv,&A,p);
-    }
+         /* x = a*b*t */
+         x = A.clone() * b.clone() % p.clone();
+         ecsimple_log_trace!("BN_mod_mul(x 0x{:X},A 0x{:X},b 0x{:X},p 0x{:X})",x,A,b,p);
+         x = x.clone() * t.clone() % p.clone();
+         ecsimple_log_trace!("BN_mod_mul(x 0x{:X},x,t 0x{:X},p 0x{:X})",x,t,p);
+         retv = x.clone();
+         ecsimple_log_trace!("BN_copy(ret 0x{:X},x 0x{:X})",retv,x);
+         return verify_mod_sqrt(&retv,&A,p);
+     }
 
-    q = p.clone();
-    ecsimple_log_trace!("BN_copy(q 0x{:X},p 0x{:X})",q,p);
-    (_,vecs) = q.to_bytes_le();
-    q = BigInt::from_bytes_le(Sign::Plus,&vecs);
+     q = p.clone();
+     ecsimple_log_trace!("BN_copy(q 0x{:X},p 0x{:X})",q,p);
+     (_,vecs) = q.to_bytes_le();
+     q = BigInt::from_bytes_le(Sign::Plus,&vecs);
 
-    i = 2;
-    loop {
+     i = 2;
+     loop {
         if i < 22 {
             vecs = Vec::new();
             vecs.push(i as u8);
             y = BigInt::from_bytes_le(Sign::Plus,&vecs);
         } else {
-            y = ecsimple_rand_bits(get_max_bits(p),0,0);
+            y = ecsimple_rand_bits(get_max_bits(p) as u64,0,0);
             y = nmod(&y,p);
             if y == zv {
                 vecs = Vec::new();
@@ -246,16 +335,138 @@ pub fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
 
         ecsimple_log_trace!("before BN_kronecker(y 0x{:X},q 0x{:X})",y,q);
         r = kronecker_value(&y,&q);
-        ecsimple_log_trace!("BN_kronecker(r ({})=BN_kronecker(y 0x{:X},q 0x{:X})",r,y,q);
+        ecsimple_log_trace!("r ({})=BN_kronecker(y 0x{:X},q 0x{:X})",r,y,q);
+
+        if r < -1 {
+            ecsimple_new_error!{ECUtilsError,"error kronecker_value {}",r}
+        } else if r == 0 {
+            ecsimple_new_error!{ECUtilsError,"not prime for p 0x{:X}",p}
+        }
 
         i += 1;
         if r != 1 || i >= 82{
             break;
         }
     }
+    ecsimple_log_trace!("r = {}",r);
 
+    if r != -1 {
+        ecsimple_new_error!{ECUtilsError,"too many iterators for mod_sqrt"}
+    }
 
-    Ok(retv)
+    q = q.clone() >> e;
+    ecsimple_log_trace!("BN_rshift(q 0x{:X},q,e 0x{:x})",q,e);
+
+    y = y.clone().modpow(&q,p);
+    ecsimple_log_trace!("BN_mod_exp(y 0x{:X},y,q 0x{:X},p 0x{:X})",y,q,p);
+    if y == ov {
+        ecsimple_new_error!{ECUtilsError,"p 0x{:X} is not prime",p}
+    }
+
+    /*-
+     * Now we know that (if  p  is indeed prime) there is an integer
+     * k,  0 <= k < 2^e,  such that
+     *
+     *      a^q * y^k == 1   (mod p).
+     *
+     * As  a^q  is a square and  y  is not,  k  must be even.
+     * q+1  is even, too, so there is an element
+     *
+     *     X := a^((q+1)/2) * y^(k/2),
+     *
+     * and it satisfies
+     *
+     *     X^2 = a^q * a     * y^k
+     *         = a,
+     *
+     * so it is the square root that we are looking for.
+     */
+
+    /* t := (q-1)/2  (note that  q  is odd) */
+    t = q.clone() >> 1;
+    ecsimple_log_trace!("BN_rshift1(t 0x{:X},q 0x{:X})",t,q);
+
+    /* x := a^((q-1)/2) */
+    if t == zv {
+        t = nmod(&A,p);
+        ecsimple_log_trace!("BN_nnmod(t 0x{:X},A 0x{:X},p 0x{:X})",t,A,p);
+        if t == zv {
+            retv = zv.clone();
+            return Ok(retv);
+        } else if x == ov {
+            return Ok(retv);
+        }
+    } else {
+        x = A.clone().modpow(&t,p);
+        ecsimple_log_trace!("BN_mod_exp(x 0x{:X},A 0x{:X},t 0x{:X},p 0x{:X})",x,A,t,p);
+        if x == zv {
+            retv = zv.clone();
+            return Ok(retv);
+        }
+    }
+
+    /* b := a*x^2  (= a^q) */
+    b = (x.clone() * x.clone()) % p.clone();
+    ecsimple_log_trace!("BN_mod_sqr(b 0x{:X},x 0x{:X},p 0x{:X})",b,x,p);
+    b = (b.clone() * A.clone()) % p.clone();
+    ecsimple_log_trace!("BN_mod_mul(b 0x{:X},b,A 0x{:X},p 0x{:X})",b,A,p);
+    x = (x.clone() * A.clone()) % p.clone();
+    ecsimple_log_trace!("BN_mod_mul(x 0x{:X},x,A 0x{:X},p 0x{:X})",x,A,p);
+
+    loop {
+        /*-
+         * Now  b  is  a^q * y^k  for some even  k  (0 <= k < 2^E
+         * where  E  refers to the original value of  e,  which we
+         * don't keep in a variable),  and  x  is  a^((q+1)/2) * y^(k/2).
+         *
+         * We have  a*b = x^2,
+         *    y^2^(e-1) = -1,
+         *    b^2^(e-1) = 1.
+         */
+        if b == ov {
+            retv = x.clone();
+            ecsimple_log_trace!("BN_copy(ret 0x{:X},x 0x{:X})",retv,x);
+            return verify_mod_sqrt(&retv,&A,p);
+        }
+
+        i = 1;
+        while i < e {
+            if i == 1 {
+                t = b.clone() * b.clone() % p.clone();
+                ecsimple_log_trace!("BN_mod_sqr(t 0x{:X},b 0x{:X},p 0x{:X})",t,b,p);
+            } else {
+                t = t.clone() * t.clone() % p.clone();
+                ecsimple_log_trace!("BN_mod_mul(t 0x{:X},t,t,p 0x{:X})",t,p);
+            }
+            if t == ov {
+                break;
+            }
+            i +=1;
+        }
+
+        if i >= e {
+            ecsimple_new_error!{ECUtilsError,"no sqrt for a [0x{:X}] for p [0x{:X}]",ac,p}
+        }
+
+        /* t := y^2^(e - i - 1) */
+        t = y.clone();
+        ecsimple_log_trace!("BN_copy(t 0x{:X},y 0x{:X})",t,y);
+        let mut j :i32;
+        j = e - i - 1;
+        while j > 0 {
+            t = t.clone() * t.clone() % p.clone();
+            ecsimple_log_trace!("BN_mod_sqr(t 0x{:X},t,p 0x{:X})",t,p);
+            j -= 1;
+        }
+        y = t.clone() * t.clone() % p.clone();
+        ecsimple_log_trace!("BN_mod_mul(y 0x{:X},t 0x{:X},t,p 0x{:X})",y,t,p);
+        x = x.clone() * t.clone() % p.clone();
+        ecsimple_log_trace!("BN_mod_mul(x 0x{:X},x,t 0x{:X},p 0x{:X})",x,t,p);
+        b = b.clone() * y.clone() % p.clone();
+        ecsimple_log_trace!("BN_mod_mul(b 0x{:X},b,y 0x{:X},p 0x{:X})",b,y,p);
+        e = i;
+    }
+
 }
 
 pub (crate) fn get_wnaf_bits(bn :&BigInt) -> i32 {
