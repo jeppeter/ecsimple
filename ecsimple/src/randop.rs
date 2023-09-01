@@ -4,15 +4,31 @@ use rand;
 use crate::fileop::*;
 use crate::*;
 use crate::logger::*;
-use crate::utils::*;
 use std::error::Error;
 use num_bigint::{BigInt,Sign};
-use num_traits::{zero};
+use num_traits::{zero,one};
 //use rand_core::CryptoRng;
 use rand_core::RngCore;
 use std::env;
 use lazy_static::lazy_static;
 use std::sync::RwLock;
+
+pub (crate) fn get_max_bits(bn :&BigInt) -> i64 {
+	let mut retv : i64 = -1;
+	let mut idx : i64 = 0 ;
+	let zv :BigInt = zero();
+	let mut cv : BigInt = one();
+
+	while bn >= &cv {
+		if (&cv & bn) != zv {
+			/*for expand*/
+			retv = idx + 1;
+		}
+		idx += 1;
+		cv <<= 1;
+	}
+	return retv;
+}
 
 
 pub struct RandOps  {

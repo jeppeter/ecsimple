@@ -2,7 +2,7 @@ use num_bigint::{BigInt};
 use num_traits::{one,zero};
 use crate::*;
 use crate::consts::*;
-use crate::utils::*;
+use crate::randop::*;
 use std::error::Error;
 #[allow(unused_imports)]
 use crate::logger::*;

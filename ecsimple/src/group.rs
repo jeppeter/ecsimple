@@ -1,7 +1,5 @@
 
 
-
-use crate::utils::*;
 use crate::bngf2m::*;
 use crate::logger::*;
 use crate::*;
@@ -12,6 +10,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 use crate::consts::*;
 use crate::mont::*;
+use crate::randop::*;
 use std::error::Error;
 use hex::FromHex;
 use std::cmp::PartialEq;
