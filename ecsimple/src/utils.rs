@@ -198,7 +198,7 @@ fn jacobi_get(_a :&BigInt,n :&BigInt) -> Result<BigInt,Box<dyn Error>> {
 }
 
 
-pub (crate) fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
+pub fn mod_sqrt(ac :&BigInt,p :&BigInt) -> Result<BigInt,Box<dyn Error>> {
     let a :BigInt = nmod(ac,p);
     let zv :BigInt = zero();
     let ov :BigInt = one();

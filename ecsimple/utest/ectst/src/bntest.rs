@@ -32,6 +32,7 @@ use std::io::Write;
 use ecsimple::bngf2m::*;
 use ecsimple::randop::*;
 use ecsimple::mont::*;
+use ecsimple::utils::*;
 
 use num_bigint::{BigInt,Sign};
 use num_traits::{one,zero};
@@ -549,8 +550,23 @@ fn bnusub_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
+fn bnmodsqrt_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
 
-#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler,wnaf_handler,bnusub_handler)]
+	init_log(ns.clone())?;
+
+	if sarr.len() < 2 {
+		extargs_new_error!{BinError,"need anum enum and pnum"}
+	}
+	let aval :BigInt = parse_to_bigint(&sarr[0])?;
+	let bval :BigInt = parse_to_bigint(&sarr[1])?;
+	let rval :BigInt;
+	rval = mod_sqrt(&aval,&bval)?;
+	println!("BN_mod_sqrt(0x{:X},0x{:X},0x{:X})",rval,aval,bval);
+	Ok(())
+}
+
+#[extargs_map_function(binbnload_handler,binadd_handler,binmul_handler,binmod_handler,binlshift_handler,binrshift_handler,bindiv_handler,bininv_handler,randpriv_handler,randmod_handler,randmod_handler,bnmodpow_handler,bndivmod_handler,bnquadmod_handler,montto_handler,montfrom_handler,montmul_handler,montpow_handler,wnaf_handler,bnusub_handler,bnmodsqrt_handler)]
 pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
@@ -609,6 +625,9 @@ pub fn bn_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
         	"$" : 2
         },
         "bnusub<bnusub_handler>##anum bnum to call BN_usub(rval,anum,bnum)##" : {
+        	"$" : 2
+        },
+        "bnmodsqrt<bnmodsqrt_handler>##anum pnum call BN_mod_sqrt(rval,anum,pnum)##" : {
         	"$" : 2
         }
 	}

@@ -7,7 +7,8 @@ pub mod errors;
 #[macro_use]
 pub mod logger;
 pub (crate) mod fileop;
-pub (crate) mod utils;
+//pub (crate) mod utils;
+pub mod utils;
 pub mod randop;
 pub mod mont;
 pub mod bngf2m;
