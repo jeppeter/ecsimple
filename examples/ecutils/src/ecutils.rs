@@ -116,6 +116,29 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 }
 
 fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+
+	init_log(ns.clone())?;
+	if sarr.len() < 2 {
+		ecsimple_new_error!{EcError,"need hashnum signbin"}
+	}
+	let ecpubfile = ns.get_string("ecpub");
+	if ecpubfile.len() == 0 {
+		ecsimple_new_error!{EcError,"need ecpub"}
+	}
+	let pubbin = read_file_bytes(&ecpubfile)?;
+	let pubkey :PublicKey= PublicKey::from_der(&pubbin)?;
+	let bn :BigInt = parse_to_bigint(&sarr[0])?;
+	let signfile :String = format!("{}",sarr[1]);
+	let (_,bnvecs) = bn.to_bytes_be();
+	let signdata :Vec<u8> = read_file_bytes(&signfile)?;
+	let sig :ECCSignature = ECCSignature::from_der(&signdata)?;
+	let bval :bool = pubkey.verify_base(&bnvecs,&sig);
+	if bval {
+		println!("verify {} succ", signfile);
+	} else {
+		println!("verify {} failed", signfile);
+	}
 	Ok(())
 }
 
