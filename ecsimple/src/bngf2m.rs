@@ -673,6 +673,10 @@ impl BnGf2m {
 		//ecsimple_log_trace!("addi {} addb {}", addi, addb);
 
 		let mut kidx :usize = self.data.len() - 1;
+		/*we just make sure from the most significant bits*/
+		while self.data[kidx] == 0  && kidx > 0{
+			kidx -= 1;
+		}
 		while kidx >= addi as usize {
 			if addb > 0  {
 				if kidx > addi as usize {

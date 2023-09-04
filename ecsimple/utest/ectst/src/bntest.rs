@@ -157,7 +157,7 @@ fn binrshift_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let aval :BnGf2m = get_bngf2m(&sarr[0])?;
 	let shiftnum :u64 = parse_u64(&sarr[1])?;
 
-
+	println!("will 0x{:x} >> {}", aval,shiftnum);
 	let cval :BnGf2m = &aval >> (shiftnum as i32);
 	println!("0x{:x} >> {} = 0x{:x}", aval,shiftnum,cval);
 
