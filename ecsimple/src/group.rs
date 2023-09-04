@@ -687,6 +687,43 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	bngrp.specflags = 0;
 	retv.insert(PRIME239v1_NAME.to_string(),bngrp.clone());
 
+	/*prime239v2*/
+	v8 = Vec::from_hex("7fffffffffffffffffffffff7fffffffffff8000000000007fffffffffff").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("7fffffffffffffffffffffff7fffffffffff8000000000007ffffffffffc").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("617fab6832576cbbfed50d99f0249c3fee58b94ba0038c7ae84c8c832f2c").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("38af09d98727705120c921bb5e9e26296a3cdcf2f35757a0eafd87b830e7").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("5b0125e4dbea0ec7206da0fc01d9b081329fb555de6ef460237dff8be4ba").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("7fffffffffffffffffffffff800000cfa7e8594377d414c03821bc582063").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = PRIME239v2_NAME.to_string();
+
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		//ecsimple_log_trace!("{} is_minus3 true",PRIME239v2_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		//ecsimple_log_trace!("{} is_minus3 false",PRIME239v2_NAME);
+	}
+	bngrp.specflags = 0;
+	retv.insert(PRIME239v2_NAME.to_string(),bngrp.clone());
 
 	retv
 }
