@@ -154,7 +154,7 @@ impl ECGroup for ECGroupBnGf2m {
 	}
 
 	fn degree(&self) -> i64 {
-		return get_max_bits(&self.p);
+		return get_max_bits(&self.p) - 1;
 	}
 }
 
