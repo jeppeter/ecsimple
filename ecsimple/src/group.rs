@@ -803,6 +803,45 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	retv.insert(PRIME256v1_NAME.to_string(),bngrp.clone());
 
 
+	/*secp112r2*/
+	v8 = Vec::from_hex("db7c2abf62e35e668076bead208b").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("6127c24c05f38a0aaaf65c0ef02c").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("51def1815db5ed74fcc34c85d709").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("4ba30ab5e892b4e1649dd0928643").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("adcd46f5882e3747def36e956e97").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("36df0aafd8b8d7597ca10520d04b").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone() + ov.clone() + ov.clone() + ov.clone();
+	bngrp.curvename = SECP112r2_NAME.to_string();
+
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		//ecsimple_log_trace!("{} is_minus3 true",SECP112r2_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		//ecsimple_log_trace!("{} is_minus3 false",SECP112r2_NAME);
+	}
+	bngrp.specflags = 0;
+	retv.insert(SECP112r2_NAME.to_string(),bngrp.clone());
+
+
 	retv
 }
 

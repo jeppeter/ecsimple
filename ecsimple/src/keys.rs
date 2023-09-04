@@ -435,6 +435,7 @@ impl ECPrimePubKey {
 		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
 		(x,_) = vfypnt.get_affine_points()?;
 		if x != sig.r {
+			ecsimple_log_error!("x 0x{:X} != sig.r 0x{:X}", x,sig.r);
 			return Ok(false);
 		}
 		Ok(true)
