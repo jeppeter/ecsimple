@@ -366,6 +366,7 @@ impl ECPrimePubKey {
 		let fieldsize :usize = ((degr + 7) >> 3) as usize;
 		let x :BigInt;
 		let y :BigInt;
+		ecsimple_log_trace!("grp degree [0x{:x}] fieldsize 0x{:x}", degr,fieldsize);
 
 		if code == EC_CODE_UNCOMPRESSED {
 			if dercode.len() < (1 + 2 *fieldsize) {

@@ -326,7 +326,7 @@ impl ECGroup for ECGroupPrime {
 	}
 
 	fn degree(&self) -> i64 {
-		return get_max_bits(&self.p) - 1;
+		return get_max_bits(&self.p);
 	}
 }
 
