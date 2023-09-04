@@ -521,6 +521,33 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 
 	retv.insert(SECT163r2_NAME.to_string(),bngrp.clone());
 
+	/*sect193r1*/
+	v8 = Vec::from_hex("02000000000000000000000000000000000000000000008001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("0017858feb7a98975169e171f77b4087de098ac8a911df7b01").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("00fdfb49bfe6c3a89facadaa7a1e5bbc7cc1c2e5d831478814").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("01f481bc5f0ff84a74ad6cdf6fdef4bf6179625372d8c0c5e1").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("0025e399f2903712ccf3ea9e3a1ad17fb0b3201b6af7ce1b05").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+	bngrp.generator.z = BnGf2m::one();
+
+	v8 = Vec::from_hex("01000000000000000000000000c7f34a778f443acc920eba49").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = &ov + &ov;
+	bngrp.curvename = SECT193r1_NAME.to_string();
+
+	retv.insert(SECT193r1_NAME.to_string(),bngrp.clone());
+
+
 	retv
 }
 
