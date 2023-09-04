@@ -154,7 +154,7 @@ impl ECGroup for ECGroupBnGf2m {
 	}
 
 	fn degree(&self) -> i64 {
-		return get_max_bits(&self.p) - 1;
+		return get_max_bits(&self.p);
 	}
 }
 
@@ -339,32 +339,6 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 	let mut p :BigInt;
 	let ov :BigInt = one();
 
-	/*sect163k1*/
-	v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.p = p.clone();
-	v8 = Vec::from_hex("000000000000000000000000000000000000000001").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.a = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("000000000000000000000000000000000000000001").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.b = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("02FE13C0537BBC11ACAA07D793DE4E6D5E5C94EEE8").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("0289070FB05D38FF58321F2E800536D538CCDAA3D9").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
-	bngrp.generator.z = BnGf2m::one();
-
-	v8 = Vec::from_hex("04000000000000000000020108A2E0CC0D99F8A5EF").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.order = p.clone();
-	bngrp.cofactor = &ov + &ov;
-	bngrp.curvename = SECT163k1_NAME.to_string();
-
-	retv.insert(SECT163k1_NAME.to_string(),bngrp.clone());
-
 	/*sect113r1*/
 	v8 = Vec::from_hex("020000000000000000000000000201").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -468,6 +442,59 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 	bngrp.curvename = SECT131r2_NAME.to_string();
 
 	retv.insert(SECT131r2_NAME.to_string(),bngrp.clone());
+
+	/*sect163k1*/
+	v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("000000000000000000000000000000000000000001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("000000000000000000000000000000000000000001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("02FE13C0537BBC11ACAA07D793DE4E6D5E5C94EEE8").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("0289070FB05D38FF58321F2E800536D538CCDAA3D9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+	bngrp.generator.z = BnGf2m::one();
+
+	v8 = Vec::from_hex("04000000000000000000020108A2E0CC0D99F8A5EF").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = &ov + &ov;
+	bngrp.curvename = SECT163k1_NAME.to_string();
+
+	retv.insert(SECT163k1_NAME.to_string(),bngrp.clone());
+
+	/*sect163r1*/
+	v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("07b6882caaefa84f9554ff8428bd88e246d2782ae2").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("0713612dcddcb40aab946bda29ca91f73af958afd9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("0369979697ab43897789566789567f787a7876a654").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("00435edb42efafb2989d51fefce3c80988f41ff883").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+	bngrp.generator.z = BnGf2m::one();
+
+	v8 = Vec::from_hex("03ffffffffffffffffffff48aab689c29ca710279b").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = &ov + &ov;
+	bngrp.curvename = SECT163r1_NAME.to_string();
+
+	retv.insert(SECT163r1_NAME.to_string(),bngrp.clone());
+
 
 	retv
 }
