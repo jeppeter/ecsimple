@@ -38,6 +38,7 @@ pub const PRIME239v2_NAME :&str = "prime239v2";
 pub const PRIME239v3_NAME :&str = "prime239v3";
 pub const PRIME256v1_NAME :&str = "prime256v1";
 pub const WTLS8_NAME :&str = "wap-wsg-idm-ecid-wtls8";
+pub const WTLS9_NAME :&str = "wap-wsg-idm-ecid-wtls9";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -79,6 +80,7 @@ pub const PRIME239v2_OID :&str = "1.2.840.10045.3.1.5";
 pub const PRIME239v3_OID :&str = "1.2.840.10045.3.1.6";
 pub const PRIME256v1_OID :&str = "1.2.840.10045.3.1.7";
 pub const WTLS8_OID :&str = "2.23.43.1.4.8";
+pub const WTLS9_OID :&str = "2.23.43.1.4.9";
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
 pub const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
