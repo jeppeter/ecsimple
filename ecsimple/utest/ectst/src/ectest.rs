@@ -85,8 +85,15 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	let privkey :ECPrimePrivateKey = ECPrimePrivateKey::new(&grp,&bn);
 
 	let sig :ECSignature = privkey.sign_base(&bs)?;
+	let output :String = ns.get_string("output");
+
 
 	println!("{}", sig);
+
+	if output.len() > 0 {
+		let sigdata :Vec<u8> = sig.encode_asn1()?;
+		write_file_bytes(&output,&sigdata)?;
+	}
 
 
 
