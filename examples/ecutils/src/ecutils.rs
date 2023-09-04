@@ -31,13 +31,14 @@ use std::io::Write;
 use num_bigint::{BigInt};
 
 use ecsimple::keys::{PrivateKey,PublicKey};
+#[allow(unused_imports)]
 use ecsimple::consts::*;
 use ecsimple::signature::{ECCSignature};
 use ecsimple::{ecsimple_error_class,ecsimple_new_error};
 use ecsimple::curves::{get_ecc_curve_by_name};
 
 
-extargs_error_class!{EcError}
+ecsimple_error_class!{EcError}
 
 fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
@@ -143,7 +144,7 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 }
 
 
-fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+fn ecpubload_handler(_ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	Ok(())
 }
 #[extargs_map_function(ecgen_handler,ecsignbase_handler,ecvfybase_handler,ecpubload_handler)]

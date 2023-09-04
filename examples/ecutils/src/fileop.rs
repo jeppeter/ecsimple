@@ -124,6 +124,7 @@ pub fn read_file_bytes(fname :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 	}
 }
 
+#[allow(dead_code)]
 pub fn read_file(fname :&str) -> Result<String,Box<dyn Error>> {
 	if fname.len() == 0 {
 		let f = io::stdin();
@@ -154,6 +155,7 @@ pub fn read_file(fname :&str) -> Result<String,Box<dyn Error>> {
 	}
 }
 
+#[allow(dead_code)]
 pub fn get_rand_bytes(nbytes :i32) -> Vec<u8> {
 
 	let mut r : rand::rngs::ThreadRng = rand::thread_rng();
