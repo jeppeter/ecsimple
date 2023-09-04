@@ -425,7 +425,7 @@ impl ECPrimePubKey {
 		let m :BigInt = format_bigint_as_order(hashnum,&order);
 		ecsimple_log_trace!("dgst 0x{:X}",m);
 
-		let u1 :BigInt = (&u2 * &m) % &order;
+		let mut u1 :BigInt = (&u2 * &m) % &order;
 		ecsimple_log_trace!("u1 0x{:X} = m 0x{:X} * tmp 0x{:X} % order 0x{:X}", u1,m,u2,order);
 
 		u2 = &(&u2 * &sig.r) % &order;
@@ -435,8 +435,12 @@ impl ECPrimePubKey {
 		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
 		(x,_) = vfypnt.get_affine_points()?;
 		if x != sig.r {
-			ecsimple_log_error!("x 0x{:X} != sig.r 0x{:X}", x,sig.r);
-			return Ok(false);
+			u1 = x.clone() % self.base.group.order.clone();
+			ecsimple_log_trace!("u1 0x{:X} = X 0x{:X} % order 0x{:X} sig->r 0x{:X}",u1,x,self.base.group.order,sig.r);
+			if u1 != sig.r {
+				ecsimple_log_error!("x 0x{:X} != sig.r 0x{:X}", u1,sig.r);
+				return Ok(false);				
+			}
 		}
 		Ok(true)
 	}
