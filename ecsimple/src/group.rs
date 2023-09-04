@@ -1,6 +1,7 @@
 
 
 use crate::bngf2m::*;
+#[allow(unused_imports)]
 use crate::logger::*;
 use crate::*;
 use num_bigint::{BigInt,Sign};
@@ -404,13 +405,13 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	bngrp.cofactor = ov.clone();
 	bngrp.curvename = SECP112r1_NAME.to_string();
 
-	ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
 	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
 		bngrp.is_minus3 = true;
-		ecsimple_log_trace!("{} is_minus3 true",SECP112r1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 true",SECP112r1_NAME);
 	} else {
 		bngrp.is_minus3 = false;
-		ecsimple_log_trace!("{} is_minus3 false",SECP112r1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 false",SECP112r1_NAME);
 	}
 	bngrp.specflags = 0;
 	retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
@@ -442,13 +443,13 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	bngrp.cofactor = ov.clone();
 	bngrp.curvename = PRIME192v1_NAME.to_string();
 
-	ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
 	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
 		bngrp.is_minus3 = true;
-		ecsimple_log_trace!("{} is_minus3 true",PRIME192v1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 true",PRIME192v1_NAME);
 	} else {
 		bngrp.is_minus3 = false;
-		ecsimple_log_trace!("{} is_minus3 false",PRIME192v1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 false",PRIME192v1_NAME);
 	}
 	bngrp.specflags = 0;
 	retv.insert(PRIME192v1_NAME.to_string(),bngrp.clone());
@@ -481,13 +482,13 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	bngrp.cofactor = ov.clone();
 	bngrp.curvename = SECP224r1_NAME.to_string();
 
-	ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
 	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
 		bngrp.is_minus3 = true;
-		ecsimple_log_trace!("{} is_minus3 true",SECP224r1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 true",SECP224r1_NAME);
 	} else {
 		bngrp.is_minus3 = false;
-		ecsimple_log_trace!("{} is_minus3 false",SECP224r1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 false",SECP224r1_NAME);
 	}
 	bngrp.specflags = NIST224_SPEC_FLAGS;
 	retv.insert(SECP224r1_NAME.to_string(),bngrp.clone());
@@ -520,16 +521,55 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	bngrp.cofactor = ov.clone();
 	bngrp.curvename = SECP384r1_NAME.to_string();
 
-	ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
 	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
 		bngrp.is_minus3 = true;
-		ecsimple_log_trace!("{} is_minus3 true",SECP384r1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 true",SECP384r1_NAME);
 	} else {
 		bngrp.is_minus3 = false;
-		ecsimple_log_trace!("{} is_minus3 false",SECP384r1_NAME);
+		//ecsimple_log_trace!("{} is_minus3 false",SECP384r1_NAME);
 	}
 	bngrp.specflags = 0;
 	retv.insert(SECP384r1_NAME.to_string(),bngrp.clone());
+
+
+	/*SECP521r1*/
+	v8 = Vec::from_hex("01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("01fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("0051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("00c6858e06b70404e9cd9e3ecb662395b4429c648139053fb521f828af606b4d3dbaa14b5e77efe75928fe1dc127a2ffa8de3348b3c1856a429bf97e7e31c2e5bd66").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("011839296a789a3bc0045c8a5fb42c7d1bd998f54449579b446817afbd17273e662c97ee72995ef42640c550b9013fad0761353c7086a272c24088be94769fd16650").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("01fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = SECP521r1_NAME.to_string();
+
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		//ecsimple_log_trace!("{} is_minus3 true",SECP521r1_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		//ecsimple_log_trace!("{} is_minus3 false",SECP521r1_NAME);
+	}
+	bngrp.specflags = 0;
+	retv.insert(SECP521r1_NAME.to_string(),bngrp.clone());
 
 
 	retv
@@ -563,6 +603,7 @@ pub fn get_bn_group_curve(name :&str) -> Result<ECGroupBnGf2m,Box<dyn Error>> {
 pub fn get_prime_group_curve(name :&str) -> Result<ECGroupPrime,Box<dyn Error>> {
 	match ECC_PRIME_CURVES.get(name) {
 		Some(pv) => {
+			ecsimple_log_trace!("load [{}]",name);
 			return Ok(pv.clone());
 		},
 		_ => {

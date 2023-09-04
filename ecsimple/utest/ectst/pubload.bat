@@ -10,5 +10,5 @@ set PRIVNUMB=1152
 set HASHNUM=7201
 set SIGNBIN=z:\sign.bin
 REM set ECTYPE=SECP112r1
-set ECTYPE=SECP384r1
+set ECTYPE=SECP521r1
 pushd %CD% && cd %CURDIR% && cargo build --release && .\target\release\ectst.exe ecpubload %ECTYPE% %PUBBIN% 2> %OUTFILE% && python z:\pylib\utils.py -i %OUTFILE% -o %SIMPLEOUT% filterlog rust && popd
