@@ -32,6 +32,7 @@ pub const SECT571k1_NAME :&str = "SECT571k1";
 pub const SECT571r1_NAME :&str = "SECT571r1";
 pub const PRIME192v1_NAME :&str = "PRIME192v1";
 pub const PRIME192v2_NAME :&str = "PRIME192v2";
+pub const PRIME192v3_NAME :&str = "PRIME192v3";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -67,6 +68,7 @@ pub const SECT571r1_OID :&str = "1.3.132.0.39";
 
 pub const PRIME192v1_OID :&str = "1.2.840.10045.3.1.1";
 pub const PRIME192v2_OID :&str = "1.2.840.10045.3.1.2";
+pub const PRIME192v3_OID :&str = "1.2.840.10045.3.1.3";
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
 pub const ID_PRIME_FIELD_OID :&str = "1.2.840.10045.1.1";
