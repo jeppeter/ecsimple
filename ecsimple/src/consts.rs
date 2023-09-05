@@ -56,6 +56,7 @@ pub const C2PNB304w1_NAME :&str = "c2pnb304w1";
 pub const C2TNB359v1_NAME :&str = "c2tnb359v1";
 pub const C2PNB368w1_NAME :&str = "c2pnb368w1";
 pub const C2TNB431r1_NAME :&str = "c2tnb431r1";
+pub const WTLS1_NAME :&str = "wap-wsg-idm-ecid-wtls1";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -113,6 +114,7 @@ pub const PRIME239v1_OID :&str = "1.2.840.10045.3.1.4";
 pub const PRIME239v2_OID :&str = "1.2.840.10045.3.1.5";
 pub const PRIME239v3_OID :&str = "1.2.840.10045.3.1.6";
 pub const PRIME256v1_OID :&str = "1.2.840.10045.3.1.7";
+pub const WTLS1_OID :&str = "2.23.43.1.4.1";
 pub const WTLS8_OID :&str = "2.23.43.1.4.8";
 pub const WTLS9_OID :&str = "2.23.43.1.4.9";
 pub const WTLS12_OID :&str = "2.23.43.1.4.12";
