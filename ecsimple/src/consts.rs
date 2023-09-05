@@ -68,6 +68,13 @@ pub const BRAINPOOLP256r1_NAME  :&str = "brainpoolP256r1";
 pub const BRAINPOOLP256t1_NAME  :&str = "brainpoolP256t1";
 pub const BRAINPOOLP320r1_NAME  :&str = "brainpoolP320r1";
 
+pub const BRAINPOOLP320t1_NAME  :&str = "brainpoolP320t1";
+pub const BRAINPOOLP384r1_NAME  :&str = "brainpoolP384r1";
+pub const BRAINPOOLP384t1_NAME  :&str = "brainpoolP384t1";
+pub const BRAINPOOLP512r1_NAME  :&str = "brainpoolP512r1";
+pub const BRAINPOOLP512t1_NAME  :&str = "brainpoolP512t1";
+pub const SM2_NAME :&str = "SM2";
+
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
 pub const SECT239k1_OID :&str = "1.3.132.0.3";
@@ -138,6 +145,13 @@ pub const BRAINPOOLP224t1_OID  :&str = "1.3.36.3.3.2.8.1.1.6";
 pub const BRAINPOOLP256r1_OID  :&str = "1.3.36.3.3.2.8.1.1.7";
 pub const BRAINPOOLP256t1_OID  :&str = "1.3.36.3.3.2.8.1.1.8";
 pub const BRAINPOOLP320r1_OID  :&str = "1.3.36.3.3.2.8.1.1.9";
+pub const BRAINPOOLP320t1_OID  :&str = "1.3.36.3.3.2.8.1.1.10";
+pub const BRAINPOOLP384r1_OID  :&str = "1.3.36.3.3.2.8.1.1.11";
+pub const BRAINPOOLP384t1_OID  :&str = "1.3.36.3.3.2.8.1.1.12";
+pub const BRAINPOOLP512r1_OID  :&str = "1.3.36.3.3.2.8.1.1.13";
+pub const BRAINPOOLP512t1_OID  :&str = "1.3.36.3.3.2.8.1.1.14";
+
+pub const SM2_OID :&str = "1.2.156.10197.1.301";
 
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
