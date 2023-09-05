@@ -2461,6 +2461,42 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	retv.insert(BRAINPOOLP224r1_NAME.to_string(),bngrp.clone());
 
 
+	/*brainpoolP224t1*/
+	v8 = Vec::from_hex("d7c134aa264366862a18302575d1d787b09f075797da89f57ec8c0ff").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("d7c134aa264366862a18302575d1d787b09f075797da89f57ec8c0fc").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("4b337d934104cd7bef271bf60ced1ed20da14c08b3bb64f18a60888d").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("6ab1e344ce25ff3896424e7ffe14762ecb49f8928ac0c76029b4d580").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("0374e9f5143e568cd23f3f4d7c0d4b1e41c8cc0d1c6abd5f1a46db4c").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("d7c134aa264366862a18302575d0fb98d116bc4b6ddebca3a5a7939f").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = BRAINPOOLP224t1_NAME.to_string();
+
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		//ecsimple_log_trace!("{} is_minus3 true",BRAINPOOLP224t1_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		//ecsimple_log_trace!("{} is_minus3 false",BRAINPOOLP224t1_NAME);
+	}
+	retv.insert(BRAINPOOLP224t1_NAME.to_string(),bngrp.clone());
 	retv
 }
 
