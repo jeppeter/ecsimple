@@ -59,6 +59,7 @@ pub const C2TNB431r1_NAME :&str = "c2tnb431r1";
 pub const WTLS1_NAME :&str = "wap-wsg-idm-ecid-wtls1";
 
 pub const BRAINPOOLP160r1_NAME  :&str = "brainpoolP160r1";
+pub const BRAINPOOLP160t1_NAME  :&str = "brainpoolP160t1";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -122,6 +123,7 @@ pub const WTLS9_OID :&str = "2.23.43.1.4.9";
 pub const WTLS12_OID :&str = "2.23.43.1.4.12";
 
 pub const BRAINPOOLP160r1_OID  :&str = "1.3.36.3.3.2.8.1.1.1";
+pub const BRAINPOOLP160t1_OID  :&str = "1.3.36.3.3.2.8.1.1.2";
 
 
 pub const EC_PUBLIC_KEY_OID :&str = "1.2.840.10045.2.1";
