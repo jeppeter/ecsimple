@@ -2460,7 +2460,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	}
 	retv.insert(BRAINPOOLP224r1_NAME.to_string(),bngrp.clone());
 
-
 	/*brainpoolP224t1*/
 	v8 = Vec::from_hex("d7c134aa264366862a18302575d1d787b09f075797da89f57ec8c0ff").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
@@ -2497,6 +2496,44 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		//ecsimple_log_trace!("{} is_minus3 false",BRAINPOOLP224t1_NAME);
 	}
 	retv.insert(BRAINPOOLP224t1_NAME.to_string(),bngrp.clone());
+
+	/*brainpoolP256r1*/
+	v8 = Vec::from_hex("a9fb57dba1eea9bc3e660a909d838d726e3bf623d52620282013481d1f6e5377").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("7d5a0975fc2c3057eef67530417affe7fb8055c126dc5c6ce94a4b44f330b5d9").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("26dc5c6ce94a4b44f330b5d9bbd77cbf958416295cf7e1ce6bccdc18ff8c07b6").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("8bd2aeb9cb7e57cb2c4b482ffc81b7afb9de27e1e3bd23c23a4453bd9ace3262").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("547ef835c3dac4fd97f8461a14611dc9c27745132ded8e545c1d54c72f046997").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("a9fb57dba1eea9bc3e660a909d838d718c397aa3b561a6f7901e0e82974856a7").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = BRAINPOOLP256r1_NAME.to_string();
+
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		//ecsimple_log_trace!("{} is_minus3 true",BRAINPOOLP256r1_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		//ecsimple_log_trace!("{} is_minus3 false",BRAINPOOLP256r1_NAME);
+	}
+	retv.insert(BRAINPOOLP256r1_NAME.to_string(),bngrp.clone());
+
 	retv
 }
 
