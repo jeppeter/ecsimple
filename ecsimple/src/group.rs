@@ -1393,34 +1393,6 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 
 	retv.insert(WTLS1_NAME.to_string(),bngrp.clone());
 
-	/*ipsec3*/
-	v8 = Vec::from_hex("0800000000000000000000004000000000000001").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.p = p.clone();
-	v8 = Vec::from_hex("0000000000000000000000000000000000000000").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.a = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("000000000000000000000000000000000007338f").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.b = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("000000000000000000000000000000000000007b").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("00000000000000000000000000000000000001c8").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
-	bngrp.generator.z = BnGf2m::one();
-
-	v8 = Vec::from_hex("02AAAAAAAAAAAAAAAAAAC7F3C7881BD0868FA86C").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.order = p.clone();
-	v8 = Vec::from_hex("03").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.cofactor = p.clone();
-	bngrp.curvename = IPSEC3_NAME.to_string();
-
-	retv.insert(IPSEC3_NAME.to_string(),bngrp.clone());
-
 
 	retv
 }
@@ -2300,6 +2272,44 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		//ecsimple_log_trace!("{} is_minus3 false",WTLS12_NAME);
 	}
 	retv.insert(WTLS12_NAME.to_string(),bngrp.clone());
+
+
+	/*brainpoolP160r1*/
+	v8 = Vec::from_hex("e95e4a5f737059dc60dfc7ad95b3d8139515620f").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	montv = MontNum::new(&bngrp.p).unwrap();
+	tmpp = p.clone();
+	v8 = Vec::from_hex("340e7be2a280eb74e2be61bada745d97e8f7c300").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	tmpa = p.clone();
+	bngrp.a = montv.mont_to(&p);
+	v8 = Vec::from_hex("1e589a8595423412134faa2dbdec95c8d8675e58").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = montv.mont_to(&p);
+	v8 = Vec::from_hex("bed5af16ea3f6a4f62938c4631eb5af7bdbcdbc3").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = montv.mont_to(&p);
+	v8 = Vec::from_hex("1667cb477a1a8ec338f94741669c976316da6321").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = montv.mont_to(&p);
+	bngrp.generator.z = montv.mont_to(&ov);
+
+	v8 = Vec::from_hex("e95e4a5f737059dc60df5991d45029409e60fc09").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	bngrp.cofactor = ov.clone();
+	bngrp.curvename = BRAINPOOLP160r1_NAME.to_string();
+
+	//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+	if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+		bngrp.is_minus3 = true;
+		//ecsimple_log_trace!("{} is_minus3 true",BRAINPOOLP160r1_NAME);
+	} else {
+		bngrp.is_minus3 = false;
+		//ecsimple_log_trace!("{} is_minus3 false",BRAINPOOLP160r1_NAME);
+	}
+	retv.insert(BRAINPOOLP160r1_NAME.to_string(),bngrp.clone());
 
 
 	retv
