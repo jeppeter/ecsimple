@@ -57,6 +57,7 @@ pub const C2TNB359v1_NAME :&str = "c2tnb359v1";
 pub const C2PNB368w1_NAME :&str = "c2pnb368w1";
 pub const C2TNB431r1_NAME :&str = "c2tnb431r1";
 pub const WTLS1_NAME :&str = "wap-wsg-idm-ecid-wtls1";
+pub const IPSEC3_NAME :&str = "Oakley-EC2N-3";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
