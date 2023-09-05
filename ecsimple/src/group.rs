@@ -19,7 +19,7 @@ use std::cmp::PartialEq;
 ecsimple_error_class!{ECGroupError}
 
 
-pub trait ECGroup  {
+pub (crate) trait ECGroupInterface  {
 	fn x(&self) -> BigInt ;
 	fn y(&self) -> BigInt ;
 	fn z(&self) -> BigInt ;
@@ -27,7 +27,7 @@ pub trait ECGroup  {
 }
 
 #[derive(Clone)]
-pub struct ECBnGf2mGenerator {
+pub (crate) struct ECBnGf2mGenerator {
 	pub x :BnGf2m,
 	pub y :BnGf2m,
 	pub z :BnGf2m,
@@ -40,13 +40,6 @@ impl std::fmt::Display for ECBnGf2mGenerator {
 }
 
 impl ECBnGf2mGenerator {
-	pub fn new(x :&BnGf2m, y :&BnGf2m,z :&BnGf2m) -> Self {
-		ECBnGf2mGenerator {
-			x :x.clone(),
-			y :y.clone(),
-			z :z.clone(),
-		}
-	}
 
 	pub fn eq_op(&self,other :&ECBnGf2mGenerator) -> bool {
 		let mut retv :bool = true;
@@ -77,7 +70,7 @@ impl std::default::Default for ECBnGf2mGenerator {
 
 
 #[derive(Clone)]
-pub struct ECGroupBnGf2m {
+pub (crate) struct ECGroupBnGf2m {
 	pub generator :ECBnGf2mGenerator,
 	pub p :BigInt,
 	pub order :BigInt,
@@ -140,7 +133,7 @@ impl ECGroupBnGf2m {
 	}
 }
 
-impl ECGroup for ECGroupBnGf2m {
+impl ECGroupInterface for ECGroupBnGf2m {
 	fn x(&self) -> BigInt {
 		return self.generator.x.to_bigint();
 	}
@@ -160,7 +153,7 @@ impl ECGroup for ECGroupBnGf2m {
 
 
 #[derive(Clone)]
-pub struct ECPrimeGenerator {
+pub (crate) struct ECPrimeGenerator {
 	pub x :BigInt,
 	pub y :BigInt,
 	pub z :BigInt,
@@ -174,13 +167,6 @@ impl std::fmt::Display for ECPrimeGenerator {
 
 
 impl ECPrimeGenerator {
-	pub fn new(x :&BigInt, y :&BigInt,z :&BigInt) -> Self {
-		ECPrimeGenerator {
-			x :x.clone(),
-			y :y.clone(),
-			z :z.clone(),
-		}
-	}
 
 	pub fn eq_op(&self,other :&ECPrimeGenerator) -> bool {
 		let mut retv :bool = true;
@@ -221,22 +207,21 @@ impl std::default::Default for ECPrimeGenerator {
 
 
 #[derive(Clone)]
-pub struct ECGroupPrime {
-	pub generator :ECPrimeGenerator,
-	pub p :BigInt,
-	pub order :BigInt,
-	pub cofactor :BigInt,
-	pub curvename :String,
-	pub a :BigInt,
-	pub b :BigInt,
-	pub is_minus3 :bool,
-	pub specflags : u32,
+pub (crate) struct ECGroupPrime {
+	pub (crate) generator :ECPrimeGenerator,
+	pub (crate) p :BigInt,
+	pub (crate) order :BigInt,
+	pub (crate) cofactor :BigInt,
+	pub (crate) curvename :String,
+	pub (crate) a :BigInt,
+	pub (crate) b :BigInt,
+	pub (crate) is_minus3 :bool,
 }
 
 impl std::fmt::Display for ECGroupPrime {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f,"curve {} generator {} p 0x{:X} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x} specflags 0x{:x}", 
-			self.curvename, self.generator, self.p,self.order,self.cofactor,self.a, self.b,self.specflags)
+		write!(f,"curve {} generator {} p 0x{:X} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x}", 
+			self.curvename, self.generator, self.p,self.order,self.cofactor,self.a, self.b)
 	}
 }
 
@@ -251,19 +236,11 @@ impl std::default::Default for ECGroupPrime {
 			a : zero(),
 			b : zero(),
 			is_minus3 : false,
-			specflags : 0,
 		}
 	}
 }
 
 impl ECGroupPrime {
-	pub fn is_nist224(&self) -> bool {
-		if (self.specflags & NIST224_SPEC_FLAGS) != 0 {
-			return true;
-		}
-		return false;
-	}
-
 	pub fn eq_op(&self, other :&ECGroupPrime) -> bool {
 		let mut retv : bool = true;
 		if !self.generator.eq_op(&other.generator) {
@@ -293,10 +270,6 @@ impl ECGroupPrime {
 			retv = false;
 		}
 
-		if self.specflags != other.specflags {
-			retv = false;
-		}
-
 		return retv;
 	}
 }
@@ -312,7 +285,7 @@ impl PartialEq for ECGroupPrime {
 }
 
 
-impl ECGroup for ECGroupPrime {
+impl ECGroupInterface for ECGroupPrime {
 	fn x(&self) -> BigInt {
 		return self.generator.x.clone();
 	}
@@ -327,6 +300,114 @@ impl ECGroup for ECGroupPrime {
 
 	fn degree(&self) -> i64 {
 		return get_max_bits(&self.p);
+	}
+}
+
+#[derive(Clone)]
+pub struct ECGroup {
+	pub (crate) bngrp :Option<ECGroupBnGf2m>,
+	pub (crate) primegrp :Option<ECGroupPrime>,
+}
+
+impl Default for ECGroup {
+	fn default() -> Self {
+		Self {
+			bngrp : None,
+			primegrp : None,
+		}
+	}
+}
+
+impl ECGroup {
+	pub (crate) fn new_bn_group( grp:&ECGroupBnGf2m) -> Self {
+		Self {
+			bngrp : Some(grp.clone()),
+			primegrp : None,
+		}
+	}
+
+	pub (crate) fn new_prime_group(grp :&ECGroupPrime) -> Self {
+		Self {
+			bngrp : None,
+			primegrp : Some(grp.clone()),
+		}
+	}
+
+	pub fn new_bn_group_base(p :&BigInt,a :&BigInt,b :&BigInt,x :&BigInt,y :&BigInt, z :&BigInt, order :&BigInt,cofactor :&BigInt,name :&str) -> Result<Self,Box<dyn Error>> {
+		let mut bngrp :ECGroupBnGf2m = ECGroupBnGf2m::default();
+		bngrp.p = p.clone();
+		bngrp.a = BnGf2m::new_from_bigint(a);
+		bngrp.b = BnGf2m::new_from_bigint(b);
+		bngrp.generator.x = BnGf2m::new_from_bigint(x);
+		bngrp.generator.y = BnGf2m::new_from_bigint(y);
+		bngrp.generator.z = BnGf2m::new_from_bigint(z);
+		bngrp.order = order.clone();
+		bngrp.cofactor = cofactor.clone();
+		bngrp.curvename = format!("{}",name);
+		Ok(Self {
+			bngrp : Some(bngrp.clone()),
+			primegrp : None,
+		})
+	}
+
+	pub fn new_prime_group_base(p :&BigInt,a :&BigInt, b:&BigInt, x :&BigInt,y :&BigInt, z :&BigInt, order :&BigInt, cofactor :&BigInt,name :&str) -> Result<Self,Box<dyn Error>> {
+		let mut primegrp :ECGroupPrime = ECGroupPrime::default();
+		let montv :MontNum;
+		let ov :BigInt = one();
+		let tmpp :BigInt;
+		let tmpa :BigInt;
+		primegrp.p = p.clone();
+		montv = MontNum::new(&primegrp.p).unwrap();
+		primegrp.a = montv.mont_to(a);
+		primegrp.b = montv.mont_to(b);
+		primegrp.generator.x = montv.mont_to(x);
+		primegrp.generator.y = montv.mont_to(y);
+		primegrp.generator.z = montv.mont_to(z);
+		primegrp.order = order.clone();
+		primegrp.cofactor = cofactor.clone();
+		primegrp.curvename = format!("{}",name);
+		tmpp = p.clone();
+		tmpa = a.clone();
+
+		if tmpp == (tmpa + ov.clone() + ov.clone() + ov.clone()) {
+			primegrp.is_minus3 = true;
+		} else {
+			primegrp.is_minus3 = false;
+		}
+		Ok(Self {
+			bngrp : None,
+			primegrp : Some(primegrp.clone()),
+		})
+	}
+
+	pub (crate) fn is_bn_group(&self) -> bool {
+		if self.bngrp.is_some() {
+			return true;
+		}
+		return false;
+	}
+
+	pub (crate) fn is_prime_group(&self) -> bool {
+		if self.primegrp.is_some() {
+			return true;
+		}
+		return false;
+	}
+
+	pub (crate) fn get_bn_group(&self) -> ECGroupBnGf2m {
+		let mut retv :ECGroupBnGf2m = ECGroupBnGf2m::default();
+		if self.is_bn_group() {
+			retv = self.bngrp.as_ref().unwrap().clone();
+		}
+		return retv;
+	}
+
+	pub (crate) fn get_prime_group(&self) -> ECGroupPrime {
+		let mut retv :ECGroupPrime = ECGroupPrime::default();
+		if self.is_prime_group() {
+		 	retv = self.primegrp.as_ref().unwrap().clone();
+		}
+		return retv;
 	}
 }
 
@@ -1077,7 +1158,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP112r1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
 
 
@@ -1115,7 +1195,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME192v1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME192v1_NAME.to_string(),bngrp.clone());
 
 
@@ -1154,7 +1233,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP224r1_NAME);
 	}
-	bngrp.specflags = NIST224_SPEC_FLAGS;
 	retv.insert(SECP224r1_NAME.to_string(),bngrp.clone());
 
 
@@ -1193,7 +1271,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP384r1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP384r1_NAME.to_string(),bngrp.clone());
 
 
@@ -1232,7 +1309,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP521r1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP521r1_NAME.to_string(),bngrp.clone());
 
 
@@ -1271,7 +1347,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME192v2_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME192v2_NAME.to_string(),bngrp.clone());
 
 
@@ -1310,7 +1385,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME192v3_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME192v3_NAME.to_string(),bngrp.clone());
 
 	/*prime239v1*/
@@ -1348,7 +1422,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME239v1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME239v1_NAME.to_string(),bngrp.clone());
 
 	/*prime239v2*/
@@ -1386,7 +1459,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME239v2_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME239v2_NAME.to_string(),bngrp.clone());
 
 	/*prime239v3*/
@@ -1424,7 +1496,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME239v3_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME239v3_NAME.to_string(),bngrp.clone());
 
 
@@ -1463,7 +1534,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",PRIME256v1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(PRIME256v1_NAME.to_string(),bngrp.clone());
 
 
@@ -1502,7 +1572,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP112r2_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP112r2_NAME.to_string(),bngrp.clone());
 
 
@@ -1541,7 +1610,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP128r1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP128r1_NAME.to_string(),bngrp.clone());
 
 	/*secp128r2*/
@@ -1579,7 +1647,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP128r2_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP128r2_NAME.to_string(),bngrp.clone());
 
 	/*secp160k1*/
@@ -1617,7 +1684,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP160k1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP160k1_NAME.to_string(),bngrp.clone());
 
 
@@ -1656,7 +1722,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP160r1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP160r1_NAME.to_string(),bngrp.clone());
 
 
@@ -1695,7 +1760,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP160r2_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP160r2_NAME.to_string(),bngrp.clone());
 
 
@@ -1734,7 +1798,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP192k1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP192k1_NAME.to_string(),bngrp.clone());
 
 	/*secp224k1*/
@@ -1772,7 +1835,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP224k1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP224k1_NAME.to_string(),bngrp.clone());
 
 
@@ -1811,7 +1873,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",SECP256k1_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(SECP256k1_NAME.to_string(),bngrp.clone());
 
 
@@ -1850,7 +1911,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",WTLS8_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(WTLS8_NAME.to_string(),bngrp.clone());
 
 	/*wap-wsg-idm-ecid-wtls9*/
@@ -1888,7 +1948,6 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",WTLS9_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(WTLS9_NAME.to_string(),bngrp.clone());
 
 
@@ -1927,40 +1986,35 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 		bngrp.is_minus3 = false;
 		//ecsimple_log_trace!("{} is_minus3 false",WTLS12_NAME);
 	}
-	bngrp.specflags = 0;
 	retv.insert(WTLS12_NAME.to_string(),bngrp.clone());
 
 
 	retv
 }
 
+fn craete_curve_group() -> HashMap<String,ECGroup> {
+	let mut retv :HashMap<String,ECGroup> = HashMap::new();
+	let bngrp :HashMap<String,ECGroupBnGf2m> = create_group_bn_curves();
+	for (k,v) in bngrp {
+		retv.insert(k,ECGroup::new_bn_group(&v));
+	}
+	let primegrp :HashMap<String,ECGroupPrime> = create_group_prime_curves();
+	for (k,v) in primegrp {
+		retv.insert(k,ECGroup::new_prime_group(&v));
+	}
+	retv
+}
+
 
 lazy_static ! {
-	static ref ECC_BN_CURVES :HashMap<String,ECGroupBnGf2m> = {
-		create_group_bn_curves()	
+	static ref ECC_CURVES : HashMap<String,ECGroup> = {
+		craete_curve_group()
 	};
-
-	static ref ECC_PRIME_CURVES :HashMap<String,ECGroupPrime> = {
-		create_group_prime_curves()
-	};
-
-
 }
 
 
-pub fn get_bn_group_curve(name :&str) -> Result<ECGroupBnGf2m,Box<dyn Error>> {
-	match ECC_BN_CURVES.get(name) {
-		Some(pv) => {
-			return Ok(pv.clone());
-		},
-		_ => {
-			ecsimple_new_error!{ECGroupError,"can not find [{}]",name}
-		}
-	}
-}
-
-pub fn get_prime_group_curve(name :&str) -> Result<ECGroupPrime,Box<dyn Error>> {
-	match ECC_PRIME_CURVES.get(name) {
+pub fn get_curve_group(name :&str) -> Result<ECGroup,Box<dyn Error>> {
+	match ECC_CURVES.get(name) {
 		Some(pv) => {
 			ecsimple_log_trace!("load [{}]",name);
 			return Ok(pv.clone());

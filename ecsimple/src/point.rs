@@ -17,11 +17,11 @@ use crate::randop::*;
 ecsimple_error_class!{BnGf2mPointError}
 
 #[derive(Clone)]
-pub struct ECGf2mPoint {
+pub (crate) struct ECGf2mPoint {
 	x :BnGf2m,
 	y :BnGf2m,
 	z :BnGf2m,
-	pub group :ECGroupBnGf2m,
+	pub (crate) group :ECGroupBnGf2m,
 	infinity : bool,
 }
 
@@ -71,9 +71,6 @@ impl ECGf2mPoint {
 	}
 
 
-	pub fn set_group(&mut self, grp :&ECGroupBnGf2m) {
-		self.group = grp.clone();
-	}
 
 	pub fn set_x(&mut self, x :&BnGf2m) {
 		self.x = x.clone();
@@ -475,11 +472,11 @@ impl ECGf2mPoint {
 ecsimple_error_class!{ECPrimePointError}
 
 #[derive(Clone)]
-pub struct ECPrimePoint {
+pub (crate) struct ECPrimePoint {
 	x :BigInt,
 	y :BigInt,
 	z :BigInt,
-	pub group :ECGroupPrime,
+	pub (crate) group :ECGroupPrime,
 	montv : MontNum,
 	infinity : bool,
 	z_is_one : bool,
@@ -519,11 +516,7 @@ impl std::default::Default for ECPrimePoint {
 }
 
 impl ECPrimePoint {
-	pub fn is_infinity(&self) -> bool {
-		return self.infinity;
-	}
-
-	pub fn new(grp :&ECGroupPrime) -> ECPrimePoint {
+	pub (crate) fn new(grp :&ECGroupPrime) -> ECPrimePoint {
 		let pnt :ECPrimePoint = ECPrimePoint {
 			x : grp.generator.x.clone(),
 			y : grp.generator.y.clone(),
@@ -536,7 +529,7 @@ impl ECPrimePoint {
 		return pnt;
 	}
 
-	pub fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
+	pub (crate) fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
 		let pnt : ECPrimePoint = Self {
 			x :x.clone(),
 			y :y.clone(),
@@ -1611,4 +1604,5 @@ impl ECPrimePoint {
 	 	Ok((x,y))
 	 }
 
-	}
+}
+

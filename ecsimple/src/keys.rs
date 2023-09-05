@@ -18,13 +18,22 @@ ecsimple_error_class!{EcKeyError}
 
 
 #[derive(Clone)]
-pub struct ECGf2mPubKey {
+pub (crate) struct ECGf2mPubKey {
 	base :ECGf2mPoint,
 	pubk :ECGf2mPoint,
 }
 
+impl Default for ECGf2mPubKey {
+	fn default() -> Self {
+		Self {
+			base : ECGf2mPoint::default(),
+			pubk : ECGf2mPoint::default(),
+		}
+	}
+}
+
 impl ECGf2mPubKey {
-	pub fn new(grp :&ECGroupBnGf2m,x :&BigInt,y :&BigInt) -> ECGf2mPubKey {
+	pub (crate) fn new(grp :&ECGroupBnGf2m,x :&BigInt,y :&BigInt) -> ECGf2mPubKey {
 		let b = ECGf2mPoint::new(grp);
 		let xn :BnGf2m = BnGf2m::new_from_bigint(x);
 		let yn :BnGf2m = BnGf2m::new_from_bigint(y);
@@ -181,13 +190,30 @@ impl std::fmt::Display for ECGf2mPubKey {
 
 
 #[derive(Clone)]
-pub struct ECGf2mPrivateKey {
+pub (crate) struct ECGf2mPrivateKey {
 	base : ECGf2mPoint,
 	privnum :BigInt,
 }
 
+impl Default for ECGf2mPrivateKey {
+	fn default() -> Self {
+		let ov :BigInt = one();
+		Self {
+			base : ECGf2mPoint::default(),
+			privnum : ov,
+		}
+	}
+}
+
+impl std::fmt::Display for ECGf2mPrivateKey {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"base {};\nprivnum {};\n",self.base,self.privnum)
+	}
+}
+
+
 impl ECGf2mPrivateKey {
-	pub fn new(grp :&ECGroupBnGf2m , privnum :&BigInt) -> ECGf2mPrivateKey {
+	pub (crate) fn new(grp :&ECGroupBnGf2m , privnum :&BigInt) -> ECGf2mPrivateKey {
 		let b :ECGf2mPoint = ECGf2mPoint::new(grp);
 		ECGf2mPrivateKey {
 			base : b,
@@ -286,13 +312,22 @@ impl ECGf2mPrivateKey {
 
 
 #[derive(Clone)]
-pub struct ECPrimePubKey {
+pub (crate) struct ECPrimePubKey {
 	base :ECPrimePoint,
 	pubk :ECPrimePoint,
 }
 
+impl Default for ECPrimePubKey {
+	fn default() -> Self {
+		Self {
+			base : ECPrimePoint::default(),
+			pubk : ECPrimePoint::default(),
+		}
+	}
+}
+
 impl ECPrimePubKey {
-	pub fn new(grp :&ECGroupPrime,x :&BigInt,y :&BigInt) -> ECPrimePubKey {
+	pub (crate) fn new(grp :&ECGroupPrime,x :&BigInt,y :&BigInt) -> ECPrimePubKey {
 		let b = ECPrimePoint::new(grp);
 		let zn :BigInt = one();
 		ECPrimePubKey {
@@ -455,20 +490,46 @@ impl std::fmt::Display for ECPrimePubKey {
 
 
 
-#[allow(dead_code)]
 #[derive(Clone)]
-pub struct ECPrimePrivateKey {
+pub (crate) struct ECPrimePrivateKey {
 	base : ECPrimePoint,
 	privnum :BigInt,
 }
 
+impl Default for ECPrimePrivateKey {
+	fn default() -> Self {
+		let ov :BigInt = one();
+		Self {
+			base : ECPrimePoint::default(),
+			privnum : ov,
+		}
+	}
+}
+
+impl std::fmt::Display for ECPrimePrivateKey {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"base {};\nprivnum {};\n",self.base,self.privnum)
+	}
+}
+
+
 impl ECPrimePrivateKey {
-	pub fn new(grp :&ECGroupPrime , privnum :&BigInt) -> ECPrimePrivateKey {
+	pub (crate) fn new(grp :&ECGroupPrime , privnum :&BigInt) -> ECPrimePrivateKey {
 		let b :ECPrimePoint = ECPrimePoint::new(grp);
 		ECPrimePrivateKey {
 			base : b,
 			privnum : privnum.clone(),
 		}
+	}
+
+	pub fn export_pubkey(&self) -> ECPrimePubKey {
+		let ck : ECPrimePoint;
+		ck = self.base.mul_op(&self.privnum,false);
+		let retv :ECPrimePubKey = ECPrimePubKey {
+			base : self.base.clone(),
+			pubk : ck.clone(),
+		};
+		retv
 	}
 
 
@@ -539,3 +600,197 @@ impl ECPrimePrivateKey {
 }
 
 
+
+#[derive(Clone)]
+pub struct ECPublicKey {
+	pub (crate) bnkey :Option<ECGf2mPubKey>,
+	pub (crate) primekey :Option<ECPrimePubKey>,
+}
+
+impl Default for ECPublicKey {
+	fn default() -> Self {
+		Self {
+			bnkey : None,
+			primekey : None,
+		}
+	}
+}
+
+impl ECPublicKey {
+	pub fn new(grp :&ECGroup,x :&BigInt,y :&BigInt) -> ECPublicKey {
+		let retv :ECPublicKey;
+		if grp.is_bn_group() {
+			retv =  ECPublicKey{
+				bnkey : Some(ECGf2mPubKey::new(&grp.get_bn_group(),x,y)),
+				primekey : None,
+			};
+		} else {
+			retv = ECPublicKey {
+				bnkey : None,
+				primekey : Some(ECPrimePubKey::new(&grp.get_prime_group(),x,y)),
+			} ;
+		}
+		return retv;
+	}
+
+
+	pub fn from_der(grp :&ECGroup, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+		let retv :ECPublicKey;
+		if grp.is_bn_group() {
+			let bnkey : ECGf2mPubKey = ECGf2mPubKey::from_der(&grp.get_bn_group(),dercode)?;
+			retv = ECPublicKey {
+				bnkey : Some(bnkey),
+				primekey : None,
+			};
+		} else {
+			let primekey : ECPrimePubKey = ECPrimePubKey::from_der(&grp.get_prime_group(),dercode)?;
+			retv = ECPublicKey {
+				bnkey : None,
+				primekey : Some(primekey),
+			};
+		} 
+		Ok(retv)
+	}
+
+	fn is_bn_key(&self) -> bool {
+		if self.bnkey.is_some() {
+			return true;
+		}
+		return false;
+	}
+
+	fn is_prime_key(&self) -> bool {
+		if self.primekey.is_some() {
+			return true;
+		}
+		return false;
+	}
+
+	fn get_bn_key(&self) -> ECGf2mPubKey {
+		let mut retv :ECGf2mPubKey = ECGf2mPubKey::default();
+		if self.is_bn_key() {
+			retv = self.bnkey.as_ref().unwrap().clone();
+		}
+		return retv;
+	}
+
+	fn get_prime_key(&self) -> ECPrimePubKey {
+		let mut retv :ECPrimePubKey = ECPrimePubKey::default();
+		if self.is_prime_key() {
+			retv = self.primekey.as_ref().unwrap().clone();
+		}
+		return retv;
+	}
+
+	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+		if self.is_bn_key() {
+			return self.get_bn_key().verify_base(sig,hashnum);
+		}  else if self.is_prime_key() {
+			return self.get_prime_key().verify_base(sig,hashnum);
+		}
+		ecsimple_new_error!{EcKeyError,"not supported public key"}
+	}
+}
+
+impl std::fmt::Display for ECPublicKey {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		if self.is_prime_key() {
+			return self.get_prime_key().fmt(f);
+		}
+		return self.get_bn_key().fmt(f);		
+	}
+}
+
+#[derive(Clone)]
+pub struct ECPrivateKey {
+	pub (crate) bnkey :Option<ECGf2mPrivateKey>,
+	pub (crate) primekey :Option<ECPrimePrivateKey>,
+}
+
+impl Default for ECPrivateKey {
+	fn default() -> Self {
+		Self {
+			bnkey : None,
+			primekey : None,
+		}
+	}
+}
+
+impl ECPrivateKey {
+	pub fn new(grp :&ECGroup , privnum :&BigInt) -> ECPrivateKey {
+		let retv :ECPrivateKey;
+		if grp.is_bn_group() {
+			retv = ECPrivateKey {
+				bnkey : Some(ECGf2mPrivateKey::new(&grp.get_bn_group(),privnum)),
+				primekey : None,
+			};
+		} else {
+			retv = ECPrivateKey {
+				bnkey : None,
+				primekey : Some(ECPrimePrivateKey::new(&grp.get_prime_group(),privnum)),
+			};
+		}
+		return retv;
+	}
+
+	pub fn export_pubkey(&self) -> ECPublicKey {
+		let mut retv :ECPublicKey = ECPublicKey::default();
+		if self.is_prime_key() {
+			let pubk = self.get_prime_key().export_pubkey();
+			retv.primekey = Some(pubk);
+		} else if self.is_bn_key() {
+			let pubk = self.get_bn_key().export_pubkey();
+			retv.bnkey = Some(pubk);
+		}
+		return retv;
+	}
+
+	fn is_bn_key(&self) -> bool {
+		if self.bnkey.is_some() {
+			return true;
+		}
+		return false;
+	}
+
+	fn is_prime_key(&self) -> bool {
+		if self.primekey.is_some() {
+			return true;
+		}
+		return false;
+	}
+
+	fn get_bn_key(&self) -> ECGf2mPrivateKey {
+		let mut retv : ECGf2mPrivateKey = ECGf2mPrivateKey::default();
+		if self.is_bn_key() {
+			retv = self.bnkey.as_ref().unwrap().clone();
+		}
+		return retv;
+	}
+
+	fn get_prime_key(&self) -> ECPrimePrivateKey {
+		let mut retv : ECPrimePrivateKey = ECPrimePrivateKey::default();
+		if self.is_prime_key() {
+			retv = self.primekey.as_ref().unwrap().clone();
+		}
+		return retv;
+	}
+
+
+	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
+		if self.is_bn_key() {
+			return self.get_bn_key().sign_base(hashnum);
+		} else if self.is_prime_key() {
+			return self.get_prime_key().sign_base(hashnum);
+		}
+		ecsimple_new_error!{EcKeyError,"not supported private key"}
+	}
+}
+
+impl std::fmt::Display for ECPrivateKey {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		if self.is_prime_key() {
+			return self.get_prime_key().fmt(f);
+		}
+		return self.get_bn_key().fmt(f);		
+	}
+}
