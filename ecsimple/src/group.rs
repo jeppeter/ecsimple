@@ -1109,6 +1109,90 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 	retv.insert(C2PNB208w1_NAME.to_string(),bngrp.clone());
 
 
+	/*c2pnb208w1*/
+	v8 = Vec::from_hex("010000000000000000000000000000000800000000000000000007").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("000000000000000000000000000000000000000000000000000000").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("00C8619ED45A62E6212E1160349E2BFA844439FAFC2A3FD1638F9E").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("0089FDFBE4ABE193DF9559ECF07AC0CE78554E2784EB8C1ED1A57A").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("000F55B51A06E78E9AC38A035FF520D8B01781BEB1A6BB08617DE3").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+	bngrp.generator.z = BnGf2m::one();
+
+	v8 = Vec::from_hex("00000101BAF95C9723C57B6C21DA2EFF2D5ED588BDD5717E212F9D").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	v8 = Vec::from_hex("FE48").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.cofactor = p.clone();
+	bngrp.curvename = C2PNB208w1_NAME.to_string();
+
+	retv.insert(C2PNB208w1_NAME.to_string(),bngrp.clone());
+
+	/*c2tnb239v1*/
+	v8 = Vec::from_hex("800000000000000000000000000000000000000000000000001000000001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("32010857077c5431123a46b808906756f543423e8d27877578125778ac76").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("790408f2eedaf392b012edefb3392f30f4327c0ca3f31fc383c422aa8c16").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("57927098fa932e7c0a96d3fd5b706ef7e5f5c156e16b7e7c86038552e91d").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("61d8ee5077c33fecf6f1a16b268de469c3c7744ea9a971649fc7a9616305").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+	bngrp.generator.z = BnGf2m::one();
+
+	v8 = Vec::from_hex("2000000000000000000000000000000f4d42ffe1492a4993f1cad666e447").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	v8 = Vec::from_hex("04").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.cofactor = p.clone();
+	bngrp.curvename = C2TNB239v1_NAME.to_string();
+
+	retv.insert(C2TNB239v1_NAME.to_string(),bngrp.clone());
+
+	/*c2tnb239v2*/
+	v8 = Vec::from_hex("800000000000000000000000000000000000000000000000001000000001").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.p = p.clone();
+	v8 = Vec::from_hex("4230017757a767fae42398569b746325d45313af0766266479b75654e65f").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.a = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("5037ea654196cff0cd82b2c14a2fcf2e3ff8775285b545722f03eacdb74b").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.b = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("28f9d04e900069c8dc47a08534fe76d2b900b7d7ef31f5709f200c4ca205").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+	v8 = Vec::from_hex("5667334c45aff3b5a03bad9dd75e2c71a99362567d5453f7fa6e227ec833").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+	bngrp.generator.z = BnGf2m::one();
+
+	v8 = Vec::from_hex("1555555555555555555555555555553c6f2885259c31e3fcdf154624522d").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.order = p.clone();
+	v8 = Vec::from_hex("06").unwrap();
+	p = BigInt::from_bytes_be(Sign::Plus,&v8);
+	bngrp.cofactor = p.clone();
+	bngrp.curvename = C2TNB239v2_NAME.to_string();
+
+	retv.insert(C2TNB239v2_NAME.to_string(),bngrp.clone());
+
 	retv
 }
 
