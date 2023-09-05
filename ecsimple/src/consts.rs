@@ -54,6 +54,7 @@ pub const C2TNB239v3_NAME :&str = "c2tnb239v3";
 pub const C2PNB272w1_NAME :&str = "c2pnb272w1";
 pub const C2PNB304w1_NAME :&str = "c2pnb304w1";
 pub const C2TNB359v1_NAME :&str = "c2tnb359v1";
+pub const C2PNB368w1_NAME :&str = "c2pnb368w1";
 
 pub const SECT163k1_OID :&str = "1.3.132.0.1";
 pub const SECT163r1_OID :&str = "1.3.132.0.2";
@@ -101,6 +102,7 @@ pub const C2TNB239v3_OID :&str = "1.2.840.10045.3.0.13";
 pub const C2PNB272w1_OID :&str = "1.2.840.10045.3.0.16";
 pub const C2PNB304w1_OID :&str = "1.2.840.10045.3.0.17";
 pub const C2TNB359v1_OID :&str = "1.2.840.10045.3.0.18";
+pub const C2PNB368w1_OID :&str = "1.2.840.10045.3.0.19";
 
 pub const PRIME192v1_OID :&str = "1.2.840.10045.3.1.1";
 pub const PRIME192v2_OID :&str = "1.2.840.10045.3.1.2";
