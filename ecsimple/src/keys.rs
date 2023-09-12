@@ -83,7 +83,7 @@ impl ECGf2mPubKey {
 		Ok(y)
 	}
 
-	pub fn from_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+	pub fn from_bin(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECGf2mPoint::new(grp);
 		let mut pubk :ECGf2mPoint = b.clone();
 		if dercode.len() < 1 {
@@ -146,6 +146,20 @@ impl ECGf2mPubKey {
 			base : b.clone(),
 			pubk : pubk.clone(),
 		})
+	}
+
+	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut retv :Vec<u8> = Vec::new();
+		if cmprtype == EC_COMPRESSED {
+
+		} else if cmprtype == EC_UNCOMPRESSED {
+
+		} else if cmprtype == EC_HYBRID {
+
+		} else {
+			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
+		}
+		Ok(retv)
 	}
 
 	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
@@ -389,7 +403,7 @@ impl ECPrimePubKey {
 		Ok(y)
 	}
 
-	pub fn from_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+	pub fn from_bin(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
 		let pubk :ECPrimePoint = b.clone();
 		if dercode.len() < 1 {
@@ -441,6 +455,21 @@ impl ECPrimePubKey {
 			base : b.clone(),
 			pubk : pubk.clone(),
 		})
+	}
+
+
+	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut retv :Vec<u8> = Vec::new();
+		if cmprtype == EC_COMPRESSED {
+
+		} else if cmprtype == EC_UNCOMPRESSED {
+
+		} else if cmprtype == EC_HYBRID {
+
+		} else {
+			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
+		}
+		Ok(retv)
 	}
 
 
@@ -633,17 +662,28 @@ impl ECPublicKey {
 		return retv;
 	}
 
+	pub fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let retv :Vec<u8>;
+		if self.is_bn_key() {
+			retv= self.get_bn_key().to_bin(cmprtype)?;
+		} else {
+			retv = self.get_prime_key().to_bin(cmprtype)?;
+		} 
+		Ok(retv)
 
-	pub fn from_der(grp :&ECGroup, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+	}
+
+
+	pub fn from_bin(grp :&ECGroup, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let retv :ECPublicKey;
 		if grp.is_bn_group() {
-			let bnkey : ECGf2mPubKey = ECGf2mPubKey::from_der(&grp.get_bn_group(),dercode)?;
+			let bnkey : ECGf2mPubKey = ECGf2mPubKey::from_bin(&grp.get_bn_group(),dercode)?;
 			retv = ECPublicKey {
 				bnkey : Some(bnkey),
 				primekey : None,
 			};
 		} else {
-			let primekey : ECPrimePubKey = ECPrimePubKey::from_der(&grp.get_prime_group(),dercode)?;
+			let primekey : ECPrimePubKey = ECPrimePubKey::from_bin(&grp.get_prime_group(),dercode)?;
 			retv = ECPublicKey {
 				bnkey : None,
 				primekey : Some(primekey),
