@@ -114,11 +114,17 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 
 fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
+	let mut idx :usize = 0;
 
 	init_log(ns.clone())?;
 
 	if sarr.len() < 4 {
 		extargs_new_error!{EcError,"need ecname and private number and hashnumber and signbin"}
+	}
+
+	while idx < sarr.len() {
+		debug_trace!("[{}][{}]",idx,sarr[idx]);
+		idx += 1;
 	}
 
 	let ecname = format!("{}",sarr[0]);
