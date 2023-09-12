@@ -136,6 +136,9 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	println!("sig.r 0x{:X} sig.s 0x{:X}",sig.r,sig.s);
 	let ok :bool = pubkey.verify_base(&sig,&hashnum)?;
 	println!("verify 0x{:X} with signature [{}] {:?}", hashnum,signbin,ok);
+	if  !ok {
+		extargs_new_error!{EcError,"can not verify {} pubkey {} signdata {}",ecname,ecpubfile,signbin}
+	}
 
 	Ok(())
 }
@@ -228,7 +231,7 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	{{
 		"ecpriv" : null,
 		"ecpub" : null,
-		"eccmprtype" : "{}"
+		"eccmprtype" : "{}",
 		"ecgen<ecgen_handler>##ecname privatenum to generate ec private key##" : {{
 			"$" : "+"
 		}},
