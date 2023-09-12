@@ -32,7 +32,7 @@ use std::io::Write;
 use num_bigint::{BigInt,Sign};
 
 //use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
-use ecsimple::group::{ECGroup,get_curve_group};
+use ecsimple::group::{ECGroup,ecc_get_curve_group};
 use ecsimple::signature::{ECSignature};
 use ecsimple::keys::{ECPublicKey, ECPrivateKey};
 use ecsimple::consts::*;
@@ -53,13 +53,19 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let ecname :String = format!("{}",sarr[0]);
 	let bn : BigInt = parse_to_bigint(&sarr[1])?;
 
-	let grp :ECGroup = get_curve_group(&ecname)?;
+	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
 	let pnt :ECPrivateKey = ECPrivateKey::new(&grp,&bn);
 	let pubpnt :ECPublicKey = pnt.export_pubkey();
 	let ecpub :String = ns.get_string("ecpub");
 	if ecpub.len() > 0 {
 		let pubdata = pubpnt.to_bin(&eccmprtype)?;
 		write_file_bytes(&ecpub,&pubdata)?;
+	}
+
+	let ecpriv :String = ns.get_string("ecpriv");
+	if ecpriv.len() > 0 {
+		let privdata = pnt.to_der(&eccmprtype)?;
+		write_file_bytes(&ecpriv,&privdata)?;
 	}
 
 
@@ -90,7 +96,7 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	//let grp :ECGroupPrime = get_prime_group_curve(&ecname)?;
 	//let privkey :ECPrimePrivateKey = ECPrimePrivateKey::new(&grp,&bn);
 
-	let grp :ECGroup =  get_curve_group(&ecname)?;
+	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
 	let privkey :ECPrivateKey = ECPrivateKey::new(&grp,&bn);
 
 	let sig :ECSignature = privkey.sign_base(&bs)?;
@@ -121,7 +127,7 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let signbin = format!("{}",sarr[3]);
 
 
-	let grp :ECGroup = get_curve_group(&ecname)?;
+	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
 	let rdata :Vec<u8> = read_file_bytes(&ecpubfile)?;
 	let pubkey :ECPublicKey = ECPublicKey::from_bin(&grp,&rdata)?;
 	let sigdata :Vec<u8> = read_file_bytes(&signbin)?;
@@ -147,7 +153,7 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let ecname = format!("{}",sarr[0]);
 	let ecfile = format!("{}",sarr[1]);
 
-	let grp :ECGroup = get_curve_group(&ecname)?;
+	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
 	let rdata :Vec<u8> = read_file_bytes(&ecfile)?;
 	let ecpub :ECPublicKey = ECPublicKey::from_bin(&grp,&rdata)?;
 

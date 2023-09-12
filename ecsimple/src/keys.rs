@@ -9,12 +9,37 @@ use crate::utils::*;
 use crate::randop::*;
 use crate::logger::*;
 use crate::*;
-use num_bigint::{BigInt,Sign};
+use num_bigint::{BigInt,Sign,BigUint};
 use num_traits::{zero,one};
 
 use std::error::Error;
 
+use asn1obj_codegen::{asn1_sequence};
+use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData};
+use asn1obj::complex::{Asn1Seq,Asn1ImpSet};
+use asn1obj::{asn1obj_error_class,asn1obj_new_error};
+use asn1obj::asn1impl::Asn1Op;
+use asn1obj::strop::asn1_format_line;
+use std::io::Write;
+
+
 ecsimple_error_class!{EcKeyError}
+
+
+#[derive(Clone)]
+#[asn1_sequence()]
+struct ECPrivateAsn1Elem {
+	pub (crate) version :Asn1Integer,
+	pub (crate) privnum :Asn1BigNum,
+	pub (crate) ecoid :Asn1ImpSet<Asn1Object,0>,
+	pub (crate) pubdata :Asn1ImpSet<Asn1BitData,1>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+struct ECPrivateAsn1 {
+	pub (crate) elem :Asn1Seq<ECPrivateAsn1Elem>,
+}
 
 
 #[derive(Clone)]
@@ -150,19 +175,51 @@ impl ECGf2mPubKey {
 
 	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
+		let ov :BigInt = one();
+		let zv :BigInt = zero();
+		let tv :BigInt = ov.clone() + ov.clone();
+		let y :BigInt = self.pubk.y().to_bigint();
+		let x :BigInt = self.pubk.x().to_bigint();
 		if cmprtype == EC_COMPRESSED {
-
+			retv.push(EC_CODE_COMPRESSED);
+			let (_, xvecs) = x.to_bytes_be();
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			if y % tv != zv {
+				retv[0] |= EC_CODE_YBIT;
+			}
 		} else if cmprtype == EC_UNCOMPRESSED {
-
+			retv.push(EC_CODE_UNCOMPRESSED);
+			let (_,xvecs) = x.to_bytes_be();
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			let (_,yvecs) = y.to_bytes_be();
+			for yb in yvecs {
+				retv.push(yb);
+			}
 		} else if cmprtype == EC_HYBRID {
-
+			retv.push(EC_CODE_HYBRID);
+			let (_,xvecs) = x.to_bytes_be();
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			let (_,yvecs) = y.to_bytes_be();
+			for yb in yvecs {
+				retv.push(yb);
+			}
+			if y % tv != zv {
+				retv[0] |= EC_CODE_YBIT;
+			}
 		} else {
 			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
 		}
 		Ok(retv)
 	}
 
-	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+
+	pub (crate) fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
 		let vfypnt :ECGf2mPoint;
@@ -170,7 +227,7 @@ impl ECGf2mPubKey {
 		if sig.r == zero() || sig.s == zero() {
 			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
 		}
-	
+
 		let e :BigInt = &order - 2;
 		u2 = sig.s.modpow(&e,&order);
 		ecsimple_log_trace!("s 0x{:X} u2 0x{:X}",sig.s,u2);
@@ -244,6 +301,26 @@ impl ECGf2mPrivateKey {
 		};
 		retv
 	}
+
+	pub (crate)  fn to_der(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let pubk :ECGf2mPubKey = self.export_pubkey();
+		let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
+		let mut ecprivasn1elem :ECPrivateAsn1Elem = ECPrivateAsn1Elem::init_asn1();
+		ecprivasn1elem.version.val = 1;
+		let (_, vecs) = self.privnum.to_bytes_be();
+		ecprivasn1elem.privnum.val = BigUint::from_bytes_be(&vecs);
+		let ecoid :String = ecc_get_oid_from_name(&self.base.group.curvename)?;
+		let mut oidobj :Asn1Object = Asn1Object::init_asn1();
+		let _ = oidobj.set_value(&ecoid)?;
+		let _ = ecprivasn1elem.ecoid.val.push(oidobj);
+		let mut pubbits :Asn1BitData = Asn1BitData::init_asn1();
+		pubbits.data = pubdata.clone();
+		ecprivasn1elem.pubdata.val.push(pubbits);
+		let mut ecprivasn1 :ECPrivateAsn1 = ECPrivateAsn1::init_asn1();
+		ecprivasn1.elem.val.push(ecprivasn1elem);
+		return ecprivasn1.encode_asn1();
+	}
+
 
 	#[allow(non_snake_case)]
 	fn setup_sign(&self) -> Result<(BigInt,BigInt),Box<dyn Error>> {
@@ -460,12 +537,44 @@ impl ECPrimePubKey {
 
 	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
+		let x :BigInt = self.pubk.x();
+		let y :BigInt = self.pubk.y();
+		let ov :BigInt = one();
+		let zv :BigInt = zero();
+		let tv :BigInt = ov.clone() + ov.clone();
+
 		if cmprtype == EC_COMPRESSED {
-
+			retv.push(EC_CODE_COMPRESSED);
+			let (_,xvecs) = x.to_bytes_be();
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			if y % tv != zv {
+				retv[0] |= EC_CODE_YBIT;
+			}
 		} else if cmprtype == EC_UNCOMPRESSED {
-
+			retv.push(EC_CODE_UNCOMPRESSED);
+			let (_,xvecs) = x.to_bytes_be();
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			let (_,yvecs) = y.to_bytes_be();
+			for yb in yvecs {
+				retv.push(yb);
+			}
 		} else if cmprtype == EC_HYBRID {
-
+			retv.push(EC_CODE_HYBRID);
+			let (_,xvecs) = x.to_bytes_be();
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			let (_,yvecs) = y.to_bytes_be();
+			for yb in yvecs {
+				retv.push(yb);
+			}
+			if y % tv != zv {
+				retv[0] |= EC_CODE_YBIT;
+			}
 		} else {
 			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
 		}
@@ -482,7 +591,7 @@ impl ECPrimePubKey {
 		if sig.r == zero() || sig.s == zero() {
 			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
 		}
-	
+
 		let e :BigInt = &order - 2;
 		u2 = sig.s.modpow(&e,&order);
 		ecsimple_log_trace!("s 0x{:X} u2 0x{:X}",sig.s,u2);
@@ -559,6 +668,25 @@ impl ECPrimePrivateKey {
 			pubk : ck.clone(),
 		};
 		retv
+	}
+
+	pub (crate)  fn to_der(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let pubk :ECPrimePubKey = self.export_pubkey();
+		let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
+		let mut ecprivasn1elem :ECPrivateAsn1Elem = ECPrivateAsn1Elem::init_asn1();
+		ecprivasn1elem.version.val = 1;
+		let (_, vecs) = self.privnum.to_bytes_be();
+		ecprivasn1elem.privnum.val = BigUint::from_bytes_be(&vecs);
+		let ecoid :String = ecc_get_oid_from_name(&self.base.group.curvename)?;
+		let mut oidobj :Asn1Object = Asn1Object::init_asn1();
+		let _ = oidobj.set_value(&ecoid)?;
+		let _ = ecprivasn1elem.ecoid.val.push(oidobj);
+		let mut pubbits :Asn1BitData = Asn1BitData::init_asn1();
+		pubbits.data = pubdata.clone();
+		ecprivasn1elem.pubdata.val.push(pubbits);
+		let mut ecprivasn1 :ECPrivateAsn1 = ECPrivateAsn1::init_asn1();
+		ecprivasn1.elem.val.push(ecprivasn1elem);
+		return ecprivasn1.encode_asn1();
 	}
 
 
@@ -756,7 +884,30 @@ impl Default for ECPrivateKey {
 	}
 }
 
+
 impl ECPrivateKey {
+	pub fn from_der(dercode :&[u8]) -> Result<ECPrivateKey,Box<dyn Error>> {
+		let mut ecprivasn1 :ECPrivateAsn1 = ECPrivateAsn1::init_asn1();
+		let _ = ecprivasn1.decode_asn1(dercode)?;
+		if ecprivasn1.elem.val.len() != 1 {
+			ecsimple_new_error!{EcKeyError,"elem [{}] != 1" ,ecprivasn1.elem.val.len()}
+		}
+		let ecprivasn1elem = ecprivasn1.elem.val[0].clone();
+		if ecprivasn1elem.version.val != 1 {
+			ecsimple_new_error!{EcKeyError,"version {} != 1" , ecprivasn1elem.version.val}
+		}
+		if ecprivasn1elem.ecoid.val.len() != 1 {
+			ecsimple_new_error!{EcKeyError,"ecoid len {} != 1", ecprivasn1elem.ecoid.val.len()}
+		}
+		let oidstr :String = ecprivasn1elem.ecoid.val[0].get_value();
+		let name :String = ecc_get_name_from_oid(&oidstr)?;
+		let grp :ECGroup = ecc_get_curve_group(&name)?;
+		let vecs :Vec<u8> = ecprivasn1elem.privnum.val.to_bytes_be();
+		let privnum :BigInt = BigInt::from_bytes_be(Sign::Plus,&vecs);
+		let retv :ECPrivateKey = ECPrivateKey::new(&grp,&privnum);
+		return Ok(retv);
+	}
+
 	pub fn new(grp :&ECGroup , privnum :&BigInt) -> ECPrivateKey {
 		let retv :ECPrivateKey;
 		if grp.is_bn_group() {
@@ -823,6 +974,15 @@ impl ECPrivateKey {
 			return self.get_prime_key().sign_base(hashnum);
 		}
 		ecsimple_new_error!{EcKeyError,"not supported private key"}
+	}
+
+	pub fn to_der(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		if self.is_bn_key() {
+			return self.get_bn_key().to_der(cmprtype);
+		} else if self.is_prime_key() {
+			return self.get_prime_key().to_der(cmprtype);
+		}
+		ecsimple_new_error!{EcKeyError,"not supported private key"}		
 	}
 }
 

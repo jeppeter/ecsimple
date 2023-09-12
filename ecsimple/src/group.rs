@@ -2847,15 +2847,211 @@ fn craete_curve_group() -> HashMap<String,ECGroup> {
 	retv
 }
 
+fn create_name_to_oid() -> HashMap<String,String> {
+	let mut retv :HashMap<String,String> = HashMap::new();
+
+
+	/*sect113r1*/
+	retv.insert(SECT113r1_NAME.to_string(),SECT113r1_OID.to_string());
+	/*sect113r2*/
+	retv.insert(SECT113r2_NAME.to_string(),SECT113r2_OID.to_string());
+	/*sect131r1*/
+	retv.insert(SECT131r1_NAME.to_string(),SECT131r1_OID.to_string());
+	/*sect131r2*/
+	retv.insert(SECT131r2_NAME.to_string(),SECT131r2_OID.to_string());
+	/*sect163k1*/
+	retv.insert(SECT163k1_NAME.to_string(),SECT163k1_OID.to_string());
+	/*sect163r1*/
+	retv.insert(SECT163r1_NAME.to_string(),SECT163r1_OID.to_string());
+	/*sect163r2*/
+	retv.insert(SECT163r2_NAME.to_string(),SECT163r2_OID.to_string());
+	/*sect193r1*/
+	retv.insert(SECT193r1_NAME.to_string(),SECT193r1_OID.to_string());
+	/*sect193r2*/
+	retv.insert(SECT193r2_NAME.to_string(),SECT193r2_OID.to_string());
+	/*sect233k1*/
+	retv.insert(SECT233k1_NAME.to_string(),SECT233k1_OID.to_string());
+	/*sect233r1*/
+	retv.insert(SECT233r1_NAME.to_string(),SECT233r1_OID.to_string());
+	/*sect239k1*/
+	retv.insert(SECT239k1_NAME.to_string(),SECT239k1_OID.to_string());
+	/*sect283k1*/
+	retv.insert(SECT283k1_NAME.to_string(),SECT283k1_OID.to_string());
+	/*sect283r1*/
+	retv.insert(SECT283r1_NAME.to_string(),SECT283r1_OID.to_string());
+	/*sect409k1*/
+	retv.insert(SECT409k1_NAME.to_string(),SECT409k1_OID.to_string());
+	/*sect409r1*/
+	retv.insert(SECT409r1_NAME.to_string(),SECT409r1_OID.to_string());
+	/*sect571k1*/
+	retv.insert(SECT571k1_NAME.to_string(),SECT571k1_OID.to_string());
+	/*sect571r1*/
+	retv.insert(SECT571r1_NAME.to_string(),SECT571r1_OID.to_string());
+	/*c2pnb163v1*/
+	retv.insert(C2PNB163v1_NAME.to_string(),C2PNB163v1_OID.to_string());
+	/*c2pnb163v2*/
+	retv.insert(C2PNB163v2_NAME.to_string(),C2PNB163v2_OID.to_string());
+	/*c2pnb163v3*/
+	retv.insert(C2PNB163v3_NAME.to_string(),C2PNB163v3_OID.to_string());
+	/*c2pnb176v1*/
+	retv.insert(C2PNB176v1_NAME.to_string(),C2PNB176v1_OID.to_string());
+	/*c2tnb191v1*/
+	retv.insert(C2TNB191v1_NAME.to_string(),C2TNB191v1_OID.to_string());
+	/*c2tnb191v2*/
+	retv.insert(C2TNB191v2_NAME.to_string(),C2TNB191v2_OID.to_string());
+	/*c2tnb191v3*/
+	retv.insert(C2TNB191v3_NAME.to_string(),C2TNB191v3_OID.to_string());
+	/*c2pnb208w1*/
+	retv.insert(C2PNB208w1_NAME.to_string(),C2PNB208w1_OID.to_string());
+	/*c2pnb208w1*/
+	retv.insert(C2PNB208w1_NAME.to_string(),C2PNB208w1_OID.to_string());
+	/*c2tnb239v1*/
+	retv.insert(C2TNB239v1_NAME.to_string(),C2TNB239v1_OID.to_string());
+	/*c2tnb239v2*/
+	retv.insert(C2TNB239v2_NAME.to_string(),C2TNB239v2_OID.to_string());
+	/*c2tnb239v3*/
+	retv.insert(C2TNB239v3_NAME.to_string(),C2TNB239v3_OID.to_string());
+	/*c2pnb272w1*/
+	retv.insert(C2PNB272w1_NAME.to_string(),C2PNB272w1_OID.to_string());
+	/*c2pnb304w1*/
+	retv.insert(C2PNB304w1_NAME.to_string(),C2PNB304w1_OID.to_string());
+	/*c2tnb359v1*/
+	retv.insert(C2TNB359v1_NAME.to_string(),C2TNB359v1_OID.to_string());
+	/*c2pnb368w1*/
+	retv.insert(C2PNB368w1_NAME.to_string(),C2PNB368w1_OID.to_string());
+	/*c2tnb431r1*/
+	retv.insert(C2TNB431r1_NAME.to_string(),C2TNB431r1_OID.to_string());
+	/*wap-wsg-idm-ecid-wtls1*/
+	retv.insert(WTLS1_NAME.to_string(),WTLS1_OID.to_string());
+
+
+	/*secp112r1*/
+	retv.insert(SECP112r1_NAME.to_string(),SECP112r1_OID.to_string());
+	/*prime192v1*/
+	retv.insert(PRIME192v1_NAME.to_string(),PRIME192v1_OID.to_string());
+	/*secp224r1*/
+	retv.insert(SECP224r1_NAME.to_string(),SECP224r1_OID.to_string());
+	/*secp384r1*/
+	retv.insert(SECP384r1_NAME.to_string(),SECP384r1_OID.to_string());
+	/*secp521r1*/
+	retv.insert(SECP521r1_NAME.to_string(),SECP521r1_OID.to_string());
+	/*prime192v2*/
+	retv.insert(PRIME192v2_NAME.to_string(),PRIME192v2_OID.to_string());
+	/*prime192v3*/
+	retv.insert(PRIME192v3_NAME.to_string(),PRIME192v3_OID.to_string());
+	/*prime239v1*/
+	retv.insert(PRIME239v1_NAME.to_string(),PRIME239v1_OID.to_string());
+	/*prime239v2*/
+	retv.insert(PRIME239v2_NAME.to_string(),PRIME239v2_OID.to_string());
+	/*prime239v3*/
+	retv.insert(PRIME239v3_NAME.to_string(),PRIME239v3_OID.to_string());
+	/*prime256v1*/
+	retv.insert(PRIME256v1_NAME.to_string(),PRIME256v1_OID.to_string());
+	/*secp112r2*/
+	retv.insert(SECP112r2_NAME.to_string(),SECP112r2_OID.to_string());
+	/*secp128r1*/
+	retv.insert(SECP128r1_NAME.to_string(),SECP128r1_OID.to_string());
+	/*secp128r2*/
+	retv.insert(SECP128r2_NAME.to_string(),SECP128r2_OID.to_string());
+	/*secp160k1*/
+	retv.insert(SECP160k1_NAME.to_string(),SECP160k1_OID.to_string());
+	/*secp160r1*/
+	retv.insert(SECP160r1_NAME.to_string(),SECP160r1_OID.to_string());
+	/*secp160r2*/
+	retv.insert(SECP160r2_NAME.to_string(),SECP160r2_OID.to_string());
+	/*secp192k1*/
+	retv.insert(SECP192k1_NAME.to_string(),SECP192k1_OID.to_string());
+	/*secp224k1*/
+	retv.insert(SECP224k1_NAME.to_string(),SECP224k1_OID.to_string());
+	/*secp256k1*/
+	retv.insert(SECP256k1_NAME.to_string(),SECP256k1_OID.to_string());
+	/*wap-wsg-idm-ecid-wtls8*/
+	retv.insert(WTLS8_NAME.to_string(),WTLS8_OID.to_string());
+	/*wap-wsg-idm-ecid-wtls9*/
+	retv.insert(WTLS9_NAME.to_string(),WTLS9_OID.to_string());
+	/*wap-wsg-idm-ecid-wtls12*/
+	retv.insert(WTLS12_NAME.to_string(),WTLS12_OID.to_string());
+	/*brainpoolP160r1*/
+	retv.insert(BRAINPOOLP160r1_NAME.to_string(),BRAINPOOLP160r1_OID.to_string());
+	/*brainpoolP160t1*/
+	retv.insert(BRAINPOOLP160t1_NAME.to_string(),BRAINPOOLP160t1_OID.to_string());
+	/*brainpoolP192r1*/
+	retv.insert(BRAINPOOLP192r1_NAME.to_string(),BRAINPOOLP192r1_OID.to_string());
+	/*brainpoolP192t1*/
+	retv.insert(BRAINPOOLP192t1_NAME.to_string(),BRAINPOOLP192t1_OID.to_string());
+	/*brainpoolP224r1*/
+	retv.insert(BRAINPOOLP224r1_NAME.to_string(),BRAINPOOLP224r1_OID.to_string());
+	/*brainpoolP224t1*/
+	retv.insert(BRAINPOOLP224t1_NAME.to_string(),BRAINPOOLP224t1_OID.to_string());
+	/*brainpoolP256r1*/
+	retv.insert(BRAINPOOLP256r1_NAME.to_string(),BRAINPOOLP256r1_OID.to_string());
+	/*brainpoolP256t1*/
+	retv.insert(BRAINPOOLP256t1_NAME.to_string(),BRAINPOOLP256t1_OID.to_string());
+	/*brainpoolP320r1*/
+	retv.insert(BRAINPOOLP320r1_NAME.to_string(),BRAINPOOLP320r1_OID.to_string());
+	/*brainpoolP320t1*/
+	retv.insert(BRAINPOOLP320t1_NAME.to_string(),BRAINPOOLP320t1_OID.to_string());
+	/*brainpoolP384r1*/
+	retv.insert(BRAINPOOLP384r1_NAME.to_string(),BRAINPOOLP384r1_OID.to_string());
+	/*brainpoolP384t1*/
+	retv.insert(BRAINPOOLP384t1_NAME.to_string(),BRAINPOOLP384t1_OID.to_string());
+	/*brainpoolP512r1*/
+	retv.insert(BRAINPOOLP512r1_NAME.to_string(),BRAINPOOLP512r1_OID.to_string());
+	/*brainpoolP512t1*/
+	retv.insert(BRAINPOOLP512t1_NAME.to_string(),BRAINPOOLP512t1_OID.to_string());
+	/*SM2*/
+	retv.insert(SM2_NAME.to_string(),SM2_OID.to_string());
+	retv
+}
+
+fn create_oid_to_name() -> HashMap<String,String> {
+	let mut retv :HashMap<String,String> = HashMap::new();
+	let nc :HashMap<String,String> = create_name_to_oid();
+	for (k,v) in nc.iter() {
+		retv.insert(format!("{}",v),format!("{}",k));
+	}
+	retv
+}
+
 
 lazy_static ! {
 	static ref ECC_CURVES : HashMap<String,ECGroup> = {
 		craete_curve_group()
 	};
+	static ref ECC_NAME_TO_OID :HashMap<String,String> = {
+		create_name_to_oid()
+	};
+
+	static ref ECC_OID_TO_NAME :HashMap<String,String> = {
+		create_oid_to_name()
+	};
 }
 
 
-pub fn get_curve_group(name :&str) -> Result<ECGroup,Box<dyn Error>> {
+pub fn ecc_get_oid_from_name(name :&str) -> Result<String,Box<dyn Error>> {
+	match ECC_NAME_TO_OID.get(name) {
+		Some(pv) => {
+			return Ok(format!("{}",pv));
+		},
+		_ => {
+
+		}
+	}
+	ecsimple_new_error!{ECGroupError,"can not find [{}] oid",name}
+}
+
+pub fn ecc_get_name_from_oid(oid :&str) -> Result<String,Box<dyn Error>> {
+	match ECC_OID_TO_NAME.get(oid) {
+		Some(pv) => {
+			return Ok(format!("{}",pv));
+		},
+		_ => {
+
+		}
+	}
+	ecsimple_new_error!{ECGroupError,"can not find [{}] name",oid}
+}
+pub fn ecc_get_curve_group(name :&str) -> Result<ECGroup,Box<dyn Error>> {
 	match ECC_CURVES.get(name) {
 		Some(pv) => {
 			ecsimple_log_trace!("load [{}]",name);
