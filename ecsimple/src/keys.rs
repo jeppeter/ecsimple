@@ -180,9 +180,16 @@ impl ECGf2mPubKey {
 		let tv :BigInt = ov.clone() + ov.clone();
 		let y :BigInt = self.pubk.y().to_bigint();
 		let x :BigInt = self.pubk.x().to_bigint();
+		let degr :i64 = self.pubk.group.degree();
+		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let mut xvecs :Vec<u8>;
+		let mut yvecs :Vec<u8>;
 		if cmprtype == EC_COMPRESSED {
 			retv.push(EC_CODE_COMPRESSED);
-			let (_, xvecs) = x.to_bytes_be();
+			(_, xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
 			for xb in xvecs {
 				retv.push(xb);
 			}
@@ -191,11 +198,17 @@ impl ECGf2mPubKey {
 			}
 		} else if cmprtype == EC_UNCOMPRESSED {
 			retv.push(EC_CODE_UNCOMPRESSED);
-			let (_,xvecs) = x.to_bytes_be();
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
 			for xb in xvecs {
 				retv.push(xb);
 			}
-			let (_,yvecs) = y.to_bytes_be();
+			(_,yvecs) = y.to_bytes_be();
+			while yvecs.len() < fieldsize {
+				yvecs.insert(0,0);
+			}
 			for yb in yvecs {
 				retv.push(yb);
 			}
@@ -542,10 +555,17 @@ impl ECPrimePubKey {
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
 		let tv :BigInt = ov.clone() + ov.clone();
+		let degr :i64 = self.pubk.group.degree();
+		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let mut xvecs :Vec<u8>;
+		let mut yvecs :Vec<u8>;
 
 		if cmprtype == EC_COMPRESSED {
 			retv.push(EC_CODE_COMPRESSED);
-			let (_,xvecs) = x.to_bytes_be();
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
 			for xb in xvecs {
 				retv.push(xb);
 			}
@@ -554,21 +574,34 @@ impl ECPrimePubKey {
 			}
 		} else if cmprtype == EC_UNCOMPRESSED {
 			retv.push(EC_CODE_UNCOMPRESSED);
-			let (_,xvecs) = x.to_bytes_be();
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
+
 			for xb in xvecs {
 				retv.push(xb);
 			}
-			let (_,yvecs) = y.to_bytes_be();
+			(_,yvecs) = y.to_bytes_be();
+			while yvecs.len() < fieldsize {
+				yvecs.insert(0,0);
+			}
 			for yb in yvecs {
 				retv.push(yb);
 			}
 		} else if cmprtype == EC_HYBRID {
 			retv.push(EC_CODE_HYBRID);
-			let (_,xvecs) = x.to_bytes_be();
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
 			for xb in xvecs {
 				retv.push(xb);
 			}
-			let (_,yvecs) = y.to_bytes_be();
+			(_,yvecs) = y.to_bytes_be();
+			while yvecs.len() < fieldsize {
+				yvecs.insert(0,0);
+			}
 			for yb in yvecs {
 				retv.push(yb);
 			}
