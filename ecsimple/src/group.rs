@@ -1109,33 +1109,6 @@ fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {
 	retv.insert(C2PNB208w1_NAME.to_string(),bngrp.clone());
 
 
-	/*c2pnb208w1*/
-	v8 = Vec::from_hex("010000000000000000000000000000000800000000000000000007").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.p = p.clone();
-	v8 = Vec::from_hex("000000000000000000000000000000000000000000000000000000").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.a = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("00C8619ED45A62E6212E1160349E2BFA844439FAFC2A3FD1638F9E").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.b = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("0089FDFBE4ABE193DF9559ECF07AC0CE78554E2784EB8C1ED1A57A").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.x = BnGf2m::new_from_bigint(&p);
-	v8 = Vec::from_hex("000F55B51A06E78E9AC38A035FF520D8B01781BEB1A6BB08617DE3").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.generator.y = BnGf2m::new_from_bigint(&p);
-	bngrp.generator.z = BnGf2m::one();
-
-	v8 = Vec::from_hex("00000101BAF95C9723C57B6C21DA2EFF2D5ED588BDD5717E212F9D").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.order = p.clone();
-	v8 = Vec::from_hex("FE48").unwrap();
-	p = BigInt::from_bytes_be(Sign::Plus,&v8);
-	bngrp.cofactor = p.clone();
-	bngrp.curvename = C2PNB208w1_NAME.to_string();
-
-	retv.insert(C2PNB208w1_NAME.to_string(),bngrp.clone());
 
 	/*c2tnb239v1*/
 	v8 = Vec::from_hex("800000000000000000000000000000000000000000000000001000000001").unwrap();
@@ -1409,6 +1382,7 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	//let mut montv :MontNum;
 	let mut montv :MontNum;
 
+	/*secp112r1*/
 	v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
@@ -1446,6 +1420,7 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
 
 
+	/*prime192v1*/
 	v8 = Vec::from_hex("fffffffffffffffffffffffffffffffeffffffffffffffff").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
@@ -1482,8 +1457,7 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	}
 	retv.insert(PRIME192v1_NAME.to_string(),bngrp.clone());
 
-
-
+	/*secp224r1*/
 	v8 = Vec::from_hex("ffffffffffffffffffffffffffffffff000000000000000000000001").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
@@ -1521,7 +1495,7 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	retv.insert(SECP224r1_NAME.to_string(),bngrp.clone());
 
 
-	/*SECP384r1*/
+	/*secp384r1*/
 	v8 = Vec::from_hex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffff").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
@@ -1559,7 +1533,7 @@ fn create_group_prime_curves() -> HashMap<String,ECGroupPrime> {
 	retv.insert(SECP384r1_NAME.to_string(),bngrp.clone());
 
 
-	/*SECP521r1*/
+	/*secp521r1*/
 	v8 = Vec::from_hex("01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").unwrap();
 	p = BigInt::from_bytes_be(Sign::Plus,&v8);
 	bngrp.p = p.clone();
