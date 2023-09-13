@@ -227,7 +227,12 @@ impl ECGf2mPubKey {
 			for yb in yvecs {
 				retv.push(yb);
 			}
-			if y % tv != zv {
+			let xbn :BnGf2m = BnGf2m::new_from_bigint(&x);
+			let ybn :BnGf2m = BnGf2m::new_from_bigint(&y);
+			let xyibn :BnGf2m = self.pubk.field_div(&ybn,&xbn)?;
+			let xyi :BigInt = xyibn.to_bigint();
+			ecsimple_log_trace!("field_div(xyi 0x{:X},y 0x{:X},x 0x{:X})",xyibn,ybn,xbn);
+			if xyi % tv != zv {
 				retv[0] |= EC_CODE_YBIT;
 			}
 		} else {
