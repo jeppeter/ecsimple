@@ -40,7 +40,7 @@ use ecsimple::consts::*;
 
 extargs_error_class!{EcError}
 
-fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+fn ecgenbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let eccmprtype :String = ns.get_string("eccmprtype");
 
@@ -231,14 +231,14 @@ fn encapsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 }
 
 
-#[extargs_map_function(ecgen_handler,ecsignbase_handler,ecvfybase_handler,ecpubload_handler,extractsign_handler,encapsign_handler)]
+#[extargs_map_function(ecgenbase_handler,ecsignbase_handler,ecvfybase_handler,ecpubload_handler,extractsign_handler,encapsign_handler)]
 pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
 		"ecpriv" : null,
 		"ecpub" : null,
 		"eccmprtype" : "{}",
-		"ecgen<ecgen_handler>##ecname privatenum to generate ec private key##" : {{
+		"ecgenbase<ecgenbase_handler>##ecname privatenum to generate ec private key##" : {{
 			"$" : "+"
 		}},
 		"ecsignbase<ecsignbase_handler>##ecname privatenum hashnum [hashlen] to generate sign values##" : {{

@@ -315,6 +315,22 @@ impl ECGf2mPrivateKey {
 		}
 	}
 
+	pub (crate) fn generate(grp :&ECGroupBnGf2m) -> ECGf2mPrivateKey {
+		let b :ECGf2mPoint = ECGf2mPoint::new(grp);
+		let mut privnum :BigInt;
+		let zv :BigInt = zero();
+		loop {
+			privnum = ecsimple_rand_range(&grp.order);
+			if privnum != zv {
+				break;
+			}
+		}
+		ECGf2mPrivateKey {
+			base :b ,
+			privnum : privnum,
+		}
+	}
+
 	pub fn export_pubkey(&self) -> ECGf2mPubKey {
 		let ck : ECGf2mPoint;
 		ck = self.base.mul_op(&self.privnum,false);
@@ -703,6 +719,22 @@ impl ECPrimePrivateKey {
 		}
 	}
 
+	pub (crate) fn generate(grp :&ECGroupPrime) -> ECPrimePrivateKey {
+		let b :ECPrimePoint = ECPrimePoint::new(grp);
+		let mut privnum :BigInt;
+		let zv :BigInt = zero();
+		loop {
+			privnum = ecsimple_rand_range(&grp.order);
+			if privnum != zv {
+				break;
+			}
+		}
+		ECPrimePrivateKey {
+			base :b,
+			privnum : privnum,
+		}
+	}
+
 	pub fn export_pubkey(&self) -> ECPrimePubKey {
 		let ck : ECPrimePoint;
 		ck = self.base.mul_op(&self.privnum,false);
@@ -962,6 +994,22 @@ impl ECPrivateKey {
 			retv = ECPrivateKey {
 				bnkey : None,
 				primekey : Some(ECPrimePrivateKey::new(&grp.get_prime_group(),privnum)),
+			};
+		}
+		return retv;
+	}
+
+	pub fn generate(grp :&ECGroup) -> ECPrivateKey {
+		let retv :ECPrivateKey;
+		if grp.is_bn_group() {
+			retv = ECPrivateKey {
+				bnkey : Some(ECGf2mPrivateKey::generate(&grp.get_bn_group())),
+				primekey : None,
+			};
+		} else {
+			retv = ECPrivateKey {
+				bnkey : None,
+				primekey : Some(ECPrimePrivateKey::generate(&grp.get_prime_group())),
 			};
 		}
 		return retv;
