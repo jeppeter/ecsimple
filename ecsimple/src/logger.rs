@@ -228,27 +228,27 @@ macro_rules! ecsimple_debug_buffer_error {
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_warn {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<WARN>",1,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<WARN>",10,$($arg)+);
 	}
 }
 
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_info {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<INFO>",2,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<INFO>",20,$($arg)+);
 	}
 }
 
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_debug {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<DEBUG>",3,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<DEBUG>",30,$($arg)+);
 	}
 }
 
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_trace {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<TRACE>",4,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<TRACE>",40,$($arg)+);
 	}
 }
