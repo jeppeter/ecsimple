@@ -98,13 +98,10 @@ pub (crate)  fn ecsimple_debug_out(level :i32, outs :&str) {
 	return;
 }
 
-
-#[allow(dead_code)]
 pub (crate) fn ecsimple_log_get_timestamp() -> String {
 	let now = Local::now();
 	return format!("{}/{}/{} {}:{}:{}",now.year(),now.month(),now.day(),now.hour(),now.minute(),now.second());
 }
-
 
 #[macro_export]
 macro_rules! ecsimple_log_error {
@@ -134,6 +131,7 @@ macro_rules! ecsimple_log_info {
 	}
 }
 
+#[cfg(feature="debug_mode")]
 #[macro_export]
 macro_rules! ecsimple_log_trace {
 	($($arg:tt)+) => {
@@ -141,6 +139,12 @@ macro_rules! ecsimple_log_trace {
 		_c.push_str(&(format!($($arg)+)[..]));
 		ecsimple_debug_out(40, &_c);
 	}
+}
+
+#[cfg(not(feature="debug_mode"))]
+#[macro_export]
+macro_rules! ecsimple_log_trace {
+	($($arg:tt)+) => {}
 }
 
 
@@ -246,9 +250,16 @@ macro_rules! ecsimple_debug_buffer_debug {
 	}
 }
 
+#[cfg(feature="debug_mode")]
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_trace {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
 		ecsimple_format_buffer_log!($buf,$len,"<TRACE>",40,$($arg)+);
 	}
+}
+
+#[cfg(not(feature="debug_mode"))]
+#[macro_export]
+macro_rules! ecsimple_debug_buffer_trace {
+	($buf:expr,$len:expr,$($arg:tt)+) => {}
 }
