@@ -361,13 +361,14 @@ impl ECGf2mPrivateKey {
 	}
 
 
+	#[allow(unused_variables)]
+	#[allow(unused_assignments)]
 	#[allow(non_snake_case)]
 	fn setup_sign(&self) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		let mut r :BigInt;
 		let mut tmppnt :ECGf2mPoint = self.base.clone();
 		let zv :BnGf2m = BnGf2m::zero();
 		let ov :BigInt = one();
-		let order :BnGf2m;
 		tmppnt.set_x(&zv);
 		tmppnt.set_y(&zv);
 		tmppnt.set_z(&zv);
@@ -377,7 +378,6 @@ impl ECGf2mPrivateKey {
 		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X}, tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
 		k = ov << blen;
-		order = BnGf2m::new_from_bigint(&self.base.group.order);
 		loop {
 			ecsimple_log_trace!("k 0x{:X}",k);
 			k = ecsimple_rand_range(&self.base.group.order);
@@ -390,7 +390,7 @@ impl ECGf2mPrivateKey {
 			(X,_) = tmppnt.get_affine_points()?;
 
 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
-			ecsimple_log_trace!("X 0x{:X} order 0x{:X}",X,order);
+			ecsimple_log_trace!("X 0x{:X} order 0x{:X}",X,self.base.group.order);
 
 
 			let xb :BigInt = X.to_bigint();
@@ -414,6 +414,7 @@ impl ECGf2mPrivateKey {
 		Ok((k,r))
 	}
 
+	#[allow(unused_assignments)]
 	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
 		let bn :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);
 		ecsimple_log_trace!("begin sign");
@@ -765,6 +766,7 @@ impl ECPrimePrivateKey {
 	}
 
 
+	#[allow(unused_assignments)]
 	#[allow(non_snake_case)]
 	fn setup_sign(&self) -> Result<(BigInt,BigInt),Box<dyn Error>> {
 		let mut r :BigInt;
@@ -806,7 +808,7 @@ impl ECPrimePrivateKey {
 		Ok((k,r))
 	}
 
-
+	#[allow(unused_assignments)]
 	#[allow(unused_variables)]
 	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
 		let bn :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);

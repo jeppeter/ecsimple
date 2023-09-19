@@ -9,6 +9,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 use std::cmp::PartialEq;
 
+#[allow(unused_imports)]
 use crate::logger::*;
 #[allow(unused_imports)]
 use crate::randop::*;
@@ -92,6 +93,7 @@ impl ECGf2mPoint {
 		return self.y.clone();
 	}
 
+	#[allow(dead_code)]
 	pub fn z(&self) -> BnGf2m {
 		return self.z.clone();
 	}
@@ -564,6 +566,7 @@ impl ECPrimePoint {
 		return self.y.clone();
 	}
 
+	#[allow(dead_code)]
 	pub fn z(&self) -> BigInt {
 		return self.z.clone();
 	}
@@ -845,6 +848,7 @@ impl ECPrimePoint {
 
 
 
+	#[allow(unused_assignments)]
 	#[allow(unused_variables)]
 	pub fn mul_op(&self, bn :&BigInt,copyxy :bool ) -> ECPrimePoint {
 		let zv :BigInt = zero();

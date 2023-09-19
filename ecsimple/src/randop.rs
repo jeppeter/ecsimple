@@ -3,6 +3,7 @@
 use rand;
 use crate::fileop::*;
 use crate::*;
+#[allow(unused_imports)]
 use crate::logger::*;
 use std::error::Error;
 use num_bigint::{BigInt,Sign};
@@ -135,6 +136,7 @@ lazy_static ! {
 }
 
 
+#[allow(unused_assignments)]
 pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 	let rnbytes : usize = ((bits+ 7) >> 3) as usize;
 	let bit :usize = ((bits + 8 - 1) % 8)  as usize;

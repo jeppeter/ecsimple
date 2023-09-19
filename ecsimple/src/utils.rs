@@ -1,6 +1,7 @@
 use num_bigint::{BigInt,Sign};
 use num_traits::{zero,one};
 use crate::*;
+#[allow(unused_imports)]
 use crate::logger::*;
 use std::error::Error;
 use crate::randop::*;
@@ -83,6 +84,8 @@ fn get_lsw(v :&BigInt, mask :u32) -> u32 {
     return retv & mask;
 }
 
+#[allow(unused_variables)]
+#[allow(unused_assignments)]
 #[allow(non_snake_case)]
 fn kronecker_value(a :&BigInt,b :&BigInt) -> i32 {
     let mut ret :i32;
