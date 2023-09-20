@@ -43,6 +43,7 @@ extargs_error_class!{EcError}
 fn ecgenbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let eccmprtype :String = ns.get_string("eccmprtype");
+	let ecparamenc :String = ns.get_string("ecparamenc");
 
 	init_log(ns.clone())?;
 
@@ -64,7 +65,7 @@ fn ecgenbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 
 	let ecpriv :String = ns.get_string("ecpriv");
 	if ecpriv.len() > 0 {
-		let privdata = pnt.to_der(&eccmprtype)?;
+		let privdata = pnt.to_der(&eccmprtype,&ecparamenc)?;
 		write_file_bytes(&ecpriv,&privdata)?;
 	}
 
@@ -238,6 +239,7 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		"ecpriv" : null,
 		"ecpub" : null,
 		"eccmprtype" : "{}",
+		"ecparamenc" : "{}",
 		"ecgenbase<ecgenbase_handler>##ecname privatenum to generate ec private key##" : {{
 			"$" : "+"
 		}},
@@ -257,7 +259,7 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : 0
 		}}
 	}}
-	"#,EC_COMPRESSED);
+	"#,EC_COMPRESSED,EC_PARAMS_EXLICIT);
 	extargs_load_commandline!(parser,&cmdline)?;
 	Ok(())
 }

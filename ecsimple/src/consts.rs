@@ -191,3 +191,6 @@ pub (crate) const NIST224_SPEC_FLAGS : u32 = 0x1;
 
 pub (crate) const EC_PRIME_GROUP_TYPE_OID :&str = "1.2.840.10045.1.1";
 pub (crate) const EC_GF2M_GROUP_TYPE_OID :&str = "1.2.840.10045.1.2";
+pub (crate) const EC_ON_BASIS_OID :&str = "1.2.840.10045.1.2.3.1";
+pub (crate) const EC_TP_BASIS_OID :&str = "1.2.840.10045.1.2.3.2";
+pub (crate) const EC_PP_BASIS_OID :&str = "1.2.840.10045.1.2.3.3";

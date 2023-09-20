@@ -411,6 +411,16 @@ impl ECGroup {
 	}
 }
 
+impl std::fmt::Display for ECGroup {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		if self.is_prime_group() {
+			return write!(f,"{}",self.get_prime_group());
+		} else if self.is_bn_group() {
+			return write!(f,"{}",self.get_bn_group());
+		}
+		return write!(f,"empty ECGroup");
+	}
+}
 
 
 fn create_group_bn_curves() -> HashMap<String,ECGroupBnGf2m> {

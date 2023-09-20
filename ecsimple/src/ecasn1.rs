@@ -16,9 +16,9 @@ use std::error::Error;
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct X9_62_PENTANOMIALELem {
-	pub k1 :Asn1BigNum,
-	pub k2 :Asn1BigNum,
-	pub k3 :Asn1BigNum,
+	pub k1 :Asn1Integer,
+	pub k2 :Asn1Integer,
+	pub k3 :Asn1Integer,
 }
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ pub struct X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE {
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct X9_62_CHARACTERISTIC_TWO_ELEM {
-	pub m :Asn1BigNum,
+	pub m :Asn1Integer,
 	pub elemchoice : X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE,
 }
 
