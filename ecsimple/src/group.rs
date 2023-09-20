@@ -405,7 +405,7 @@ impl ECGroup {
 	pub (crate) fn get_prime_group(&self) -> ECGroupPrime {
 		let mut retv :ECGroupPrime = ECGroupPrime::default();
 		if self.is_prime_group() {
-		 	retv = self.primegrp.as_ref().unwrap().clone();
+			retv = self.primegrp.as_ref().unwrap().clone();
 		}
 		return retv;
 	}
@@ -3036,3 +3036,4 @@ pub fn ecc_get_curve_group(name :&str) -> Result<ECGroup,Box<dyn Error>> {
 		}
 	}
 }
+

@@ -9,6 +9,7 @@ pub mod logger;
 pub (crate) mod fileop;
 pub mod randop;
 //pub (crate) mod utils;
+pub (crate) mod ecasn1;
 pub mod utils;
 pub mod mont;
 pub mod bngf2m;

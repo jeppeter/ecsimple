@@ -9,6 +9,8 @@ use crate::utils::*;
 use crate::randop::*;
 use crate::logger::*;
 use crate::*;
+use crate::mont::*;
+use crate::ecasn1::*;
 use num_bigint::{BigInt,Sign,BigUint};
 use num_traits::{zero,one};
 
@@ -1086,4 +1088,286 @@ impl std::fmt::Display for ECPrivateKey {
 		}
 		return self.get_bn_key().fmt(f);		
 	}
+}
+
+
+pub (crate) fn extract_compressed_y_prime(grp :&ECGroupPrime, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
+	let b = ECPrimePoint::new(grp);
+	let field :BigInt = b.group.p.clone();
+	let x :BigInt = nmod(&x_,&grp.p);
+	ecsimple_log_trace!("nnmod(x 0x{:X},x_ 0x{:X},group.field 0x{:X})", x,x_,grp.p);
+	let mut y :BigInt;
+	let mut tmp2 :BigInt;
+	let mut tmp1 :BigInt;
+	let mut kbit :i32;
+	let zv :BigInt = zero();
+	tmp2 = (x_.clone() * x_.clone()) % &field;
+	ecsimple_log_trace!("mod_sqr(tmp2 0x{:X},x_ 0x{:X},group.field 0x{:X})",tmp2,x_,grp.p);
+	tmp1 = (tmp2.clone() * x_.clone()) % &field;
+	ecsimple_log_trace!("mod_mul(tmp1 0x{:X},tmp2 0x{:X},x_ 0x{:X},group.field 0x{:X})",tmp1,tmp2,x_,field);
+	if grp.is_minus3 {
+		tmp2 = b.lshift1_mod_quick(&x,&field);
+		ecsimple_log_trace!("lshift1_mod_quick(tmp2 0x{:X},x 0x{:X},group.field 0x{:X})",tmp2,x,field);
+		tmp2 = b.add_mod_quick(&tmp2,&x,&field);
+		ecsimple_log_trace!("add_mod_quick(tmp2 0x{:X},tmp2,x 0x{:X},group.field 0x{:X})",tmp2,x,field);
+		tmp1 = b.sub_mod_quick(&tmp1,&tmp2,&field);
+		ecsimple_log_trace!("sub_mod_quick(tmp1 0x{:X},tmp1,tmp2 0x{:X},group.field 0x{:X})",tmp1,tmp2,field);
+	} else {
+		tmp2 = b.field_decode(&grp.a);
+		tmp2 = (tmp2.clone() * x.clone()) % &field;
+		ecsimple_log_trace!("mod_mul(tmp2 0x{:X},tmp2,x 0x{:X},group.field 0x{:X})",tmp2,x,field);
+
+		tmp1 = b.add_mod_quick(&tmp1,&tmp2,&field);
+		ecsimple_log_trace!("add_mod_quick(tmp1 0x{:X},tmp1,tmp2 0x{:X},group.field 0x{:X})",tmp1,tmp2,field);
+	}
+
+	tmp2 = b.field_decode(&grp.b);
+	tmp1 = b.add_mod_quick(&tmp1,&tmp2,&field);
+	ecsimple_log_trace!("add_mod_quick(tmp1 0x{:X},tmp1,tmp2 0x{:X},group.field 0x{:X})",tmp1,tmp2,field);
+
+	y = mod_sqrt(&tmp1,&field)?;
+	ecsimple_log_trace!("mod_sqr(y 0x{:X},tmp1 0x{:X},group.field 0x{:X})",y,tmp1,field);
+	kbit = get_bit_set(&y,0);
+	if kbit != ybit as i32 {
+		if y == zv {
+			ecsimple_new_error!{EcKeyError,"not valid y 0x{:X}",y}
+		}
+		y = &field - &y;
+		ecsimple_log_trace!("usub(y 0x{:X},group.field 0x{:X},y)",y,field);
+	}
+	kbit = get_bit_set(&y,0);
+	if kbit != ybit as i32 {
+		ecsimple_new_error!{EcKeyError,"y 0x{:X} not valid for bit",y}
+	}
+
+	Ok(y)
+}
+
+pub (crate) fn extract_compressed_y_gf2m(grp :&ECGroupBnGf2m,x_ :BigInt,ybit :u8) -> Result<BigInt,Box<dyn Error>> {
+	let b = ECGf2mPoint::new(grp);
+	let xb :BnGf2m = BnGf2m::new_from_bigint(&x_);
+	let field :BnGf2m = BnGf2m::new_from_bigint(&b.group.p);
+	let x :BnGf2m = &xb % &field;
+	let y :BigInt;
+	let mut yn :BnGf2m;
+	let mut tmp :BnGf2m;
+	let z :BnGf2m;
+	let z0 :u8;
+	ecsimple_log_trace!("x 0x{:X} = x_ 0x{:X} % group->field 0x{:X}",x,x_,field);
+	if x.is_zero() {
+		let yn = &b.group.b.mul_op(&b.group.b).mod_op(&field);
+		y = yn.to_bigint();
+		ecsimple_log_trace!("y 0x{:X} = group->b 0x{:X} ^ 2 % field 0x{:X}",y,b.group.b,field);
+	} else {
+		tmp = b.field_sqr(&x);
+		tmp = b.field_div(&b.group.b,&tmp)?;
+		tmp = tmp.add_op(&b.group.a);
+		ecsimple_log_trace!("tmp 0x{:X} group->a 0x{:X}",tmp,b.group.a);
+		tmp = tmp.add_op(&x);
+		ecsimple_log_trace!("tmp 0x{:X} x 0x{:X}",tmp,x);
+		z = tmp.sqrt_quad_op(&field)?;
+		ecsimple_log_trace!("z 0x{:X}",z);
+		if z.is_odd() {
+			z0 = 1;
+		} else {
+			z0 = 0;
+		}
+		yn = b.field_mul(&x,&z);
+		if z0 != ybit {
+			yn = yn.add_op(&x);
+			ecsimple_log_trace!("y 0x{:X} x 0x{:X}",yn,x);
+		}
+		y = yn.to_bigint();
+	}
+	Ok(y)
+}
+
+
+pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<ECGroup,Box<dyn Error>> {
+	if privkey.elem.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1.elem.val.len() {} != 1",privkey.elem.val.len()}
+	}
+	let privkeyelem :ECPrivateKeyAsn1Elem = privkey.elem.val[0].clone();
+	if privkeyelem.parameters.val.is_none() {
+		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1Elem parameters none"}
+	}
+	let ecpkparamsset :Asn1ImpSet<ECPKPARAMETERS,0> = privkeyelem.parameters.val.as_ref().unwrap().clone();
+	if ecpkparamsset.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"paramters impset len {} != 1", ecpkparamsset.val.len()}
+	}
+	let ecpkparams :ECPKPARAMETERS = ecpkparamsset.val[0].clone();
+	let curveparams :X9_62_CURVEElem;
+	let ov :BigInt = one();
+	let retgrp :ECGroup;
+	let mut tmpp :BigInt;
+	if ecpkparams.itype == 0 {
+		/*now to get the oid*/
+		let oid :String = ecpkparams.named_curve.get_value();
+		let ecname = ecc_get_name_from_oid(&oid)?;
+		retgrp = ecc_get_curve_group(&ecname)?;
+		return Ok(retgrp);
+	} else if ecpkparams.itype == 1 {
+		let paramselem :ECPARAMETERSElem;
+		if ecpkparams.parameters.elem.val.len() != 1 {
+			ecsimple_new_error!{EcKeyError,"params elem {} != 1",ecpkparams.parameters.elem.val.len()}
+		}
+		paramselem = ecpkparams.parameters.elem.val[0].clone();
+		let fieldid :X9_62_FIELDIDElem ;
+
+		if paramselem.curve.elem.val.len() != 1 {
+			ecsimple_new_error!{EcKeyError,"curve {} != 1", paramselem.curve.elem.val.len()}
+		}
+		curveparams = paramselem.curve.elem.val[0].clone();
+
+		if paramselem.fieldID.elem.val.len() != 1 {
+			ecsimple_new_error!{EcKeyError,"fieldID elem {} != 1 ", paramselem.fieldID.elem.val.len()}
+		}
+		fieldid = paramselem.fieldID.elem.val[0].clone();
+		if fieldid.fieldType.val.get_value() == EC_PRIME_GROUP_TYPE_OID {
+			let mut primegrp :ECGroupPrime = ECGroupPrime::default();
+			let mut bevecs :Vec<u8>;
+			let montv :MontNum;
+			let tmpa :BigInt;
+			let x :BigInt;
+			let y :BigInt;
+			let ybit :u8;
+			let fieldlen : usize;
+			/*secp112r1*/
+			/*
+			v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD208B").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.p = p.clone();
+			montv = MontNum::new(&bngrp.p).unwrap();
+			tmpp = p.clone();
+			v8 = Vec::from_hex("DB7C2ABF62E35E668076BEAD2088").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			tmpa = p.clone();
+			bngrp.a = montv.mont_to(&p);
+			v8 = Vec::from_hex("659EF8BA043916EEDE8911702B22").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.b = montv.mont_to(&p);
+			v8 = Vec::from_hex("09487239995A5EE76B55F9C2F098").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.generator.x = montv.mont_to(&p);
+			v8 = Vec::from_hex("A89CE5AF8724C0A23E0E0FF77500").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.generator.y = montv.mont_to(&p);
+			bngrp.generator.z = montv.mont_to(&ov);
+
+			v8 = Vec::from_hex("DB7C2ABF62E35E7628DFAC6561C5").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.order = p.clone();
+			bngrp.cofactor = ov.clone();
+			bngrp.curvename = SECP112r1_NAME.to_string();
+
+			//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+			if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+				bngrp.is_minus3 = true;
+				//ecsimple_log_trace!("{} is_minus3 true",SECP112r1_NAME);
+			} else {
+				bngrp.is_minus3 = false;
+				//ecsimple_log_trace!("{} is_minus3 false",SECP112r1_NAME);
+			}
+			retv.insert(SECP112r1_NAME.to_string(),bngrp.clone());
+			*/
+			bevecs = fieldid.prime.val.to_bytes_be();
+			primegrp.p = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+			montv = MontNum::new(&primegrp.p).unwrap();
+			bevecs = curveparams.a.data.clone();
+			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+			tmpa = tmpp.clone();
+			primegrp.a = montv.mont_to(&tmpp);
+			bevecs = curveparams.b.data.clone();
+			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+			primegrp.b = montv.mont_to(&tmpp);
+			bevecs = paramselem.order.val.to_bytes_be();
+			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+			primegrp.order = tmpp.clone();
+			if paramselem.cofactor.val.is_none() {
+				primegrp.cofactor = ov.clone();
+			} else {
+				bevecs = paramselem.cofactor.val.as_ref().unwrap().clone().val.to_bytes_be();
+				primegrp.cofactor = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+			}
+
+			if primegrp.p == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone() ) {
+				primegrp.is_minus3 = true;
+			} else {
+				primegrp.is_minus3 = false;
+			}
+
+			bevecs = paramselem.base.data.clone();
+			ybit = bevecs[0] & EC_CODE_YBIT;
+			let degr :i64 = primegrp.degree();
+			fieldlen = ((degr + 7) >> 3) as usize;
+			if (bevecs[0] & EC_CODE_MASK)==  EC_CODE_COMPRESSED {
+				if bevecs.len() != (1 + fieldlen) {
+					ecsimple_new_error!{EcKeyError,"vecs [0x{:x}] != 1 + 0x{:x}",bevecs.len(),fieldlen }
+				}
+				x = BigInt::from_bytes_be(Sign::Plus,&bevecs[1..(1+fieldlen)]);
+				y = extract_compressed_y_prime(&primegrp,&x,ybit)?;
+			} else if (bevecs[0] & EC_CODE_MASK) == EC_CODE_UNCOMPRESSED {
+				if bevecs.len() != (1 + 2 * fieldlen) {
+					ecsimple_new_error!{EcKeyError,"vecs [0x{:x}] != 1 + 0x{:x} * 2",bevecs.len(),fieldlen }	
+				}
+				x = BigInt::from_bytes_be(Sign::Plus,&bevecs[1..(1+fieldlen)]);
+				y = BigInt::from_bytes_be(Sign::Plus,&bevecs[(fieldlen+1)..(2*fieldlen+1)]);
+			} else if (bevecs[0] & EC_CODE_MASK) == EC_CODE_HYBRID {
+				if bevecs.len() != (1 + 2 * fieldlen) {
+					ecsimple_new_error!{EcKeyError,"vecs [0x{:x}] != 1 + 0x{:x} * 2",bevecs.len(),fieldlen }	
+				}
+				x = BigInt::from_bytes_be(Sign::Plus,&bevecs[1..(1+fieldlen)]);
+				y = BigInt::from_bytes_be(Sign::Plus,&bevecs[(fieldlen+1)..(2*fieldlen+1)]);
+				if x == zero() && ybit != 0 {
+					ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
+				}
+			} else {
+				ecsimple_new_error!{EcKeyError,"not supported type [0x{:02x}]", bevecs[0]}
+			}
+
+			primegrp.generator.x = montv.mont_to(&x);
+			primegrp.generator.y = montv.mont_to(&y);
+			primegrp.generator.z = montv.mont_to(&ov);
+			primegrp.curvename = "".to_string();
+
+			retgrp = ECGroup::new_prime_group(&primegrp);
+			return Ok(retgrp);
+		} else if fieldid.fieldType.val.get_value() == EC_GF2M_GROUP_TYPE_OID {
+			//let mut bngrp :ECGroupBnGf2m = ECGroupBnGf2m::default();
+			//let x962elem : X9_62_CHARACTERISTIC_TWO_ELEM;
+			/*sect113r1*/
+			/*
+			v8 = Vec::from_hex("0800000000000000000000000000000000000000C9").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.p = p.clone();
+			v8 = Vec::from_hex("07b6882caaefa84f9554ff8428bd88e246d2782ae2").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.a = BnGf2m::new_from_bigint(&p);
+			v8 = Vec::from_hex("0713612dcddcb40aab946bda29ca91f73af958afd9").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.b = BnGf2m::new_from_bigint(&p);
+			v8 = Vec::from_hex("0369979697ab43897789566789567f787a7876a654").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.generator.x = BnGf2m::new_from_bigint(&p);
+			v8 = Vec::from_hex("00435edb42efafb2989d51fefce3c80988f41ff883").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.generator.y = BnGf2m::new_from_bigint(&p);
+			bngrp.generator.z = BnGf2m::one();
+
+			v8 = Vec::from_hex("03ffffffffffffffffffff48aab689c29ca710279b").unwrap();
+			p = BigInt::from_bytes_be(Sign::Plus,&v8);
+			bngrp.order = p.clone();
+			bngrp.cofactor = &ov + &ov;
+			bngrp.curvename = SECT163r1_NAME.to_string();
+
+			retv.insert(SECT163r1_NAME.to_string(),bngrp.clone());
+			*/
+
+
+		} 
+		ecsimple_new_error!{EcKeyError,"not supported oid fieldType [{}]",fieldid.fieldType.val.get_value()}
+
+	}
+	ecsimple_new_error!{EcKeyError,"not supported type [{}]",ecpkparams.itype}
+
 }

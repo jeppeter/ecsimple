@@ -188,3 +188,6 @@ pub const EC_CODE_HYBRID :u8 = 0x6;
 pub (crate) const MAX_ITERATIONS :i32 = 50;
 pub (crate) const MONT_BIT_SIZE : i64 = 0x40;
 pub (crate) const NIST224_SPEC_FLAGS : u32 = 0x1;
+
+pub (crate) const EC_PRIME_GROUP_TYPE_OID :&str = "1.2.840.10045.1.1";
+pub (crate) const EC_GF2M_GROUP_TYPE_OID :&str = "1.2.840.10045.1.2";
