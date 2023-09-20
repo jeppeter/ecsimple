@@ -6,6 +6,7 @@ use regex::Regex;
 
 use extargsparse_worker::{extargs_error_class,extargs_new_error};
 use super::strop::{decode_base64,encode_base64};
+use super::fileop::*;
 
 extargs_error_class!{PemLibError}
 
@@ -40,8 +41,10 @@ pub fn pem_to_der(ins :&str) -> Result<(Vec<u8>,String),Box<dyn Error>> {
 	Ok((retv,notice))
 }
 
+
 const DEFAULT_PEM_LENGTH :usize = 64;
 
+#[allow(dead_code)]
 pub fn der_to_pem(inb :&[u8],notice :&str) -> Result<String,Box<dyn Error>> {
 	let outs :String;
 	let mut rets :String = "".to_string();
@@ -61,4 +64,21 @@ pub fn der_to_pem(inb :&[u8],notice :&str) -> Result<String,Box<dyn Error>> {
 	}
 	rets.push_str(&format!("-----END {}-----\n",notice));
 	Ok(rets)
+}
+
+pub fn read_file_into_der(infile :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+	let ores = read_file(infile);
+	let retdata :Vec<u8>;
+	if ores.is_err() {
+		retdata = read_file_bytes(infile)?;
+	} else {
+		let sv = ores.unwrap();
+		let bres = pem_to_der(&sv);
+		if bres.is_err() {
+			retdata = read_file_bytes(infile)?;
+		} else {
+			(retdata,_) = bres.unwrap();
+		}
+	}
+	Ok(retdata)
 }

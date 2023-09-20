@@ -42,6 +42,8 @@ mod filehdl;
 #[allow(dead_code)]
 mod strop;
 mod bntest;
+mod pemlib;
+mod ecasn1;
 mod ectest;
 
 
@@ -59,7 +61,8 @@ fn main() -> Result<(),Box<dyn Error>> {
 	filehdl::file_load_parser(parser.clone())?;
 	loglib::prepare_log(parser.clone())?;
 	bntest::bn_load_parser(parser.clone())?;
-	ectest::ec_load_parser(parser.clone());
+	ectest::ec_load_parser(parser.clone())?;
+	ecasn1::ec_asn1_parser(parser.clone())?;
 	let ores = parser.parse_commandline_ex(None,None,None,None);
 	if ores.is_err() {
 		let e = ores.err().unwrap();
