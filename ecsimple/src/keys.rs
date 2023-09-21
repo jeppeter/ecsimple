@@ -874,21 +874,126 @@ impl ECPrimePrivateKey {
 	pub (crate)  fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let pubk :ECPrimePubKey = self.export_pubkey();
 		let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
+		let montv :MontNum;
+		let mut tmpu :BigUint;
+		let mut tmpp :BigInt;
+		let mut bevecs :Vec<u8>;
+		let mut paramselem :ECPARAMETERSElem = ECPARAMETERSElem::init_asn1();
+		let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
+		let mut impparams :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
+		let mut asn1pubdata :Asn1BitData = Asn1BitData::init_asn1();
+		let mut ecprivasn1elem:ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
+		let mut ecprivasn1 :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
+		let zv :BigInt = zero();
+		montv = MontNum::new(&self.base.group.p).unwrap();
 
-		let mut ecprivasn1elem :ECPrivateAsn1Elem = ECPrivateAsn1Elem::init_asn1();
-		ecprivasn1elem.version.val = 1;
-		let (_, vecs) = self.privnum.to_bytes_be();
-		ecprivasn1elem.privnum.val = BigUint::from_bytes_be(&vecs);
-		let ecoid :String = ecc_get_oid_from_name(&self.base.group.curvename)?;
-		let mut oidobj :Asn1Object = Asn1Object::init_asn1();
-		let _ = oidobj.set_value(&ecoid)?;
-		let _ = ecprivasn1elem.ecoid.val.push(oidobj);
-		let mut pubbits :Asn1BitData = Asn1BitData::init_asn1();
-		pubbits.data = pubdata.clone();
-		ecprivasn1elem.pubdata.val.push(pubbits);
-		let mut ecprivasn1 :ECPrivateAsn1 = ECPrivateAsn1::init_asn1();
-		ecprivasn1.elem.val.push(ecprivasn1elem);
-		return ecprivasn1.encode_asn1();
+		/*secp224r1*/
+		/*
+		v8 = Vec::from_hex("ffffffffffffffffffffffffffffffff000000000000000000000001").unwrap();
+		p = BigInt::from_bytes_be(Sign::Plus,&v8);
+		bngrp.p = p.clone();
+		montv = MontNum::new(&bngrp.p).unwrap();
+		tmpp = p.clone();
+		v8 = Vec::from_hex("fffffffffffffffffffffffffffffffefffffffffffffffffffffffe").unwrap();
+		p = BigInt::from_bytes_be(Sign::Plus,&v8);
+		tmpa = p.clone();
+		bngrp.a = montv.mont_to(&p);
+		v8 = Vec::from_hex("b4050a850c04b3abf54132565044b0b7d7bfd8ba270b39432355ffb4").unwrap();
+		p = BigInt::from_bytes_be(Sign::Plus,&v8);
+		bngrp.b = montv.mont_to(&p);
+		v8 = Vec::from_hex("b70e0cbd6bb4bf7f321390b94a03c1d356c21122343280d6115c1d21").unwrap();
+		p = BigInt::from_bytes_be(Sign::Plus,&v8);
+		bngrp.generator.x = montv.mont_to(&p);
+		v8 = Vec::from_hex("bd376388b5f723fb4c22dfe6cd4375a05a07476444d5819985007e34").unwrap();
+		p = BigInt::from_bytes_be(Sign::Plus,&v8);
+		bngrp.generator.y = montv.mont_to(&p);
+		bngrp.generator.z = montv.mont_to(&ov);
+
+		v8 = Vec::from_hex("ffffffffffffffffffffffffffff16a2e0b8f03e13dd29455c5c2a3d").unwrap();
+		p = BigInt::from_bytes_be(Sign::Plus,&v8);
+		bngrp.order = p.clone();
+		bngrp.cofactor = ov.clone();
+		bngrp.curvename = SECP224r1_NAME.to_string();
+
+		//ecsimple_log_trace!("tmpp 0x{:X} tmpa 0x{:X}",tmpp,tmpa);
+		if tmpp == (tmpa.clone() + ov.clone() + ov.clone() + ov.clone()) {
+			bngrp.is_minus3 = true;
+			//ecsimple_log_trace!("{} is_minus3 true",SECP224r1_NAME);
+		} else {
+			bngrp.is_minus3 = false;
+			//ecsimple_log_trace!("{} is_minus3 false",SECP224r1_NAME);
+		}
+		retv.insert(SECP224r1_NAME.to_string(),bngrp.clone());
+		*/
+		if paramenc == EC_PARAMS_EXLICIT {
+			let mut fieldidelem :X9_62_FIELDIDElem = X9_62_FIELDIDElem::init_asn1();
+			let _ = fieldidelem.fieldType.val.set_value(EC_PRIME_GROUP_TYPE_OID)?;
+			(_,bevecs) = self.base.group.p.to_bytes_be();
+			tmpu = BigUint::from_bytes_be(&bevecs);
+			fieldidelem.prime.val = tmpu.clone();
+			paramselem.fieldID.elem.val.push(fieldidelem);
+			paramselem.version.val = 1;
+			let mut curveelem :X9_62_CURVEElem = X9_62_CURVEElem::init_asn1();
+			tmpp = montv.mont_from(&self.base.group.a);
+			(_,bevecs) = tmpp.to_bytes_be();
+			curveelem.a.data = bevecs.clone();
+			tmpp = montv.mont_from(&self.base.group.b);
+			(_,bevecs) = tmpp.to_bytes_be();
+			curveelem.b.data = bevecs.clone();
+
+			if self.base.group.seed == zv {
+				curveelem.seed.val = None;	
+			} else {
+				(_,bevecs) = self.base.group.seed.to_bytes_be();
+				asn1pubdata.data = bevecs.clone();
+				curveelem.seed.val = Some(asn1pubdata.clone());
+			}
+			
+
+			paramselem.curve.elem.val.push(curveelem);
+
+			let x :BigInt = montv.mont_from(&self.base.group.generator.x);
+			let y :BigInt = montv.mont_from(&self.base.group.generator.y);
+			let basegrp :ECPrimePubKey = ECPrimePubKey::new(&self.base.group,&x,&y);
+			let basedata :Vec<u8> = basegrp.to_bin(cmprtype)?;
+			paramselem.base.data = basedata.clone();
+			(_,bevecs) = self.base.group.order.to_bytes_be();
+			tmpu = BigUint::from_bytes_be(&bevecs);
+			paramselem.order.val = tmpu.clone();
+
+			(_,bevecs) = self.base.group.cofactor.to_bytes_be();
+			tmpu = BigUint::from_bytes_be(&bevecs);
+			let mut bn :Asn1BigNum = Asn1BigNum::init_asn1();
+			bn.val = tmpu.clone();
+			paramselem.cofactor.val = Some(bn);
+
+			params.itype = 1;
+			params.parameters.elem.val.push(paramselem);
+			(_,bevecs) = self.privnum.to_bytes_be();
+			ecprivasn1elem.version.val = 1;
+			ecprivasn1elem.privkey.data = bevecs.clone();
+			impparams.val.push(params);
+			ecprivasn1elem.parameters.val = Some(impparams);
+			asn1pubdata.data = pubdata.clone();
+			ecprivasn1elem.pubkey.val.push(asn1pubdata);
+			ecprivasn1.elem.val.push(ecprivasn1elem);
+			return ecprivasn1.encode_asn1();
+		} else if paramenc == "" {
+			params.itype = 0;
+			let oid :String = ecc_get_oid_from_name(&self.base.group.curvename)?;
+			let _ = params.named_curve.set_value(&oid)?;
+			(_,bevecs) = self.privnum.to_bytes_be();
+			ecprivasn1elem.version.val = 1;
+			ecprivasn1elem.privkey.data = bevecs.clone();
+			impparams.val.push(params);
+			ecprivasn1elem.parameters.val = Some(impparams);
+			asn1pubdata.data = pubdata.clone();
+			ecprivasn1elem.pubkey.val.push(asn1pubdata);
+			ecprivasn1.elem.val.push(ecprivasn1elem);
+			return ecprivasn1.encode_asn1();
+
+		}
+		ecsimple_new_error!{EcKeyError,"not supported paramenc type [{}]",paramenc}
 	}
 
 
@@ -1150,9 +1255,19 @@ pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<
 			bevecs = curveparams.b.data.clone();
 			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
 			primegrp.b = montv.mont_to(&tmpp);
+
+			primegrp.seed = zero();
+			if curveparams.seed.val.is_some() {
+				let bn :Asn1BitData = curveparams.seed.val.as_ref().unwrap().clone();
+				bevecs = bn.data.clone();
+				primegrp.seed = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+			}
+
 			bevecs = paramselem.order.val.to_bytes_be();
 			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
 			primegrp.order = tmpp.clone();
+
+
 			if paramselem.cofactor.val.is_none() {
 				primegrp.cofactor = ov.clone();
 			} else {
@@ -1165,6 +1280,7 @@ pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<
 			} else {
 				primegrp.is_minus3 = false;
 			}
+
 
 			bevecs = paramselem.base.data.clone();
 			ybit = bevecs[0] & EC_CODE_YBIT;
