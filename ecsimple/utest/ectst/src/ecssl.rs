@@ -73,12 +73,17 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 
 fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
+	let eccmprtype :String = ns.get_string("eccmprtype");
+	let ecparamenc :String = ns.get_string("ecparamenc");
+	let output :String = ns.get_string("output");
 
 	init_log(ns.clone())?;
 	for f in sarr.iter() {
 		let privdata = read_file_into_der(f)?;
 		let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
 		println!("{}", privkey);
+		let data :Vec<u8> = privkey.to_der(&eccmprtype,&ecparamenc)?;
+		let _ = write_file_bytes(&output,&data)?;
 	}
 
 	Ok(())
