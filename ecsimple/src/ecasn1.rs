@@ -119,6 +119,32 @@ pub struct ECPKPARAMETERS {
 	pub implicitCA : Asn1Null,
 }
 
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyPackElem {
+	pub typef :Asn1Object,
+	pub parameters :ECPKPARAMETERS,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyPack {
+	pub elem :Asn1Seq<ECPublicKeyPackElem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAsn1Elem {
+	pub packed :ECPublicKeyPack,
+	pub pubdata :Asn1BitData,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAsn1 {
+	pub elem :Asn1Seq<ECPublicKeyAsn1Elem>,
+}
+
 
 #[derive(Clone)]
 #[asn1_sequence()]

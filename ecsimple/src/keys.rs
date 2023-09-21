@@ -71,6 +71,11 @@ impl ECGf2mPubKey {
 		}
 	}
 
+	pub (crate) fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let retdata :Vec<u8> = Vec::new();
+		Ok(retdata)
+	}
+
 	fn uncompress_x_point(grp :&ECGroupBnGf2m, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
 		let b = ECGf2mPoint::new(grp);
 		let xb :BnGf2m = BnGf2m::new_from_bigint(&x_);
@@ -590,6 +595,10 @@ impl ECPrimePubKey {
 		}
 	}
 
+	pub (crate) fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let retdata :Vec<u8> = Vec::new();
+		Ok(retdata)
+	}
 
 	fn uncompress_x_point(grp :&ECGroupPrime, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
@@ -832,8 +841,6 @@ impl std::fmt::Display for ECPrimePrivateKey {
 		write!(f,"base {};\nprivnum {};\n",self.base,self.privnum)
 	}
 }
-
-
 
 
 impl ECPrimePrivateKey {
@@ -1156,20 +1163,7 @@ pub (crate) fn extract_compressed_y_gf2m(grp :&ECGroupBnGf2m,x_ :&BigInt,ybit :u
 	Ok(y)
 }
 
-
-pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<ECGroup,Box<dyn Error>> {
-	if privkey.elem.val.len() != 1 {
-		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1.elem.val.len() {} != 1",privkey.elem.val.len()}
-	}
-	let privkeyelem :ECPrivateKeyAsn1Elem = privkey.elem.val[0].clone();
-	if privkeyelem.parameters.val.is_none() {
-		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1Elem parameters none"}
-	}
-	let ecpkparamsset :Asn1ImpSet<ECPKPARAMETERS,0> = privkeyelem.parameters.val.as_ref().unwrap().clone();
-	if ecpkparamsset.val.len() != 1 {
-		ecsimple_new_error!{EcKeyError,"paramters impset len {} != 1", ecpkparamsset.val.len()}
-	}
-	let ecpkparams :ECPKPARAMETERS = ecpkparamsset.val[0].clone();
+pub (crate) fn get_group_from_ecpkparameters_der(ecpkparams :&ECPKPARAMETERS) -> Result<ECGroup,Box<dyn Error>> {
 	let curveparams :X9_62_CURVEElem;
 	let ov :BigInt = one();
 	let retgrp :ECGroup;
@@ -1437,8 +1431,23 @@ pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<
 		ecsimple_new_error!{EcKeyError,"not supported oid fieldType [{}]",fieldid.fieldType.val.get_value()}
 
 	}
-	ecsimple_new_error!{EcKeyError,"not supported type [{}]",ecpkparams.itype}
+	ecsimple_new_error!{EcKeyError,"not supported type [{}]",ecpkparams.itype}	
+}
 
+pub (crate) fn get_group_from_public_der(pubkey :&ECPublicKeyAsn1) -> Result<ECGroup,Box<dyn Error>> {
+	if pubkey.elem.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"ECPublicKeyAsn1.elem.val.len() {} != 1",pubkey.elem.val.len()}
+	}
+	let pubkeyelem :ECPublicKeyAsn1Elem = pubkey.elem.val[0].clone();
+	if pubkeyelem.packed.elem.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"ECPublicKeyAsn1Elem.packed.elem.val.len() {} != 1",pubkeyelem.packed.elem.val.len()}
+	}
+	let packedelem :ECPublicKeyPackElem = pubkeyelem.packed.elem.val[0].clone();
+	let typef :String = packedelem.typef.get_value();
+	if typef != EC_PUBLIC_KEY_OID {
+		ecsimple_new_error!{EcKeyError,"typef [{}] != EC_PUBLIC_KEY_OID[{}]",typef,EC_PUBLIC_KEY_OID}
+	}
+	return get_group_from_ecpkparameters_der(&packedelem.parameters);
 }
 
 
@@ -1472,6 +1481,24 @@ impl ECPublicKey {
 			} ;
 		}
 		return retv;
+	}
+
+	pub fn from_der(dercode :&[u8]) -> Result<ECPublicKey, Box<dyn Error>> {
+		let mut pubkeyasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+		let _ = pubkeyasn1.decode_asn1(dercode)?;
+		let grp :ECGroup = get_group_from_public_der(&pubkeyasn1)?;
+		let pubkeyasn1elem :ECPublicKeyAsn1Elem = pubkeyasn1.elem.val[0].clone();
+		return Self::from_bin(&grp,&pubkeyasn1elem.pubdata.data);
+	}
+
+	pub fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let retv :Vec<u8>;
+		if self.is_bn_key() {
+			retv= self.get_bn_key().to_der(cmprtype,paramenc)?;
+		} else {
+			retv = self.get_prime_key().to_der(cmprtype,paramenc)?;
+		} 
+		Ok(retv)
 	}
 
 	pub fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
@@ -1552,6 +1579,23 @@ impl std::fmt::Display for ECPublicKey {
 		return self.get_bn_key().fmt(f);		
 	}
 }
+
+pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<ECGroup,Box<dyn Error>> {
+	if privkey.elem.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1.elem.val.len() {} != 1",privkey.elem.val.len()}
+	}
+	let privkeyelem :ECPrivateKeyAsn1Elem = privkey.elem.val[0].clone();
+	if privkeyelem.parameters.val.is_none() {
+		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1Elem parameters none"}
+	}
+	let ecpkparamsset :Asn1ImpSet<ECPKPARAMETERS,0> = privkeyelem.parameters.val.as_ref().unwrap().clone();
+	if ecpkparamsset.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"paramters impset len {} != 1", ecpkparamsset.val.len()}
+	}
+	let ecpkparams :ECPKPARAMETERS = ecpkparamsset.val[0].clone();
+	return get_group_from_ecpkparameters_der(&ecpkparams);
+}
+
 
 #[derive(Clone)]
 pub struct ECPrivateKey {

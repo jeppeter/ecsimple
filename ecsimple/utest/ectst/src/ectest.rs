@@ -151,7 +151,7 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 }
 
 
-fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+fn ecpubbinload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
 
 	init_log(ns.clone())?;
@@ -232,7 +232,7 @@ fn encapsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 }
 
 
-#[extargs_map_function(ecgenbase_handler,ecsignbase_handler,ecvfybase_handler,ecpubload_handler,extractsign_handler,encapsign_handler)]
+#[extargs_map_function(ecgenbase_handler,ecsignbase_handler,ecvfybase_handler,ecpubbinload_handler,extractsign_handler,encapsign_handler)]
 pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
@@ -249,7 +249,7 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		"ecvfybase<ecvfybase_handler>##ecname privatenum hashnum signbin to verify sign##" : {{
 			"$" : "+"
 		}},
-		"ecpubload<ecpubload_handler>##ecname pubbin to load ec public key##" : {{
+		"ecpubbinload<ecpubbinload_handler>##ecname pubbin to load ec public key##" : {{
 			"$" : 2
 		}},
 		"extractsign<extractsign_handler>##input input and output for output##" : {{

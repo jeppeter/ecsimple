@@ -89,8 +89,24 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	Ok(())
 }
 
+fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	//let eccmprtype :String = ns.get_string("eccmprtype");
+	//let ecparamenc :String = ns.get_string("ecparamenc");
+	//let output :String = ns.get_string("output");
 
-#[extargs_map_function(ecgen_handler,ecprivload_handler)]
+	init_log(ns.clone())?;
+	for f in sarr.iter() {
+		let pubdata = read_file_into_der(f)?;
+		let pubkey :ECPublicKey = ECPublicKey::from_der(&pubdata)?;
+		println!("{}", pubkey);
+	}
+
+	Ok(())
+}
+
+
+#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler)]
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
@@ -98,6 +114,9 @@ pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : 1
 		}},
 		"ecprivload<ecprivload_handler>##ecprivpem ... to load private key##" : {{
+			"$" : "+"
+		}},
+		"ecpubload<ecpubload_handler>##ecpubpem ... to load ecpub key##" : {{
 			"$" : "+"
 		}}
 	}}
