@@ -313,6 +313,7 @@ impl ECGf2mPubKey {
 		let fieldsize :usize = ((degr + 7) >> 3) as usize;
 		let mut xvecs :Vec<u8>;
 		let mut yvecs :Vec<u8>;
+		ecsimple_log_trace!("cmprtype [{}]",cmprtype);
 		if cmprtype == EC_COMPRESSED {
 			retv.push(EC_CODE_COMPRESSED);
 			(_, xvecs) = x.to_bytes_be();
@@ -367,6 +368,7 @@ impl ECGf2mPubKey {
 		} else {
 			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
 		}
+		ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"outbin");
 		Ok(retv)
 	}
 
@@ -474,7 +476,13 @@ impl ECGf2mPrivateKey {
 	pub (crate)  fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let pubk :ECGf2mPubKey = self.export_pubkey();
 		//let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
-		let pubdata :Vec<u8> = pubk.to_bin(EC_UNCOMPRESSED)?;
+		let pubdata :Vec<u8>;
+		if paramenc == EC_PARAMS_EXLICIT {
+			pubdata  = pubk.to_bin(EC_UNCOMPRESSED)?;
+		} else {
+			pubdata = pubk.to_bin(cmprtype)?;
+		}
+		
 		let mut ecprivasn1elem :ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
 		let mut ecprivasn1 :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
 		let bevecs :Vec<u8>;

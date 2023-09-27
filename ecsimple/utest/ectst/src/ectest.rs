@@ -259,7 +259,7 @@ pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : 0
 		}}
 	}}
-	"#,EC_COMPRESSED,EC_PARAMS_EXLICIT);
+	"#,EC_COMPRESSED,"");
 	extargs_load_commandline!(parser,&cmdline)?;
 	Ok(())
 }
