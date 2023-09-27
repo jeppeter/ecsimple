@@ -166,13 +166,20 @@ pub struct ECPrivateKeyAsn1Elem {
 	pub version :Asn1Integer,
 	pub privkey :Asn1OctData,
 	pub paramters :Asn1Opt<Asn1ImpSet<ECPKPARAMETERS,0>>,
-	pub pubkey : Asn1ImpSet<Asn1BitData,1>,
+	pub pubkey : Asn1ImpSet<Asn1BitDataLeftFlag,1>,
 }
 
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECSM2Asn1Elem {
+	pub version :Asn1Integer,
+	pub sm2obj 
 }
 
 
