@@ -44,7 +44,6 @@ pub fn pem_to_der(ins :&str) -> Result<(Vec<u8>,String),Box<dyn Error>> {
 
 const DEFAULT_PEM_LENGTH :usize = 64;
 
-#[allow(dead_code)]
 pub fn der_to_pem(inb :&[u8],notice :&str) -> Result<String,Box<dyn Error>> {
 	let outs :String;
 	let mut rets :String = "".to_string();
