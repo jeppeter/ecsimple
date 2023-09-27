@@ -17,7 +17,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 use asn1obj_codegen::{asn1_sequence};
-use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData};
+use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataLeftFlag};
 use asn1obj::complex::{Asn1Seq,Asn1ImpSet};
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
@@ -349,11 +349,17 @@ impl ECGf2mPubKey {
 			}
 		} else if cmprtype == EC_HYBRID {
 			retv.push(EC_CODE_HYBRID);
-			let (_,xvecs) = x.to_bytes_be();
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
 			for xb in xvecs {
 				retv.push(xb);
 			}
-			let (_,yvecs) = y.to_bytes_be();
+			(_,yvecs) = y.to_bytes_be();
+			while yvecs.len() < fieldsize {
+				yvecs.insert(0,0);
+			}
 			for yb in yvecs {
 				retv.push(yb);
 			}
@@ -478,7 +484,8 @@ impl ECGf2mPrivateKey {
 		//let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
 		let pubdata :Vec<u8>;
 		if paramenc == EC_PARAMS_EXLICIT {
-			pubdata  = pubk.to_bin(EC_UNCOMPRESSED)?;
+			//pubdata  = pubk.to_bin(EC_UNCOMPRESSED)?;
+			pubdata = pubk.to_bin(cmprtype)?;
 		} else {
 			pubdata = pubk.to_bin(cmprtype)?;
 		}
@@ -488,7 +495,7 @@ impl ECGf2mPrivateKey {
 		let bevecs :Vec<u8>;
 		let params :ECPKPARAMETERS;
 		let mut impparams :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
-		let mut asn1pubdata : Asn1BitData = Asn1BitData::init_asn1();
+		let mut asn1pubdata : Asn1BitDataLeftFlag = Asn1BitDataLeftFlag::init_asn1();
 		params = form_ecpkparameters_gf2m(&self.base.group,cmprtype,paramenc)?;
 		ecprivasn1elem.version.val = 1;
 		(_,bevecs) = self.privnum.to_bytes_be();
@@ -496,6 +503,7 @@ impl ECGf2mPrivateKey {
 		impparams.val.push(params);
 		ecprivasn1elem.parameters.val = Some(impparams);
 		asn1pubdata.data = pubdata.clone();
+		asn1pubdata.flag = 0;
 		//imppubk.val.push(asn1pubdata);
 		ecprivasn1elem.pubkey.val.push(asn1pubdata);
 		ecprivasn1.elem.val.push(ecprivasn1elem);
@@ -1010,7 +1018,7 @@ impl ECPrimePrivateKey {
 		let params :ECPKPARAMETERS;
 		let bevecs :Vec<u8>;
 		let mut impparams :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
-		let mut asn1pubdata :Asn1BitData = Asn1BitData::init_asn1();
+		let mut asn1pubdata :Asn1BitDataLeftFlag = Asn1BitDataLeftFlag::init_asn1();
 		let mut ecprivasn1elem:ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
 		let mut ecprivasn1 :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
 
@@ -1021,6 +1029,7 @@ impl ECPrimePrivateKey {
 		impparams.val.push(params);
 		ecprivasn1elem.parameters.val = Some(impparams);
 		asn1pubdata.data = pubdata.clone();
+		asn1pubdata.flag = 0;
 		ecprivasn1elem.pubkey.val.push(asn1pubdata);
 		ecprivasn1.elem.val.push(ecprivasn1elem);
 		return ecprivasn1.encode_asn1();

@@ -152,7 +152,7 @@ pub struct ECPrivateKeyAsn1Elem {
 	pub version :Asn1Integer,
 	pub privkey :Asn1OctData,
 	pub parameters :Asn1Opt<Asn1ImpSet<ECPKPARAMETERS,0>>,
-	pub pubkey : Asn1ImpSet<Asn1BitData,1>,
+	pub pubkey : Asn1ImpSet<Asn1BitDataLeftFlag,1>,
 }
 
 #[derive(Clone)]
