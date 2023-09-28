@@ -69,6 +69,8 @@ fn form_ecpkparameters_gf2m(grp :&ECGroupBnGf2m,cmprtype:&str, paramenc:&str) ->
 	let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
 	let mut bevecs :Vec<u8>;
 	let mut tmpu :BigUint;
+	let degr :i64 = grp.degree();
+	let fieldsize :usize = ((degr + 7) >> 3) as usize;
 	let zv :BigInt = zero();
 	if paramenc == EC_PARAMS_EXLICIT {
 		/*sect163r1*/
@@ -155,10 +157,16 @@ fn form_ecpkparameters_gf2m(grp :&ECGroupBnGf2m,cmprtype:&str, paramenc:&str) ->
 
 		tmpp = grp.a.to_bigint();
 		(_,bevecs) = tmpp.to_bytes_be();
+		while bevecs.len() < fieldsize {
+			bevecs.insert(0,0);
+		}
 		curveelem.a.data = bevecs.clone();
 
 		tmpp = grp.b.to_bigint();
 		(_,bevecs) = tmpp.to_bytes_be();
+		while bevecs.len() < fieldsize {
+			bevecs.insert(0,0);
+		}
 		curveelem.b.data = bevecs.clone();
 
 		curveelem.seed.val = None;
@@ -651,6 +659,8 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 	let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
 	let mut asn1pubdata :Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
 	let zv :BigInt = zero();
+	let degr :i64 = grp.degree();
+	let fieldsize :usize = ((degr + 7) >> 3) as usize;
 	montv = MontNum::new(&grp.p).unwrap();
 
 	/*secp224r1*/
@@ -700,9 +710,15 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 		let mut curveelem :X9_62_CURVEElem = X9_62_CURVEElem::init_asn1();
 		tmpp = montv.mont_from(&grp.a);
 		(_,bevecs) = tmpp.to_bytes_be();
+		while bevecs.len() < fieldsize {
+			bevecs.insert(0,0);
+		}
 		curveelem.a.data = bevecs.clone();
 		tmpp = montv.mont_from(&grp.b);
 		(_,bevecs) = tmpp.to_bytes_be();
+		while bevecs.len() < fieldsize {
+			bevecs.insert(0,0);
+		}
 		curveelem.b.data = bevecs.clone();
 
 		if grp.seed == zv {
