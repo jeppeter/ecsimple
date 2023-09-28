@@ -619,10 +619,8 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 	let mut bevecs :Vec<u8>;
 	let mut paramselem :ECPARAMETERSElem = ECPARAMETERSElem::init_asn1();
 	let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
-	let mut asn1pubdata :Asn1BitData = Asn1BitData::init_asn1();
+	let mut asn1pubdata :Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
 	let zv :BigInt = zero();
-	let degr :i64 = grp.degree();
-	let fieldsize :usize = ((degr + 7) >> 3) as usize;
 	montv = MontNum::new(&grp.p).unwrap();
 
 	/*secp224r1*/
@@ -681,10 +679,11 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 			curveelem.seed.val = None;	
 		} else {
 			(_,bevecs) = grp.seed.to_bytes_be();
-			while bevecs.len() < fieldsize {
+			while bevecs.len() < grp.seed_len {
 				bevecs.insert(0,0);
 			}
 			asn1pubdata.data = bevecs.clone();
+			asn1pubdata.flag = 0;
 			curveelem.seed.val = Some(asn1pubdata.clone());
 		}
 		
@@ -1298,10 +1297,12 @@ pub (crate) fn get_group_from_ecpkparameters_der(ecpkparams :&ECPKPARAMETERS) ->
 			primegrp.b = montv.mont_to(&tmpp);
 
 			primegrp.seed = zero();
+			primegrp.seed_len = 0;
 			if curveparams.seed.val.is_some() {
-				let bn :Asn1BitData = curveparams.seed.val.as_ref().unwrap().clone();
+				let bn :Asn1BitDataFlag = curveparams.seed.val.as_ref().unwrap().clone();
 				bevecs = bn.data.clone();
 				primegrp.seed = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+				primegrp.seed_len = bevecs.len();
 			}
 
 			bevecs = paramselem.order.val.to_bytes_be();

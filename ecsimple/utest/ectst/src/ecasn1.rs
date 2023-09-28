@@ -122,7 +122,7 @@ pub struct X9_62_FIELDID {
 pub struct X9_62_CURVEElem {
 	pub a :Asn1OctData,
 	pub b :Asn1OctData,
-	pub seed :Asn1Opt<Asn1BitData>,
+	pub seed :Asn1Opt<Asn1BitDataFlag>,
 }
 
 
