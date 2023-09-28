@@ -17,7 +17,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 use asn1obj_codegen::{asn1_sequence};
-use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataLeftFlag};
+use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataFlag};
 use asn1obj::complex::{Asn1Seq,Asn1ImpSet};
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
@@ -497,7 +497,7 @@ impl ECGf2mPrivateKey {
 		let mut bevecs :Vec<u8>;
 		let params :ECPKPARAMETERS;
 		let mut impparams :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
-		let mut asn1pubdata : Asn1BitDataLeftFlag = Asn1BitDataLeftFlag::init_asn1();
+		let mut asn1pubdata : Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
 		params = form_ecpkparameters_gf2m(&self.base.group,cmprtype,paramenc)?;
 		ecprivasn1elem.version.val = 1;
 		(_,bevecs) = self.privnum.to_bytes_be();
@@ -1025,7 +1025,7 @@ impl ECPrimePrivateKey {
 		let fieldsize :usize = ((degr + 7) >> 3) as usize;
 		let mut bevecs :Vec<u8>;
 		let mut impparams :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
-		let mut asn1pubdata :Asn1BitDataLeftFlag = Asn1BitDataLeftFlag::init_asn1();
+		let mut asn1pubdata :Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
 		let mut ecprivasn1elem:ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
 		let mut ecprivasn1 :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
 

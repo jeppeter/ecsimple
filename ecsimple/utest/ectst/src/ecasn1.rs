@@ -166,7 +166,7 @@ pub struct ECPrivateKeyAsn1Elem {
 	pub version :Asn1Integer,
 	pub privkey :Asn1OctData,
 	pub paramters :Asn1Opt<Asn1ImpSet<ECPKPARAMETERS,0>>,
-	pub pubkey : Asn1ImpSet<Asn1BitDataLeftFlag,1>,
+	pub pubkey : Asn1ImpSet<Asn1BitDataFlag,1>,
 }
 
 #[derive(Clone)]
@@ -175,11 +175,47 @@ pub struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }
 
-#[derive(Clone)]
+
 #[asn1_sequence()]
-pub struct ECSM2Asn1Elem {
+#[derive(Clone)]
+pub struct Asn1X509AttributeElem {
+	pub object :Asn1Object,
+	pub set :Asn1Any,
+}
+
+//#[asn1_sequence(debug=enable)]
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509Attribute {
+	pub elem : Asn1Seq<Asn1X509AttributeElem>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509AlgorElem {
+	pub algorithm : Asn1Object,
+	pub parameters : Asn1Opt<Asn1Any>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509Algor {
+	pub elem : Asn1Seq<Asn1X509AlgorElem>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1Pkcs8PrivKeyInfoElem {
 	pub version :Asn1Integer,
-	pub sm2obj 
+	pub pkeyalg : Asn1X509Algor,
+	pub pkey : Asn1OctData,
+	pub attributes : Asn1Opt<Asn1ImpSet<Asn1X509Attribute,0>>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1Pkcs8PrivKeyInfo {
+	pub elem : Asn1Seq<Asn1Pkcs8PrivKeyInfoElem>,
 }
 
 
@@ -194,7 +230,16 @@ fn ecprivkeydec_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSe
 	for f in sarr.iter() {
 		let data = read_file_into_der(f)?;
 		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
-		let _ = privkey.decode_asn1(&data)?;
+		let ores = privkey.decode_asn1(&data);
+		if ores.is_err() {
+			let mut pk8info :Asn1Pkcs8PrivKeyInfo = Asn1Pkcs8PrivKeyInfo::init_asn1();
+			let _ = pk8info.decode_asn1(&data)?;
+			if pk8info.elem.val.len() != 1 {
+				extargs_new_error!{EcAsn1Error,"not valid val.len [{}]",pk8info.elem.val.len()}
+			}
+			let _ = privkey.decode_asn1(&pk8info.elem.val[0].pkey.data)?;
+			pk8info.print_asn1("Asn1Pkcs8PrivKeyInfo",0,&mut sout)?;
+		}
 		privkey.print_asn1("ECPrivateKeyAsn1",0,&mut sout)?;
 	}
 	Ok(())
