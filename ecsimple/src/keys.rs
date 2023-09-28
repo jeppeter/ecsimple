@@ -69,6 +69,7 @@ fn form_ecpkparameters_gf2m(grp :&ECGroupBnGf2m,cmprtype:&str, paramenc:&str) ->
 	let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
 	let mut bevecs :Vec<u8>;
 	let mut tmpu :BigUint;
+	let zv :BigInt = zero();
 	if paramenc == EC_PARAMS_EXLICIT {
 		/*sect163r1*/
 		/*
@@ -117,15 +118,34 @@ fn form_ecpkparameters_gf2m(grp :&ECGroupBnGf2m,cmprtype:&str, paramenc:&str) ->
 			} else if idx == 1 {
 				x962elem.k1.val = kval-1;
 				tmpp -= ov.clone() << (kval-1);
+				idx -= 1;
 				break;
 			}
 		}
 
+
 		if tmpp != ov {
 			ecsimple_new_error!{EcKeyError,"p [0x{:x}] not 5 bits set",grp.p}
 		}
-		let _ = chartwo.elemchoice.otype.val.set_value(EC_PP_BASIS_OID)?;
-		chartwo.elemchoice.ppBasis.elem.val.push(x962elem);
+
+		if idx == 0 {
+			let _ = chartwo.elemchoice.otype.val.set_value(EC_PP_BASIS_OID)?;	
+			chartwo.elemchoice.ppBasis.elem.val.push(x962elem);
+		} else if idx == 2 {
+			/*it is set for */
+			let _ = chartwo.elemchoice.otype.val.set_value(EC_TP_BASIS_OID)?;
+			bevecs = Vec::new();
+			let curv = x962elem.k3.val as u64;
+			for i in 0..8 {
+				bevecs.push(((curv >> ((7-i)*8)) & 0xff) as u8);	
+			}
+			
+			tmpu = BigUint::from_bytes_be(&bevecs);
+			chartwo.elemchoice.tpBasis.val = tmpu.clone();
+		} else if idx == 3 {
+			let _ = chartwo.elemchoice.otype.val.set_value(EC_ON_BASIS_OID)?;			
+		}
+		
 		let mut fieldidelem :X9_62_FIELDIDElem = X9_62_FIELDIDElem::init_asn1();
 		let _ = fieldidelem.fieldType.val.set_value(EC_GF2M_GROUP_TYPE_OID)?;
 		fieldidelem.char_two.elem.val.push(chartwo);
@@ -142,6 +162,16 @@ fn form_ecpkparameters_gf2m(grp :&ECGroupBnGf2m,cmprtype:&str, paramenc:&str) ->
 		curveelem.b.data = bevecs.clone();
 
 		curveelem.seed.val = None;
+		if grp.seed != zv {
+			let mut bitflag :Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
+			(_,bevecs) = grp.seed.to_bytes_be();
+			while bevecs.len() < grp.seed_len {
+				bevecs.insert(0,0);
+			}
+			bitflag.data = bevecs.clone();
+			bitflag.flag = 0;
+			curveelem.seed.val = Some(bitflag.clone());
+		}
 
 		paramselem.curve.elem.val.push(curveelem);
 
@@ -1397,29 +1427,45 @@ pub (crate) fn get_group_from_ecpkparameters_der(ecpkparams :&ECPKPARAMETERS) ->
 				ecsimple_new_error!{EcKeyError,"char_two elem {} != 1",fieldid.char_two.elem.val.len()}
 			}
 			x962elem =  fieldid.char_two.elem.val[0].clone();
-			if x962elem.elemchoice.otype.val.get_value() != EC_PP_BASIS_OID {
-				ecsimple_new_error!{EcKeyError,"otype [{}] != {}", x962elem.elemchoice.otype.val.get_value(),EC_PP_BASIS_OID}
+			let oidstr :String = x962elem.elemchoice.otype.val.get_value();
+			if oidstr != EC_PP_BASIS_OID && oidstr != EC_TP_BASIS_OID && oidstr != EC_ON_BASIS_OID {
+				ecsimple_new_error!{EcKeyError,"otype [{}] not supported", oidstr}
 			}
-			if x962elem.elemchoice.ppBasis.elem.val.len() != 1 {
-				ecsimple_new_error!{EcKeyError,"ppBasis len {} != 1",x962elem.elemchoice.ppBasis.elem.val.len()}
-			}
-			ppbasis = x962elem.elemchoice.ppBasis.elem.val[0].clone();
 
-			tmpp = one();
-			tmpp |= ov.clone() << x962elem.m.val;
-			if ppbasis.k1.val != 0 {
-				kval = ppbasis.k1.val as i32;
-				tmpp |= ov.clone() << kval;				
+			if oidstr == EC_PP_BASIS_OID {
+				if x962elem.elemchoice.ppBasis.elem.val.len() != 1 {
+					ecsimple_new_error!{EcKeyError,"ppBasis len {} != 1",x962elem.elemchoice.ppBasis.elem.val.len()}
+				}
+				ppbasis = x962elem.elemchoice.ppBasis.elem.val[0].clone();
+
+				tmpp = one();
+				tmpp |= ov.clone() << x962elem.m.val;
+				if ppbasis.k1.val != 0 {
+					kval = ppbasis.k1.val as i32;
+					tmpp |= ov.clone() << kval;				
+				}
+				if ppbasis.k2.val != 0 {
+					kval = ppbasis.k2.val as i32;
+					tmpp |= ov.clone() << kval;
+				}
+				if ppbasis.k3.val != 0 {
+					kval = ppbasis.k3.val as i32;
+					tmpp |= ov.clone() << kval;
+				}
+				bngrp.p = tmpp.clone();				
+			} else if oidstr == EC_TP_BASIS_OID {
+				tmpp = one();
+				tmpp |= ov.clone() << x962elem.m.val;
+				let mut shifti :u64 = 0;
+				bevecs = x962elem.elemchoice.tpBasis.val.to_bytes_be();
+				let mut idx :usize = 0;
+				while idx < bevecs.len() {
+					shifti |= (bevecs[idx] as u64) << (idx * 8);
+					idx += 1;
+				}
+				tmpp |= ov.clone() << shifti;
+				bngrp.p = tmpp.clone();
 			}
-			if ppbasis.k2.val != 0 {
-				kval = ppbasis.k2.val as i32;
-				tmpp |= ov.clone() << kval;
-			}
-			if ppbasis.k3.val != 0 {
-				kval = ppbasis.k3.val as i32;
-				tmpp |= ov.clone() << kval;
-			}
-			bngrp.p = tmpp.clone();
 
 			bevecs = curveparams.a.data.clone();
 			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
@@ -1428,6 +1474,15 @@ pub (crate) fn get_group_from_ecpkparameters_der(ecpkparams :&ECPKPARAMETERS) ->
 			bevecs = curveparams.b.data.clone();
 			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
 			bngrp.b = BnGf2m::new_from_bigint(&tmpp);
+
+			bngrp.seed = zero();
+			bngrp.seed_len = 0;
+			if curveparams.seed.val.is_some() {
+				let bn :Asn1BitDataFlag = curveparams.seed.val.as_ref().unwrap().clone();
+				bevecs = bn.data.clone();
+				bngrp.seed = BigInt::from_bytes_be(Sign::Plus,&bevecs);
+				bngrp.seed_len = bevecs.len();
+			}
 
 			bevecs = paramselem.order.val.to_bytes_be();
 			tmpp = BigInt::from_bytes_be(Sign::Plus,&bevecs);
@@ -1438,6 +1493,7 @@ pub (crate) fn get_group_from_ecpkparameters_der(ecpkparams :&ECPKPARAMETERS) ->
 				bevecs = paramselem.cofactor.val.as_ref().unwrap().clone().val.to_bytes_be();
 				bngrp.cofactor = BigInt::from_bytes_be(Sign::Plus,&bevecs);
 			}
+
 
 
 			bevecs = paramselem.base.data.clone();
