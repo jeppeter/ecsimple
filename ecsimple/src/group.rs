@@ -78,12 +78,14 @@ pub (crate) struct ECGroupBnGf2m {
 	pub curvename :String,
 	pub a :BnGf2m,
 	pub b :BnGf2m,
+	pub seed :BigInt,
+	pub seed_len :usize,
 }
 
 impl std::fmt::Display for ECGroupBnGf2m {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f,"curve {} generator {} p 0x{:x} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x}", 
-			self.curvename, self.generator,self.p,self.order,self.cofactor,self.a, self.b)
+		write!(f,"curve {} generator {} p 0x{:x} order 0x{:x} cofactor 0x{:x} a 0x{:x} b 0x{:x} seed 0x{:x} seed_len 0x{:x}", 
+			self.curvename, self.generator,self.p,self.order,self.cofactor,self.a, self.b,self.seed,self.seed_len)
 	}
 }
 
@@ -97,6 +99,8 @@ impl std::default::Default for ECGroupBnGf2m {
 			curvename : "".to_string(),
 			a : BnGf2m::default(),
 			b : BnGf2m::default(),
+			seed : zero(),
+			seed_len : 0,
 		}
 	}
 }
@@ -126,6 +130,14 @@ impl ECGroupBnGf2m {
 		}
 
 		if ! self.b.eq_op(&other.b) {
+			retv = false;
+		}
+
+		if self.seed != other.seed {
+			retv = false;
+		}
+
+		if self.seed_len != other.seed_len {
 			retv = false;
 		}
 
