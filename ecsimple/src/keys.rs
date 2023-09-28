@@ -1554,6 +1554,25 @@ impl ECPublicKey {
 
 	}
 
+	pub fn is_sm2(&self) -> bool {
+		if self.is_bn_key() {
+			return false;
+		}
+		let curpriv :ECPrimePubKey = self.primekey.as_ref().unwrap().clone();
+		let curgrp :ECGroupPrime = curpriv.base.group.clone();
+		let sm2grp :ECGroup ;
+		let ores = ecc_get_curve_group(SM2_NAME);
+		if ores.is_err() {
+			return false;
+		}
+		sm2grp = ores.unwrap();
+		let sm2primegrp = sm2grp.get_prime_group();
+		if curgrp != sm2primegrp {
+			return false;
+		}
+		return true;
+	}
+
 
 	pub fn from_bin(grp :&ECGroup, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let retv :ECPublicKey;
@@ -1622,6 +1641,23 @@ impl std::fmt::Display for ECPublicKey {
 	}
 }
 
+pub (crate) fn get_group_from_private_pk8_der(_privkey :&ECPrivateKeyAsn1,pk8 :&Asn1Pkcs8PrivKeyInfo) -> Result<ECGroup,Box<dyn Error>> {
+	if pk8.elem.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"Asn1Pkcs8PrivKeyInfo elem {} != 1",pk8.elem.val.len()}
+	}
+	let pk8elem :Asn1Pkcs8PrivKeyInfoElem = pk8.elem.val[0].clone();
+	if pk8elem.version.val != 0 {
+		ecsimple_new_error!{EcKeyError,"Asn1Pkcs8PrivKeyInfo version {} != 0",pk8elem.version.val}
+	}
+	if pk8elem.pkeyalg.elem.val.len() != 1 {
+		ecsimple_new_error!{EcKeyError,"Asn1X509Algor elem {} != 1" ,pk8elem.pkeyalg.elem.val.len()}
+	}
+	let algoelem :Asn1X509AlgorElem = pk8elem.pkeyalg.elem.val[0].clone();
+	let oid :String = algoelem.algorithm.get_value();
+	let ecname :String = ecc_get_name_from_oid(&oid)?;
+	return ecc_get_curve_group(&ecname);
+}
+
 pub (crate) fn get_group_from_private_der(privkey :&ECPrivateKeyAsn1) -> Result<ECGroup,Box<dyn Error>> {
 	if privkey.elem.val.len() != 1 {
 		ecsimple_new_error!{EcKeyError,"ECPrivateKeyAsn1.elem.val.len() {} != 1",privkey.elem.val.len()}
@@ -1658,13 +1694,29 @@ impl Default for ECPrivateKey {
 impl ECPrivateKey {
 	pub fn from_der(dercode :&[u8]) -> Result<ECPrivateKey,Box<dyn Error>> {
 		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
-		let _ = privkey.decode_asn1(&dercode)?;
+		let ores = privkey.decode_asn1(&dercode);
+		let mut setpkinfo8 :bool = false;
+		let mut pk8info :Asn1Pkcs8PrivKeyInfo = Asn1Pkcs8PrivKeyInfo::init_asn1();
+		if ores.is_err() {
+			let _ = pk8info.decode_asn1(&dercode)?;
+			if pk8info.elem.val.len() != 1 {
+				ecsimple_new_error!{EcKeyError,"pk8info elem val len {} != 1",pk8info.elem.val.len()}
+			}
+			let _ = privkey.decode_asn1(&pk8info.elem.val[0].pkey.data)?;
+			setpkinfo8 = true;
+		}
 		if privkey.elem.val.len() != 1 {
 			ecsimple_new_error!{EcKeyError,"privkey elem val len {} != 1",privkey.elem.val.len()}
 		}
 		let privkeyelem :ECPrivateKeyAsn1Elem = privkey.elem.val[0].clone();
 
-		let grp :ECGroup = get_group_from_private_der(&privkey)?;
+		let grp :ECGroup ;
+		if setpkinfo8 {
+			grp = get_group_from_private_pk8_der(&privkey,&pk8info)?;
+		} else {
+			grp = get_group_from_private_der(&privkey)?;
+		}
+		
 		if privkeyelem.version.val != 1 {
 			ecsimple_new_error!{EcKeyError,"privkey version {} != 1",privkeyelem.version.val}
 		}
@@ -1730,6 +1782,25 @@ impl ECPrivateKey {
 			return true;
 		}
 		return false;
+	}
+
+	pub fn is_sm2(&self) -> bool {
+		if self.is_bn_key() {
+			return false;
+		}
+		let curpriv :ECPrimePrivateKey = self.primekey.as_ref().unwrap().clone();
+		let curgrp :ECGroupPrime = curpriv.base.group.clone();
+		let sm2grp :ECGroup ;
+		let ores = ecc_get_curve_group(SM2_NAME);
+		if ores.is_err() {
+			return false;
+		}
+		sm2grp = ores.unwrap();
+		let sm2primegrp = sm2grp.get_prime_group();
+		if curgrp != sm2primegrp {
+			return false;
+		}
+		return true;
 	}
 
 	fn get_bn_key(&self) -> ECGf2mPrivateKey {

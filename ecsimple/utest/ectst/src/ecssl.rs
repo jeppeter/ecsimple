@@ -83,7 +83,14 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 		let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
 		println!("{}", privkey);
 		let data :Vec<u8> = privkey.to_der(&eccmprtype,&ecparamenc)?;
-		let outs :String = der_to_pem(&data,"EC PRIVATE KEY")?;
+
+		let outs :String;
+		if privkey.is_sm2() {
+			outs = der_to_pem(&data,"SM2 PRIVATE KEY")?;
+		} else {
+			outs = der_to_pem(&data,"EC PRIVATE KEY")?;	
+		}
+		
 		if output.len() > 0 {
 			let _ = write_file_bytes(&output,outs.as_bytes())?;	
 		}		
@@ -104,7 +111,9 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 		let pubkey :ECPublicKey = ECPublicKey::from_der(&pubdata)?;
 		println!("{}", pubkey);
 		let data :Vec<u8> = pubkey.to_der(&eccmprtype,&ecparamenc)?;
-		let outs :String = der_to_pem(&data,"PUBLIC KEY")?;
+		let outs :String;
+		outs = der_to_pem(&data,"PUBLIC KEY")?;
+		
 		if output.len() > 0 {
 			let _ = write_file_bytes(&output,outs.as_bytes())?;	
 		}

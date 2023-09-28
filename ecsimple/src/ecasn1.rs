@@ -160,3 +160,45 @@ pub struct ECPrivateKeyAsn1Elem {
 pub (crate) struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509AttributeElem {
+	pub object :Asn1Object,
+	pub set :Asn1Any,
+}
+
+//#[asn1_sequence(debug=enable)]
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509Attribute {
+	pub elem : Asn1Seq<Asn1X509AttributeElem>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509AlgorElem {
+	pub algorithm : Asn1Object,
+	pub parameters : Asn1Opt<Asn1Any>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1X509Algor {
+	pub elem : Asn1Seq<Asn1X509AlgorElem>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1Pkcs8PrivKeyInfoElem {
+	pub version :Asn1Integer,
+	pub pkeyalg : Asn1X509Algor,
+	pub pkey : Asn1OctData,
+	pub attributes : Asn1Opt<Asn1ImpSet<Asn1X509Attribute,0>>,
+}
+
+#[asn1_sequence()]
+#[derive(Clone)]
+pub struct Asn1Pkcs8PrivKeyInfo {
+	pub elem : Asn1Seq<Asn1Pkcs8PrivKeyInfoElem>,
+}
