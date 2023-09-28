@@ -621,6 +621,8 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 	let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
 	let mut asn1pubdata :Asn1BitData = Asn1BitData::init_asn1();
 	let zv :BigInt = zero();
+	let degr :i64 = grp.degree();
+	let fieldsize :usize = ((degr + 7) >> 3) as usize;
 	montv = MontNum::new(&grp.p).unwrap();
 
 	/*secp224r1*/
@@ -679,6 +681,9 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 			curveelem.seed.val = None;	
 		} else {
 			(_,bevecs) = grp.seed.to_bytes_be();
+			while bevecs.len() < fieldsize {
+				bevecs.insert(0,0);
+			}
 			asn1pubdata.data = bevecs.clone();
 			curveelem.seed.val = Some(asn1pubdata.clone());
 		}

@@ -27,6 +27,7 @@ use super::fileop::*;
 use super::pemlib::*;
 #[allow(unused_imports)]
 use std::io::Write;
+use super::*;
 
 //use num_bigint::{BigInt,Sign};
 
@@ -76,12 +77,12 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	let eccmprtype :String = ns.get_string("eccmprtype");
 	let ecparamenc :String = ns.get_string("ecparamenc");
 	let output :String = ns.get_string("output");
-	println!("eccmprtype [{}] ecparamenc [{}]",eccmprtype,ecparamenc);
 	init_log(ns.clone())?;
+	debug_trace!("eccmprtype [{}] ecparamenc [{}]",eccmprtype,ecparamenc);
 	for f in sarr.iter() {
 		let privdata = read_file_into_der(f)?;
 		let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
-		println!("{}", privkey);
+		debug_trace!("{}", privkey);
 		let data :Vec<u8> = privkey.to_der(&eccmprtype,&ecparamenc)?;
 
 		let outs :String;

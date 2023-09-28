@@ -71,11 +71,13 @@ fn rnadwr_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 }
 
 
+
 #[extargs_map_function(rnadwr_handler)]
 pub fn file_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
 		"offset|O" : 0,
+		"nonewline|n" : false,
 		"randwr<rnadwr_handler>##bins ... to write bytes##" : {
 			"$" : "+"
 		}
