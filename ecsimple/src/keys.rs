@@ -520,8 +520,7 @@ impl ECGf2mPrivateKey {
 	pub (crate)  fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let pubk :ECGf2mPubKey = self.export_pubkey();
 		//let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
-		let degr :i64 = self.base.group.degree();
-		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let privlen :usize = ((get_max_bits(&self.base.group.order) + 7 ) >> 3) as usize;
 		let pubdata :Vec<u8>;
 		if paramenc == EC_PARAMS_EXLICIT {
 			//pubdata  = pubk.to_bin(EC_UNCOMPRESSED)?;
@@ -539,7 +538,7 @@ impl ECGf2mPrivateKey {
 		params = form_ecpkparameters_gf2m(&self.base.group,cmprtype,paramenc)?;
 		ecprivasn1elem.version.val = 1;
 		(_,bevecs) = self.privnum.to_bytes_be();
-		while bevecs.len() < fieldsize {
+		while bevecs.len() < privlen {
 			bevecs.insert(0,0);
 		}
 		ecprivasn1elem.privkey.data = bevecs.clone();
@@ -1071,8 +1070,7 @@ impl ECPrimePrivateKey {
 		let pubk :ECPrimePubKey = self.export_pubkey();
 		let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
 		let params :ECPKPARAMETERS;
-		let degr :i64 = self.base.group.degree();
-		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let privlen :usize = ((get_max_bits(&self.base.group.order) + 7 ) >> 3) as usize;
 		let mut bevecs :Vec<u8>;
 		let mut impparams :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
 		let mut asn1pubdata :Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
@@ -1081,7 +1079,7 @@ impl ECPrimePrivateKey {
 
 		params = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 		(_,bevecs) = self.privnum.to_bytes_be();
-		while bevecs.len() < fieldsize {
+		while bevecs.len() < privlen {
 			bevecs.insert(0,0);
 		}
 		ecprivasn1elem.version.val = 1;
