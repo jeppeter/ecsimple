@@ -56,9 +56,9 @@ extargs_error_class!{EcAsn1Error}
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct X9_62_PENTANOMIALELem {
-	pub k1 :Asn1BigNum,
-	pub k2 :Asn1BigNum,
-	pub k3 :Asn1BigNum,
+	pub k1 :Asn1Integer,
+	pub k2 :Asn1Integer,
+	pub k3 :Asn1Integer,
 }
 
 #[derive(Clone)]
@@ -86,7 +86,7 @@ pub struct X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE {
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct X9_62_CHARACTERISTIC_TWO_ELEM {
-	pub m :Asn1BigNum,
+	pub m :Asn1Integer,
 	pub elemchoice : X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE,
 }
 
@@ -159,22 +159,47 @@ pub struct ECPKPARAMETERS {
 	pub implicitCA : Asn1Null,
 }
 
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyPackElem {
+	pub typef :Asn1Object,
+	pub parameters :ECPKPARAMETERS,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyPack {
+	pub elem :Asn1Seq<ECPublicKeyPackElem>,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAsn1Elem {
+	pub packed :ECPublicKeyPack,
+	pub pubdata :Asn1BitDataFlag,
+}
+
+#[derive(Clone)]
+#[asn1_sequence()]
+pub struct ECPublicKeyAsn1 {
+	pub elem :Asn1Seq<ECPublicKeyAsn1Elem>,
+}
+
 
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct ECPrivateKeyAsn1Elem {
 	pub version :Asn1Integer,
 	pub privkey :Asn1OctData,
-	pub paramters :Asn1Opt<Asn1ImpSet<ECPKPARAMETERS,0>>,
+	pub parameters :Asn1Opt<Asn1ImpSet<ECPKPARAMETERS,0>>,
 	pub pubkey : Asn1ImpSet<Asn1BitDataFlag,1>,
 }
 
 #[derive(Clone)]
 #[asn1_sequence()]
-pub struct ECPrivateKeyAsn1 {
+pub (crate) struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }
-
 
 #[asn1_sequence()]
 #[derive(Clone)]
@@ -219,6 +244,7 @@ pub struct Asn1Pkcs8PrivKeyInfo {
 }
 
 
+
 fn ecprivkeydec_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String>;
 	let mut sout = std::io::stdout();
@@ -245,13 +271,41 @@ fn ecprivkeydec_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSe
 	Ok(())
 }
 
+fn ecpubkeydec_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String>;
+	let mut sout = std::io::stdout();
+	sarr = ns.get_array("subnargs");
+	if sarr.len() < 1 {
+		extargs_new_error!{EcAsn1Error,"no file specified"}
+	}
+
+	for f in sarr.iter() {
+		let data = read_file_into_der(f)?;
+		let mut pubkey :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+		let ores = pubkey.decode_asn1(&data);
+		if ores.is_err() {
+			let mut pk8info :Asn1Pkcs8PrivKeyInfo = Asn1Pkcs8PrivKeyInfo::init_asn1();
+			let _ = pk8info.decode_asn1(&data)?;
+			if pk8info.elem.val.len() != 1 {
+				extargs_new_error!{EcAsn1Error,"not valid val.len [{}]",pk8info.elem.val.len()}
+			}
+			let _ = pubkey.decode_asn1(&pk8info.elem.val[0].pkey.data)?;
+			pk8info.print_asn1("Asn1Pkcs8PrivKeyInfo",0,&mut sout)?;
+		}
+		pubkey.print_asn1("ECPublicKeyAsn1",0,&mut sout)?;
+	}
+	Ok(())
+}
 
 
-#[extargs_map_function(ecprivkeydec_handler)]
+#[extargs_map_function(ecprivkeydec_handler,ecpubkeydec_handler)]
 pub fn ec_asn1_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
 		"ecprivdec<ecprivkeydec_handler>##ecfile ... to decode ecprivkey##" : {{
+			"$" : "+"
+		}},
+		"ecpubdec<ecpubkeydec_handler>##ecfile ... to decode ecpubkey##" : {{
 			"$" : "+"
 		}}
 	}}

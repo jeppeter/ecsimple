@@ -777,17 +777,33 @@ impl ECPrimePubKey {
 	}
 
 	pub (crate) fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
-		let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
-		let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
-		let _ = packedelem.typef.set_value(EC_PUBLIC_KEY_OID)?;
-		let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
-		packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
-		pubkasn1elem.packed.elem.val.push(packedelem);
-		pubkasn1elem.pubdata.data = pubdata.clone();
-		pubkasn1elem.pubdata.flag = 0;
-		pubkasn1.elem.val.push(pubkasn1elem);
-		return pubkasn1.encode_asn1();
+		let basegrp :ECGroup = ecc_get_curve_group(SM2_NAME)?;
+		let sm2grp :ECGroupPrime = basegrp.get_prime_group();
+		if self.base.group != sm2grp {
+			let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+			let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
+			let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
+			let _ = packedelem.typef.set_value(EC_PUBLIC_KEY_OID)?;
+			let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
+			packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
+			pubkasn1elem.packed.elem.val.push(packedelem);
+			pubkasn1elem.pubdata.data = pubdata.clone();
+			pubkasn1elem.pubdata.flag = 0;
+			pubkasn1.elem.val.push(pubkasn1elem);
+			return pubkasn1.encode_asn1();			
+		} else {
+			let mut pubkasn1 :ECPublicKeyAsn1 = ECPublicKeyAsn1::init_asn1();
+			let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
+			let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
+			let _ = packedelem.typef.set_value(SM2_OID)?;
+			let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
+			packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
+			pubkasn1elem.packed.elem.val.push(packedelem);
+			pubkasn1elem.pubdata.data = pubdata.clone();
+			pubkasn1elem.pubdata.flag = 0;
+			pubkasn1.elem.val.push(pubkasn1elem);
+			return pubkasn1.encode_asn1();			
+		}
 	}
 
 	fn uncompress_x_point(grp :&ECGroupPrime, x_ :&BigInt, ybit :u8) -> Result<BigInt,Box<dyn Error>> {
@@ -1565,7 +1581,11 @@ pub (crate) fn get_group_from_public_der(pubkey :&ECPublicKeyAsn1) -> Result<ECG
 	let packedelem :ECPublicKeyPackElem = pubkeyelem.packed.elem.val[0].clone();
 	let typef :String = packedelem.typef.get_value();
 	if typef != EC_PUBLIC_KEY_OID {
-		ecsimple_new_error!{EcKeyError,"typef [{}] != EC_PUBLIC_KEY_OID[{}]",typef,EC_PUBLIC_KEY_OID}
+		if typef != SM2_OID {
+			ecsimple_new_error!{EcKeyError,"typef [{}] != EC_PUBLIC_KEY_OID[{}]",typef,EC_PUBLIC_KEY_OID}	
+		}
+		/*now we should give the */	
+		return ecc_get_curve_group(SM2_NAME);
 	}
 	return get_group_from_ecpkparameters_der(&packedelem.parameters);
 }
