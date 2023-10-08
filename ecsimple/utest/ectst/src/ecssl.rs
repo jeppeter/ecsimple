@@ -110,7 +110,7 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	for f in sarr.iter() {
 		let pubdata = read_file_into_der(f)?;
 		let pubkey :ECPublicKey = ECPublicKey::from_der(&pubdata)?;
-		println!("{}", pubkey);
+		//println!("{}", pubkey);
 		let data :Vec<u8> = pubkey.to_der(&eccmprtype,&ecparamenc)?;
 		let outs :String;
 		outs = der_to_pem(&data,"PUBLIC KEY")?;
