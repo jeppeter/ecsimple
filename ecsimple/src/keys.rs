@@ -784,7 +784,7 @@ impl ECPrimePubKey {
 			let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
 			let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
 			let _ = packedelem.typef.set_value(EC_PUBLIC_KEY_OID)?;
-			let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
+			let pubdata :Vec<u8> = self.to_der_bin(cmprtype)?;
 			packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 			pubkasn1elem.packed.elem.val.push(packedelem);
 			pubkasn1elem.pubdata.data = pubdata.clone();
@@ -796,7 +796,7 @@ impl ECPrimePubKey {
 			let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
 			let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
 			let _ = packedelem.typef.set_value(SM2_OID)?;
-			let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
+			let pubdata :Vec<u8> = self.to_der_bin(cmprtype)?;
 			packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 			pubkasn1elem.packed.elem.val.push(packedelem);
 			pubkasn1elem.pubdata.data = pubdata.clone();
@@ -912,11 +912,77 @@ impl ECPrimePubKey {
 		})
 	}
 
-
-	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+	fn to_der_bin(&self,cmprtype :&str)  -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
 		let x :BigInt = self.pubk.montv_x();
 		let y :BigInt = self.pubk.montv_y();
+		let ov :BigInt = one();
+		let zv :BigInt = zero();
+		let tv :BigInt = ov.clone() + ov.clone();
+		let degr :i64 = self.pubk.group.degree();
+		let fieldsize :usize = ((degr + 7) >> 3) as usize;
+		let mut xvecs :Vec<u8>;
+		let mut yvecs :Vec<u8>;
+
+		if cmprtype == EC_COMPRESSED {
+			retv.push(EC_CODE_COMPRESSED);
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			if y % tv != zv {
+				retv[0] |= EC_CODE_YBIT;
+			}
+		} else if cmprtype == EC_UNCOMPRESSED {
+			retv.push(EC_CODE_UNCOMPRESSED);
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
+
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			(_,yvecs) = y.to_bytes_be();
+			while yvecs.len() < fieldsize {
+				yvecs.insert(0,0);
+			}
+			for yb in yvecs {
+				retv.push(yb);
+			}
+		} else if cmprtype == EC_HYBRID {
+			retv.push(EC_CODE_HYBRID);
+			(_,xvecs) = x.to_bytes_be();
+			while xvecs.len() < fieldsize {
+				xvecs.insert(0,0);
+			}
+			for xb in xvecs {
+				retv.push(xb);
+			}
+			(_,yvecs) = y.to_bytes_be();
+			while yvecs.len() < fieldsize {
+				yvecs.insert(0,0);
+			}
+			for yb in yvecs {
+				retv.push(yb);
+			}
+			if y % tv != zv {
+				retv[0] |= EC_CODE_YBIT;
+			}
+		} else {
+			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
+		}
+		Ok(retv)
+	}
+
+
+	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut retv :Vec<u8> = Vec::new();
+		let x :BigInt = self.pubk.x();
+		let y :BigInt = self.pubk.y();
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
 		let tv :BigInt = ov.clone() + ov.clone();
