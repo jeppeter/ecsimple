@@ -566,6 +566,14 @@ impl ECPrimePoint {
 		return self.y.clone();
 	}
 
+	pub fn montv_x(&self) -> BigInt {
+		return self.montv.mont_from(&self.x);
+	}
+
+	pub fn montv_y(&self) -> BigInt {
+		return self.montv.mont_from(&self.y);	
+	}
+
 	#[allow(dead_code)]
 	pub fn z(&self) -> BigInt {
 		return self.z.clone();

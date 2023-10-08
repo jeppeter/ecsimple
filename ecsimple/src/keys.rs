@@ -915,8 +915,8 @@ impl ECPrimePubKey {
 
 	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
-		let x :BigInt = self.pubk.x();
-		let y :BigInt = self.pubk.y();
+		let x :BigInt = self.pubk.montv_x();
+		let y :BigInt = self.pubk.montv_y();
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
 		let tv :BigInt = ov.clone() + ov.clone();
