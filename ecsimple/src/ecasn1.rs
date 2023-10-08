@@ -136,7 +136,7 @@ pub struct ECPublicKeyPack {
 #[asn1_sequence()]
 pub struct ECPublicKeyAsn1Elem {
 	pub packed :ECPublicKeyPack,
-	pub pubdata :Asn1BitData,
+	pub pubdata :Asn1BitDataFlag,
 }
 
 #[derive(Clone)]

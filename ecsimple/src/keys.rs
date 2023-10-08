@@ -232,6 +232,7 @@ impl ECGf2mPubKey {
 		packedelem.parameters = form_ecpkparameters_gf2m(&self.base.group,cmprtype,paramenc)?;
 		pubkasn1elem.packed.elem.val.push(packedelem);
 		pubkasn1elem.pubdata.data = pubdata.clone();
+		pubkasn1elem.pubdata.flag = 0;
 		pubkasn1.elem.val.push(pubkasn1elem);
 		return pubkasn1.encode_asn1();
 	}
@@ -784,6 +785,7 @@ impl ECPrimePubKey {
 		packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 		pubkasn1elem.packed.elem.val.push(packedelem);
 		pubkasn1elem.pubdata.data = pubdata.clone();
+		pubkasn1elem.pubdata.flag = 0;
 		pubkasn1.elem.val.push(pubkasn1elem);
 		return pubkasn1.encode_asn1();
 	}
