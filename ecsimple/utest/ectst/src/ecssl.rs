@@ -35,6 +35,8 @@ use super::*;
 use ecsimple::group::{ECGroup,ecc_get_curve_group};
 //use ecsimple::signature::{ECSignature};
 use ecsimple::keys::{ECPublicKey, ECPrivateKey};
+use super::strop::{parse_to_bigint};
+use num_bigint::{BigInt};
 //use ecsimple::consts::*;
 
 
@@ -54,7 +56,14 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let ecname :String = format!("{}",sarr[0]);
 
 	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
-	let privkey :ECPrivateKey = ECPrivateKey::generate(&grp);
+	let privkey :ECPrivateKey ;
+	if sarr.len() > 1 {
+		let bn : BigInt = parse_to_bigint(&sarr[1])?;
+		privkey = ECPrivateKey::new(&grp,&bn);
+	} else {
+		privkey = ECPrivateKey::generate(&grp);	
+	}
+	
 	let pubkey :ECPublicKey = privkey.export_pubkey();
 	let ecpub :String = ns.get_string("ecpub");
 	if ecpub.len() > 0 {
@@ -138,7 +147,7 @@ pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
 		"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
-			"$" : 1
+			"$" : "+"
 		}},
 		"ecprivload<ecprivload_handler>##ecprivpem ... to load private key##" : {{
 			"$" : "+"
