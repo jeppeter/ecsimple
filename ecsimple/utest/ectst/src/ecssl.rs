@@ -46,6 +46,7 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let eccmprtype :String = ns.get_string("eccmprtype");
 	let ecparamenc :String = ns.get_string("ecparamenc");
+	let sm2privformat :bool = ns.get_bool("sm2privformat");
 
 	init_log(ns.clone())?;
 
@@ -76,11 +77,12 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	if ecpriv.len() > 0 {
 		let privdata = privkey.to_der(&eccmprtype,&ecparamenc)?;
 		let privs :String ;
-		if privkey.is_sm2() {
+		if sm2privformat && privkey.is_sm2() {
 			privs = der_to_pem(&privdata,"SM2 PRIVATE KEY")?;
 		} else {
 			privs = der_to_pem(&privdata,"EC PRIVATE KEY")?;
 		}
+
 		
 		write_file_bytes(&ecpriv,privs.as_bytes())?;
 	}
@@ -94,6 +96,7 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	let eccmprtype :String = ns.get_string("eccmprtype");
 	let ecparamenc :String = ns.get_string("ecparamenc");
 	let output :String = ns.get_string("output");
+	let sm2privformat :bool = ns.get_bool("sm2privformat");
 	init_log(ns.clone())?;
 	debug_trace!("eccmprtype [{}] ecparamenc [{}]",eccmprtype,ecparamenc);
 	for f in sarr.iter() {
@@ -103,7 +106,7 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 		let data :Vec<u8> = privkey.to_der(&eccmprtype,&ecparamenc)?;
 
 		let outs :String;
-		if privkey.is_sm2() {
+		if sm2privformat && privkey.is_sm2() {
 			outs = der_to_pem(&data,"SM2 PRIVATE KEY")?;
 		} else {
 			outs = der_to_pem(&data,"EC PRIVATE KEY")?;	
@@ -146,6 +149,7 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
+		"sm2privformat" : true,
 		"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
 			"$" : "+"
 		}},
