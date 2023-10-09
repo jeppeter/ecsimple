@@ -17,7 +17,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 use asn1obj_codegen::{asn1_sequence};
-use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataFlag};
+use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataFlag,Asn1Any};
 use asn1obj::complex::{Asn1Seq,Asn1ImpSet};
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
@@ -1936,6 +1936,7 @@ impl Default for ECPrivateKey {
 }
 
 
+
 impl ECPrivateKey {
 	pub fn from_der(dercode :&[u8]) -> Result<ECPrivateKey,Box<dyn Error>> {
 		let mut privkey :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
@@ -2093,4 +2094,20 @@ impl std::fmt::Display for ECPrivateKey {
 	}
 }
 
+pub fn to_der_sm2(incode :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+	let mut pk8info :Asn1Pkcs8PrivKeyInfo = Asn1Pkcs8PrivKeyInfo::init_asn1();
+	let mut elem :Asn1Pkcs8PrivKeyInfoElem = Asn1Pkcs8PrivKeyInfoElem::init_asn1();
+	let mut algelem :Asn1X509AlgorElem = Asn1X509AlgorElem::init_asn1();
+	let mut anydata :Asn1Any = Asn1Any::init_asn1();
+	algelem.algorithm.set_value(SM2_OID)?;
+	let bdata = algelem.algorithm.encode_asn1()?;
+	let _ = anydata.decode_asn1(&bdata)?;	
+	algelem.parameters.val = Some(anydata.clone());
 
+	elem.version.val = 0;
+	elem.pkeyalg.elem.val.push(algelem);
+	elem.pkey.data = incode.to_vec().clone();
+	elem.attributes.val = None;
+	pk8info.elem.val.push(elem);
+	return pk8info.encode_asn1();
+}

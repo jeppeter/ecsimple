@@ -34,7 +34,7 @@ use super::*;
 //use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
 use ecsimple::group::{ECGroup,ecc_get_curve_group};
 //use ecsimple::signature::{ECSignature};
-use ecsimple::keys::{ECPublicKey, ECPrivateKey};
+use ecsimple::keys::{ECPublicKey, ECPrivateKey,to_der_sm2};
 use super::strop::{parse_to_bigint};
 use num_bigint::{BigInt};
 //use ecsimple::consts::*;
@@ -77,8 +77,14 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	if ecpriv.len() > 0 {
 		let privdata = privkey.to_der(&eccmprtype,&ecparamenc)?;
 		let privs :String ;
-		if sm2privformat && privkey.is_sm2() {
-			privs = der_to_pem(&privdata,"SM2 PRIVATE KEY")?;
+		if  privkey.is_sm2() {
+			if sm2privformat {
+				privs = der_to_pem(&privdata,"SM2 PRIVATE KEY")?;
+			} else {
+				let sm2privdata = to_der_sm2(&privdata)?;
+				privs = der_to_pem(&sm2privdata,"PRIVATE KEY")?;
+			}
+			
 		} else {
 			privs = der_to_pem(&privdata,"EC PRIVATE KEY")?;
 		}
@@ -106,8 +112,13 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 		let data :Vec<u8> = privkey.to_der(&eccmprtype,&ecparamenc)?;
 
 		let outs :String;
-		if sm2privformat && privkey.is_sm2() {
-			outs = der_to_pem(&data,"SM2 PRIVATE KEY")?;
+		if privkey.is_sm2() {
+			if sm2privformat {
+				outs = der_to_pem(&data,"SM2 PRIVATE KEY")?;
+			} else {
+				let sm2privdata = to_der_sm2(&data)?;
+				outs = der_to_pem(&sm2privdata,"PRIVATE KEY")?;
+			}			
 		} else {
 			outs = der_to_pem(&data,"EC PRIVATE KEY")?;	
 		}
