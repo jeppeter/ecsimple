@@ -58,14 +58,22 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let pubkey :ECPublicKey = privkey.export_pubkey();
 	let ecpub :String = ns.get_string("ecpub");
 	if ecpub.len() > 0 {
-		let pubdata = pubkey.to_bin(&eccmprtype)?;
-		write_file_bytes(&ecpub,&pubdata)?;
+		let pubdata = pubkey.to_der(&eccmprtype,&ecparamenc)?;
+		let pubs :String = der_to_pem(&pubdata,"PUBLIC KEY")?;
+		write_file_bytes(&ecpub,pubs.as_bytes())?;
 	}
 
 	let ecpriv :String = ns.get_string("ecpriv");
 	if ecpriv.len() > 0 {
 		let privdata = privkey.to_der(&eccmprtype,&ecparamenc)?;
-		write_file_bytes(&ecpriv,&privdata)?;
+		let privs :String ;
+		if privkey.is_sm2() {
+			privs = der_to_pem(&privdata,"SM2 PRIVATE KEY")?;
+		} else {
+			privs = der_to_pem(&privdata,"EC PRIVATE KEY")?;
+		}
+		
+		write_file_bytes(&ecpriv,privs.as_bytes())?;
 	}
 
 
