@@ -637,6 +637,11 @@ impl ECPrimePoint {
 		let mut rndv :BigInt;
 		let zv :BigInt = zero();
 		ecsimple_log_trace!("ladder_pre");
+
+		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
+		if self.z_is_one == 0 {
+			return;
+		}
 		/*
 		* t1 s.z
 		* t2 r.z
@@ -890,8 +895,14 @@ impl ECPrimePoint {
 
 		if copyxy {
 			p = self.clone();
+			ecsimple_log_trace!("orig.x 0x0 orig.y 0x0 orig.z 0x0 orig.Z_is_one 0");
+			ecsimple_log_trace!("new.x 0x{:X} new.y 0x{:X} new.z 0x{:X} new.Z_is_one {}",p.x,p.y,p.z,p.z_is_one);
 		} else {
-			p = ECPrimePoint::new(&self.group);
+			let mut pp = ECPrimePoint::new(&self.group);
+			pp.z_is_one = self.group.generator.z_is_one;
+			p = pp.clone();
+			ecsimple_log_trace!("orig.x 0x0 orig.y 0x0 orig.z 0x0 orig.Z_is_one 0");
+			ecsimple_log_trace!("new.x 0x{:X} new.y 0x{:X} new.z 0x{:X} new.Z_is_one {}",p.x,p.y,p.z,p.z_is_one);
 		}
 		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X}",p.x,p.y,p.z);
 
@@ -943,10 +954,11 @@ impl ECPrimePoint {
 
 
 		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
+		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X} Z_is_one {}",p.x,p.y,p.z,p.z_is_one);
 
 
 		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
-		self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
+		p.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
 
 		i = (cardbits - 1) as i32;
 		while i >= 0 {

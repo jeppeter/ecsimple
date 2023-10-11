@@ -1258,8 +1258,8 @@ impl ECPrimePrivateKey {
 		ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X}, tmp.z 0x{:X}", tmppnt.x(),tmppnt.y(),tmppnt.z());
 		ecsimple_log_trace!("order 0x{:X}",self.base.group.order);
 		k = ov.clone() << blen;
+		ecsimple_log_trace!("k 0x{:X} order 0x{:X} dlen {}", k, self.base.group.order,((blen + 7 ) >> 3) as i64);
 		loop {
-			ecsimple_log_trace!("k 0x{:X}",k);
 			k = ecsimple_rand_range(&self.base.group.order);
 			ecsimple_log_trace!("k 0x{:X} order 0x{:X} dlen 0x{:x}", k, self.base.group.order,((blen + 7 ) >> 3) as i64);
 
