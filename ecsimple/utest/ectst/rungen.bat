@@ -9,5 +9,6 @@ set PRIVNUMB=0x13c5873c53d1046528aeed5cbe4b
 REM set ECTYPE=SECP112r1
 set ECTYPE=secp112r1
 set HASHNUM=0x99bcf1bc2a70d552e85a3b7efe51
-pushd %CD% && cd %CURDIR% && cargo build --release && .\target\release\ectst.exe ecgenbase %ECTYPE% %PRIVNUMB%  2> %OUTFILE% && python z:\pylib\utils.py -i %OUTFILE% -o %SIMPLEOUT% filterlog rust && popd
+set HASHSIZE=14
+pushd %CD% && cd %CURDIR% && cargo build --release && .\target\release\ectst.exe ecgenbase %ECTYPE% %PRIVNUMB% %HASHSIZE%  2> %OUTFILE% && python z:\pylib\utils.py -i %OUTFILE% -o %SIMPLEOUT% filterlog rust && popd
 SET ECSIMPLE_LEVEL=

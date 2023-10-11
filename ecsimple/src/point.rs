@@ -824,6 +824,9 @@ impl ECPrimePoint {
 		r.y = self.field_mul(&t0,&t1);
 		r.z = self.field_set_to_one();
 
+		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => 0",r.x,r.y,r.z,r.z_is_one);
+		r.z_is_one = 0;
+
 		return;
 	}
 
@@ -874,6 +877,7 @@ impl ECPrimePoint {
 		let cardinal :BigInt;
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
+		let mut z_is_one :i32 = 0;
 		if bn <= &zv {
 			r = self.clone();
 			r.infinity = true;
@@ -951,14 +955,25 @@ impl ECPrimePoint {
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
 
-			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
-			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
+
+
 
 			if kbit != 0 {
 				tmp = s.clone();
 				s = r.clone();
 				r = tmp.clone();
 			}
+
+			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
+			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
+
+			ecsimple_log_trace!("Z_is_one {} => {} set by r s kbit",z_is_one,z_is_one ^ ((r.z_is_one ^ s.z_is_one) & kbit));
+			z_is_one ^= (r.z_is_one ^ s.z_is_one) & kbit;
+
+			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => {}",r.x,r.y,r.z,r.z_is_one,r.z_is_one ^ z_is_one);
+			r.z_is_one ^= z_is_one;
+			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {} => {}",s.x,s.y,s.z,s.z_is_one,s.z_is_one ^ z_is_one);
+			s.z_is_one ^= z_is_one;
 
 			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
@@ -981,6 +996,17 @@ impl ECPrimePoint {
 			s = r.clone();
 			r = tmp.clone();
 		}
+
+		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
+		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
+
+		ecsimple_log_trace!("Z_is_one {} => {} set by r s pbit",z_is_one,z_is_one ^ ((r.z_is_one ^ s.z_is_one) & pbit));
+		z_is_one ^= (r.z_is_one ^ s.z_is_one) & pbit;
+
+		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => {}",r.x,r.y,r.z,r.z_is_one,r.z_is_one ^ z_is_one);
+		r.z_is_one ^= z_is_one;
+		ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {} => {}",s.x,s.y,s.z,s.z_is_one,s.z_is_one ^ z_is_one);
+		s.z_is_one ^= z_is_one;
 
 		
 		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
@@ -1626,5 +1652,5 @@ impl ECPrimePoint {
 	 	Ok((x,y))
 	 }
 
-}
+	}
 
