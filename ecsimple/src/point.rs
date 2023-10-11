@@ -481,7 +481,7 @@ pub (crate) struct ECPrimePoint {
 	pub (crate) group :ECGroupPrime,
 	montv : MontNum,
 	infinity : bool,
-	z_is_one : bool,
+	z_is_one : i32,
 }
 
 impl std::fmt::Display for ECPrimePoint {
@@ -512,7 +512,7 @@ impl std::default::Default for ECPrimePoint {
 			group : ECGroupPrime::default(),
 			montv : MontNum::new(&tv).unwrap(),
 			infinity : true,
-			z_is_one : true,
+			z_is_one : 0,
 		}
 	}
 }
@@ -526,7 +526,7 @@ impl ECPrimePoint {
 			group : grp.clone(),
 			montv : MontNum::new(&grp.p).unwrap(),
 			infinity : false,
-			z_is_one : true,
+			z_is_one : 0,
 		};
 		return pnt;
 	}
@@ -539,7 +539,7 @@ impl ECPrimePoint {
 			group :grp.clone(),
 			montv : MontNum::new(&grp.p).unwrap(),
 			infinity : false,
-			z_is_one : true,
+			z_is_one : 0,
 		};
 		return pnt;
 	}
@@ -687,7 +687,10 @@ impl ECPrimePoint {
 
 		s.x = self.field_mul(&p.x,&s.z);
 
-
+		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => 0",r.x,r.y,r.z,r.z_is_one);
+		r.z_is_one = 0;
+		ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {} => 0",s.x,s.y,s.z,s.z_is_one);
+		s.z_is_one = 0;
 
 		return;
 	}
@@ -948,6 +951,9 @@ impl ECPrimePoint {
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
 
+			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
+			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
+
 			if kbit != 0 {
 				tmp = s.clone();
 				s = r.clone();
@@ -1053,11 +1059,11 @@ impl ECPrimePoint {
 
 		if self.infinity {
 			retv.z = zv.clone();
-			retv.z_is_one = false;
+			retv.z_is_one = 0;
 			return Ok(retv);
 		}
 
-		if self.z_is_one {
+		if self.z_is_one != 0 {
 			n0 = self.field_sqr(&self.x);
 			n1 = self.lshift1_mod_quick(&n0,&field);
 			ecsimple_log_trace!("mod_lshift_quick(n1 0x{:X},n0 0x{:X},p 0x{:X})",n1,n0,field);
@@ -1095,7 +1101,7 @@ impl ECPrimePoint {
 	     	/* n1 = 3 * X_a^2 + a_curve * Z_a^4 */
 	     }
 
-	     if self.z_is_one {
+	     if self.z_is_one != 0 {
 	     	n0 = self.y.clone();
 	     	ecsimple_log_trace!("BN_copy(n0 0x{:X},a.y 0x{:X})",n0,self.y);
 	     } else {
@@ -1103,7 +1109,7 @@ impl ECPrimePoint {
 	     }
 	     retv.z = self.lshift1_mod_quick(&n0,&field);
 	     ecsimple_log_trace!("mod_lshift_quick(r.z 0x{:X},n0 0x{:X},p 0x{:X})",retv.z,n0,field);
-	     retv.z_is_one = false;
+	     retv.z_is_one = 0;
 	     /* Z_r = 2 * Y_a * Z_a */
 
 	     n3 = self.field_sqr(&self.y);
@@ -1161,7 +1167,7 @@ impl ECPrimePoint {
 	 		return Ok(retv);
 	 	}
 
-	 	if b.z_is_one {
+	 	if b.z_is_one != 0 {
 	 		n1 = self.x.clone();
 	 		ecsimple_log_trace!("BN_copy(n1 0x{:X},a.x 0x{:X})",n1,self.x);
 	 		n2 = self.y.clone();
@@ -1178,7 +1184,7 @@ impl ECPrimePoint {
 	 		/* n2 = Y_a * Z_b^3 */
 	 	}
 
-	 	if self.z_is_one {
+	 	if self.z_is_one != 0 {
 	 		n3 = b.x.clone();
 	 		ecsimple_log_trace!("BN_copy(n3 0x{:X},b.x 0x{:X})",n3,b.x);
 	 		n4 = b.y.clone();
@@ -1210,7 +1216,7 @@ impl ECPrimePoint {
 	 			return Ok(retv);
 	 		} else {
 	 			retv.z = zv.clone();
-	 			retv.z_is_one = false;
+	 			retv.z_is_one = 0;
 	 			ecsimple_log_trace!("r.z 0");
 	 			return Ok(retv);
 	 		}
@@ -1223,14 +1229,14 @@ impl ECPrimePoint {
 	 	/* 'n7' = n1 + n3 */
 	 	/* 'n8' = n2 + n4 */
 
-	 	if self.z_is_one && b.z_is_one {
+	 	if self.z_is_one != 0 && b.z_is_one != 0 {
 	 		retv.z = n5.clone();
 	 		ecsimple_log_trace!("BN_copy(r.z 0x{:X},n5 0x{:X})",retv.z,n5);
 	 	} else {
-	 		if self.z_is_one {
+	 		if self.z_is_one != 0 {
 	 			n0 = b.z.clone();
 	 			ecsimple_log_trace!("BN_copy(n0 0x{:X},b.z 0x{:X})",n0,b.z);
-	 		} else if b.z_is_one {
+	 		} else if b.z_is_one != 0 {
 	 			n0 = self.z.clone();
 	 			ecsimple_log_trace!("BN_copy(n0 0x{:X},a.z 0x{:X})",n0,self.z);
 	 		} else {
@@ -1239,7 +1245,7 @@ impl ECPrimePoint {
 
 	 		retv.z = self.field_mul(&n0,&n5);
 	 	}
-	 	retv.z_is_one = false;
+	 	retv.z_is_one = 0;
 	 	/* Z_r = Z_a * Z_b * n5 */
 
 	 	n0 = self.field_sqr(&n6);
@@ -1359,7 +1365,7 @@ impl ECPrimePoint {
 	 			tmp = self.field_mul(&tmp,&points[idx].z);
 	 			points[idx].y = self.field_mul(&points[idx].y,&tmp);
 	 			points[idx].z = self.field_set_to_one();
-	 			points[idx].z_is_one = true;
+	 			points[idx].z_is_one = 1;
 	 		}
 	 		idx += 1;
 	 	}
@@ -1403,13 +1409,13 @@ impl ECPrimePoint {
 	 	ecsimple_log_trace!("field_mul");
 	 	retv.y = self.field_mul(&retv.y,&temp);
 	 	ecsimple_log_trace!("field_mul");
-	 	retv.z_is_one = false;
+	 	retv.z_is_one = 0;
 
 	 	Ok(retv)
 	 }
 
 	 fn point_set_infinity(&mut self) {
-	 	self.z_is_one = false;
+	 	self.z_is_one = 0;
 	 	self.z = zero();
 	 	self.infinity = true;
 	 	return;
