@@ -1096,11 +1096,14 @@ impl ECPrimePoint {
 		let mut n3 :BigInt;
 
 		if self.infinity {
+			retv.x = zv.clone();
+			retv.y = zv.clone();
 			retv.z = zv.clone();
 			retv.z_is_one = 0;
 			return Ok(retv);
 		}
 
+		ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
 		if self.z_is_one != 0 {
 			n0 = self.field_sqr(&self.x);
 			n1 = self.lshift1_mod_quick(&n0,&field);
@@ -1139,14 +1142,18 @@ impl ECPrimePoint {
 	     	/* n1 = 3 * X_a^2 + a_curve * Z_a^4 */
 	     }
 
+	     ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
 	     if self.z_is_one != 0 {
 	     	n0 = self.y.clone();
 	     	ecsimple_log_trace!("BN_copy(n0 0x{:X},a.y 0x{:X})",n0,self.y);
 	     } else {
 	     	n0 = self.field_mul(&self.y,&self.z);
 	     }
+	     retv.x = zv.clone();
+	     retv.y = zv.clone();
 	     retv.z = self.lshift1_mod_quick(&n0,&field);
 	     ecsimple_log_trace!("mod_lshift_quick(r.z 0x{:X},n0 0x{:X},p 0x{:X})",retv.z,n0,field);
+	     ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => 0",retv.x,retv.y,retv.z,retv.z_is_one);
 	     retv.z_is_one = 0;
 	     /* Z_r = 2 * Y_a * Z_a */
 
