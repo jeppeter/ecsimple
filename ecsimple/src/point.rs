@@ -519,7 +519,7 @@ impl std::default::Default for ECPrimePoint {
 
 impl ECPrimePoint {
 	pub (crate) fn new(grp :&ECGroupPrime) -> ECPrimePoint {
-		let pnt :ECPrimePoint = ECPrimePoint {
+		let mut pnt :ECPrimePoint = ECPrimePoint {
 			x : grp.generator.x.clone(),
 			y : grp.generator.y.clone(),
 			z : grp.generator.z.clone(),
@@ -528,11 +528,15 @@ impl ECPrimePoint {
 			infinity : false,
 			z_is_one : 0,
 		};
+		if grp.generator.z_is_one != 0 {
+			pnt.z_is_one = grp.generator.z_is_one;
+		}
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X} z_is_one {}",pnt.x,pnt.y,pnt.z,pnt.z_is_one);
 		return pnt;
 	}
 
 	pub (crate) fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
-		let pnt : ECPrimePoint = Self {
+		let mut pnt : ECPrimePoint = Self {
 			x :x.clone(),
 			y :y.clone(),
 			z :z.clone(),
@@ -541,6 +545,10 @@ impl ECPrimePoint {
 			infinity : false,
 			z_is_one : 0,
 		};
+		if grp.generator.z_is_one != 0 {
+			pnt.z_is_one = grp.generator.z_is_one;
+		}
+		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X} z_is_one {}",pnt.x,pnt.y,pnt.z,pnt.z_is_one);
 		return pnt;
 	}
 
@@ -564,6 +572,10 @@ impl ECPrimePoint {
 
 	pub fn y(&self) -> BigInt {
 		return self.y.clone();
+	}
+
+	pub fn z_is_one(&self) -> i32 {
+		return self.z_is_one;
 	}
 
 	pub fn mont_x_from(&self) -> BigInt {
@@ -1212,6 +1224,7 @@ impl ECPrimePoint {
 	 		return Ok(retv);
 	 	}
 
+	 	ecsimple_log_trace!("b.x 0x{:X} b.y 0x{:X} b.z 0x{:X} Z_is_one {}",b.x,b.y,b.z,b.z_is_one);
 	 	if b.z_is_one != 0 {
 	 		n1 = self.x.clone();
 	 		ecsimple_log_trace!("BN_copy(n1 0x{:X},a.x 0x{:X})",n1,self.x);
@@ -1229,6 +1242,7 @@ impl ECPrimePoint {
 	 		/* n2 = Y_a * Z_b^3 */
 	 	}
 
+	 	ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
 	 	if self.z_is_one != 0 {
 	 		n3 = b.x.clone();
 	 		ecsimple_log_trace!("BN_copy(n3 0x{:X},b.x 0x{:X})",n3,b.x);
@@ -1530,6 +1544,7 @@ impl ECPrimePoint {
 	 		} else {
 	 			ecsimple_log_trace!("[{}] copy generator",idx);
 	 			val_sub[idx][0] = ECPrimePoint::new(&self.group);
+	 			val_sub[idx][0].z_is_one = self.group.generator.z_is_one;
 	 		}
 
 	 		ecsimple_log_trace!("val_sub[{}][0].X 0x{:X} val_sub[{}][0].Y 0x{:X} val_sub[{}][0].Z 0x{:X}",idx,val_sub[idx][0].x(),idx,val_sub[idx][0].y(),idx,val_sub[idx][0].z());
@@ -1540,6 +1555,8 @@ impl ECPrimePoint {
 	 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}",tmp.x,tmp.y,tmp.z);
 	 			jdx = 1;
 	 			while jdx < (1 << (wnaf_bits[idx]-1)) as usize {
+	 				ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X} val_sub[{}][{}].Z_is_one {}",
+	 					idx,jdx-1,val_sub[idx][jdx-1].x,idx,jdx-1,val_sub[idx][jdx-1].y,idx,jdx-1,val_sub[idx][jdx-1].z,idx,jdx-1,val_sub[idx][jdx-1].z_is_one);
 	 				val_sub[idx][jdx] = val_sub[idx][jdx-1].add(&tmp)?;
 	 				ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X}",idx,jdx-1,val_sub[idx][jdx-1].x,idx,jdx-1,val_sub[idx][jdx-1].y,idx,jdx-1,val_sub[idx][jdx-1].z);
 	 				ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X}",idx,jdx,val_sub[idx][jdx].x,idx,jdx,val_sub[idx][jdx].y,idx,jdx,val_sub[idx][jdx].z);

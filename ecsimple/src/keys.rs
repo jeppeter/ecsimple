@@ -1118,7 +1118,7 @@ impl ECPrimePubKey {
 		if sig.r == zero() || sig.s == zero() {
 			ecsimple_new_error!{EcKeyError,"sig.r 0x{:X} or sig.s 0x{:X} zero",sig.r,sig.s}
 		}
-
+		ecsimple_log_trace!("pub_key.x 0x{:X} pub_key.y 0x{:X} pub_key.z 0x{:X} pub_key.Z_is_one {}",self.pubk.x(),self.pubk.y(), self.pubk.z(),self.pubk.z_is_one());
 		let e :BigInt = &order - 2;
 		u2 = sig.s.modpow(&e,&order);
 		ecsimple_log_trace!("s 0x{:X} u2 0x{:X}",sig.s,u2);
