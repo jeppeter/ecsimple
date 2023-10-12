@@ -1137,6 +1137,8 @@ impl ECPrimePubKey {
 		ecsimple_log_trace!("u2 0x{:X} sig->r 0x{:X} order 0x{:X}", u2,sig.r,order);
 		let vfypnt :ECPrimePoint;
 
+		ecsimple_log_trace!("verify pubk {}",self.pubk);
+
 		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
 		(x,_) = vfypnt.get_affine_points()?;
 		if x != sig.r {
