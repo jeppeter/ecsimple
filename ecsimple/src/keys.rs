@@ -898,7 +898,7 @@ impl ECPrimePubKey {
 			ecsimple_log_trace!("x 0x{:X}",x);
 			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
 			ecsimple_log_trace!("y 0x{:X}",y);
-			if x == zero() && ybit != 0{
+			if x == zero() && ybit != 0 {
 				ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
 			} else {
 			}
@@ -916,7 +916,9 @@ impl ECPrimePubKey {
 		})
 	}
 
+	#[allow(unreachable_code)]
 	pub fn from_bin_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
+		return Self::from_bin(grp,dercode);
 		let b = ECPrimePoint::new(grp);
 		let pubk :ECPrimePoint = b.clone();
 		if dercode.len() < 1 {
@@ -975,10 +977,13 @@ impl ECPrimePubKey {
 		})
 	}
 
+	#[allow(unreachable_code)]
 	fn to_der_bin(&self,cmprtype :&str)  -> Result<Vec<u8>,Box<dyn Error>> {
+		//return self.to_bin(cmprtype);
 		let mut retv :Vec<u8> = Vec::new();
-		let x :BigInt = self.pubk.mont_x_from();
-		let y :BigInt = self.pubk.mont_y_from();
+		let outpubk :ECPrimePoint = self.pubk.get_affine_coordinates(&self.pubk);
+		let x :BigInt = outpubk.x();
+		let y :BigInt = outpubk.y();
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
 		let tv :BigInt = ov.clone() + ov.clone();

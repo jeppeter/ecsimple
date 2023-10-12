@@ -996,50 +996,67 @@ impl ECPrimePoint {
 		return r;
 	}
 
-	pub fn check_on_curve(&self) -> Result<(),Box<dyn Error>> {
-		let mut rh :BigInt;
-		let ov :BigInt = one();
+	fn check_on_curve_z_is_one(&self,rhn :&BigInt) -> Result<(),Box<dyn Error>> {
+		let mut rh :BigInt = rhn.clone();
 		let z4 :BigInt;
 		let z6 :BigInt;
 		let mut tmp :BigInt;
 		let field :BigInt = self.group.p.clone();
+		tmp = self.field_sqr(&self.z);
+		z4 = self.field_sqr(&tmp);
+		z6 = self.field_mul(&z4,&tmp);
 
-		rh = self.field_sqr(&self.x);
-		if self.z != ov {
-			tmp = self.field_sqr(&self.z);
-			z4 = self.field_sqr(&tmp);
-			z6 = self.field_mul(&z4,&tmp);
-
-			if self.group.is_minus3 {
-				tmp = self.lshift1_mod_quick(&z4,&field);
-				ecsimple_log_trace!("lshift1_mod_quick(tmp 0x{:X},Z4 0x{:X},p 0x{:X})",tmp,z4,field);
-				tmp = self.add_mod_quick(&tmp,&z4,&field);
-				ecsimple_log_trace!("add_mod_quick(tmp 0x{:X},tmp,Z4 0x{:X},p 0x{:X})",tmp,z4,field);
-				rh = self.sub_mod_quick(&rh,&tmp,&field);
-				ecsimple_log_trace!("sub_mod_quick(rh 0x{:X},rh,tmp 0x{:X},p 0x{:X})",rh,tmp,field);
-				rh = self.field_mul(&rh,&self.x);
-			} else {
-				tmp = self.field_mul(&z4,&self.group.a);
-				rh = self.add_mod_quick(&rh,&tmp,&field);
-				ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,tmp 0x{:X},p 0x{:X})",rh,tmp,field);
-				rh = self.field_mul(&rh,&self.x);
-			}
-			tmp = self.field_mul(&self.group.b,&z6);
+		if self.group.is_minus3 {
+			tmp = self.lshift1_mod_quick(&z4,&field);
+			ecsimple_log_trace!("lshift1_mod_quick(tmp 0x{:X},Z4 0x{:X},p 0x{:X})",tmp,z4,field);
+			tmp = self.add_mod_quick(&tmp,&z4,&field);
+			ecsimple_log_trace!("add_mod_quick(tmp 0x{:X},tmp,Z4 0x{:X},p 0x{:X})",tmp,z4,field);
+			rh = self.sub_mod_quick(&rh,&tmp,&field);
+			ecsimple_log_trace!("sub_mod_quick(rh 0x{:X},rh,tmp 0x{:X},p 0x{:X})",rh,tmp,field);
+			rh = self.field_mul(&rh,&self.x);
+		} else {
+			tmp = self.field_mul(&z4,&self.group.a);
 			rh = self.add_mod_quick(&rh,&tmp,&field);
 			ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,tmp 0x{:X},p 0x{:X})",rh,tmp,field);
-		} else {
-			rh = self.add_mod_quick(&rh,&self.group.a,&field);
-			ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,group.a 0x{:X},p 0x{:X})",rh, self.group.a,field);
 			rh = self.field_mul(&rh,&self.x);
-			rh = self.add_mod_quick(&rh,&self.group.b,&field);
-			ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,group.b 0x{:X},p 0x{:X})",rh,self.group.b,field);
 		}
-
+		tmp = self.field_mul(&self.group.b,&z6);
+		rh = self.add_mod_quick(&rh,&tmp,&field);
+		ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,tmp 0x{:X},p 0x{:X})",rh,tmp,field);
 		tmp = self.field_sqr(&self.y);
-		if tmp != rh {
+		if rh != tmp {
 			ecsimple_new_error!{ECPrimePointError,"tmp 0x{:X} != rh 0x{:X}",tmp,rh}
 		}
 		Ok(())
+	}
+
+	fn check_on_curve_not_z_is_one(&self, rhn :&BigInt) -> Result<(),Box<dyn Error>> {
+		let mut rh :BigInt = rhn.clone();
+		let tmp :BigInt;
+		let field :BigInt = self.group.p.clone();
+
+		rh = self.add_mod_quick(&rh,&self.group.a,&field);
+		ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,group.a 0x{:X},p 0x{:X})",rh, self.group.a,field);
+		rh = self.field_mul(&rh,&self.x);
+		rh = self.add_mod_quick(&rh,&self.group.b,&field);
+		ecsimple_log_trace!("add_mod_quick(rh 0x{:X},rh,group.b 0x{:X},p 0x{:X})",rh,self.group.b,field);
+		tmp = self.field_sqr(&self.y);
+		if rh != tmp {
+			ecsimple_new_error!{ECPrimePointError,"tmp 0x{:X} != rh 0x{:X}",tmp,rh}
+		}
+		Ok(())
+	}
+
+	pub fn check_on_curve(&self) -> Result<(),Box<dyn Error>> {
+		let rh :BigInt;
+		let ores :Result<(),Box<dyn Error>>;
+
+		rh = self.field_sqr(&self.x);
+		ores =  self.check_on_curve_z_is_one(&rh);
+		if ores.is_ok() {
+			return ores;
+		}
+		return self.check_on_curve_not_z_is_one(&rh);
 	}
 
 	fn get_wnaf_variable(&self,bn :&BigInt) -> Result<(Vec<u8>,i32),Box<dyn Error>> {
@@ -1626,5 +1643,5 @@ impl ECPrimePoint {
 	 	Ok((x,y))
 	 }
 
-}
+	}
 
