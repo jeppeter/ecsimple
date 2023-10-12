@@ -864,7 +864,7 @@ impl ECPrimePubKey {
 
 	pub fn from_bin(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
 		let b = ECPrimePoint::new(grp);
-		let pubk :ECPrimePoint = b.clone();
+		let mut pubk :ECPrimePoint = b.clone();
 		if dercode.len() < 1 {
 			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
 		}
@@ -906,7 +906,11 @@ impl ECPrimePubKey {
 			ecsimple_new_error!{EcKeyError,"unsupport code [0x{:X}] for public point", dercode[0]}
 		}
 		let z :BigInt = one();
-		let pubk = pubk.set_affine_coordinates(&x,&y,&z)?;
+		ecsimple_log_trace!("will set x 0x{:X} y 0x{:X} z 0x{:X}",x,y,z);
+		//let pubk = pubk.set_affine_coordinates(&x,&y,&z)?;
+		pubk.set_x(&x);
+		pubk.set_y(&y);
+		pubk.set_z(&z);
 		let _ = pubk.check_on_curve()?;
 		ecsimple_log_trace!("pubkey.x 0x{:X} pubkey.y 0x{:X} pubkey.z 0x{:X}",pubk.x(),pubk.y(),pubk.z());
 
@@ -1136,10 +1140,12 @@ impl ECPrimePubKey {
 		u2 = &(&u2 * &sig.r) % &order;
 		ecsimple_log_trace!("u2 0x{:X} sig->r 0x{:X} order 0x{:X}", u2,sig.r,order);
 		let vfypnt :ECPrimePoint;
-
+		let ov :BigInt = one();
+		let affinpnt :ECPrimePoint = self.pubk.set_affine_coordinates(&self.pubk.x(),&self.pubk.y(),&ov)?;
 		ecsimple_log_trace!("verify pubk {}",self.pubk);
 
-		vfypnt = self.pubk.mulex_op(&u1,&u2)?;
+		//vfypnt = self.pubk.mulex_op(&u1,&u2)?;
+		vfypnt = affinpnt.mulex_op(&u1,&u2)?;
 		(x,_) = vfypnt.get_affine_points()?;
 		if x != sig.r {
 			u1 = x.clone() % self.base.group.order.clone();
