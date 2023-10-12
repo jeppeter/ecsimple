@@ -1211,8 +1211,14 @@ impl ECPrimePrivateKey {
 	}
 
 	pub fn export_pubkey(&self) -> ECPrimePubKey {
-		let ck : ECPrimePoint;
-		ck = self.base.mul_op(&self.privnum,false);
+		//let ck : ECPrimePoint;
+		let ck2 :ECPrimePoint;
+		ck2 = self.base.mul_op(&self.privnum,false);
+		let x:BigInt = ck2.x();
+		let y :BigInt = ck2.y();
+		let z :BigInt = one();
+		let ck :ECPrimePoint = ck2.set_affine_coordinates(&x,&y,&z).unwrap();
+		//let ck = ck2.get_affine_coordinates(&ck2);
 		let retv :ECPrimePubKey = ECPrimePubKey {
 			base : self.base.clone(),
 			pubk : ck.clone(),
@@ -1222,7 +1228,7 @@ impl ECPrimePrivateKey {
 
 	pub (crate)  fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let pubk :ECPrimePubKey = self.export_pubkey();
-		let pubdata :Vec<u8> = pubk.to_bin(cmprtype)?;
+		let pubdata :Vec<u8> = pubk.to_der_bin(cmprtype)?;
 		let params :ECPKPARAMETERS;
 		let privlen :usize = ((get_max_bits(&self.base.group.order) + 7 ) >> 3) as usize;
 		let mut bevecs :Vec<u8>;
@@ -1230,6 +1236,8 @@ impl ECPrimePrivateKey {
 		let mut asn1pubdata :Asn1BitDataFlag = Asn1BitDataFlag::init_asn1();
 		let mut ecprivasn1elem:ECPrivateKeyAsn1Elem = ECPrivateKeyAsn1Elem::init_asn1();
 		let mut ecprivasn1 :ECPrivateKeyAsn1 = ECPrivateKeyAsn1::init_asn1();
+
+		ecsimple_debug_buffer_trace!(pubdata.as_ptr(),pubdata.len(),"bin pubdata");
 
 		params = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 		(_,bevecs) = self.privnum.to_bytes_be();
