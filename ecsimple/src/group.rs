@@ -169,7 +169,6 @@ pub (crate) struct ECPrimeGenerator {
 	pub x :BigInt,
 	pub y :BigInt,
 	pub z :BigInt,
-	pub z_is_one :i32,
 }
 
 impl std::fmt::Display for ECPrimeGenerator {
@@ -194,9 +193,6 @@ impl ECPrimeGenerator {
 		if self.z != other.z {
 			retv = false;
 		}
-		if self.z_is_one != other.z_is_one {
-			retv = false;
-		}
 		return retv;
 	}
 }
@@ -217,7 +213,6 @@ impl std::default::Default for ECPrimeGenerator {
 			x : zero(),
 			y : zero(),
 			z : zero(),
-			z_is_one : 1,
 		}
 	}
 }

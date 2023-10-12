@@ -519,7 +519,7 @@ impl std::default::Default for ECPrimePoint {
 
 impl ECPrimePoint {
 	pub (crate) fn new(grp :&ECGroupPrime) -> ECPrimePoint {
-		let mut pnt :ECPrimePoint = ECPrimePoint {
+		let pnt :ECPrimePoint = ECPrimePoint {
 			x : grp.generator.x.clone(),
 			y : grp.generator.y.clone(),
 			z : grp.generator.z.clone(),
@@ -528,15 +528,11 @@ impl ECPrimePoint {
 			infinity : false,
 			z_is_one : 0,
 		};
-		if grp.generator.z_is_one != 0 {
-			pnt.z_is_one = grp.generator.z_is_one;
-		}
-		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X} z_is_one {}",pnt.x,pnt.y,pnt.z,pnt.z_is_one);
 		return pnt;
 	}
 
 	pub (crate) fn new_point(x :&BigInt, y :&BigInt,z :&BigInt, grp :&ECGroupPrime) -> Self {
-		let mut pnt : ECPrimePoint = Self {
+		let pnt : ECPrimePoint = Self {
 			x :x.clone(),
 			y :y.clone(),
 			z :z.clone(),
@@ -545,10 +541,6 @@ impl ECPrimePoint {
 			infinity : false,
 			z_is_one : 0,
 		};
-		if grp.generator.z_is_one != 0 {
-			pnt.z_is_one = grp.generator.z_is_one;
-		}
-		ecsimple_log_trace!("x 0x{:X} y 0x{:X} z 0x{:X} z_is_one {}",pnt.x,pnt.y,pnt.z,pnt.z_is_one);
 		return pnt;
 	}
 
@@ -572,10 +564,6 @@ impl ECPrimePoint {
 
 	pub fn y(&self) -> BigInt {
 		return self.y.clone();
-	}
-
-	pub fn z_is_one(&self) -> i32 {
-		return self.z_is_one;
 	}
 
 	pub fn mont_x_from(&self) -> BigInt {
@@ -649,11 +637,6 @@ impl ECPrimePoint {
 		let mut rndv :BigInt;
 		let zv :BigInt = zero();
 		ecsimple_log_trace!("ladder_pre");
-
-		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
-		if self.z_is_one == 0 {
-			return;
-		}
 		/*
 		* t1 s.z
 		* t2 r.z
@@ -841,9 +824,6 @@ impl ECPrimePoint {
 		r.y = self.field_mul(&t0,&t1);
 		r.z = self.field_set_to_one();
 
-		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => 0",r.x,r.y,r.z,r.z_is_one);
-		r.z_is_one = 0;
-
 		return;
 	}
 
@@ -894,7 +874,6 @@ impl ECPrimePoint {
 		let cardinal :BigInt;
 		let mut lamda :BigInt = zero();
 		let mut k :BigInt = zero();
-		let mut z_is_one :i32 = 0;
 		if bn <= &zv {
 			r = self.clone();
 			r.infinity = true;
@@ -907,14 +886,8 @@ impl ECPrimePoint {
 
 		if copyxy {
 			p = self.clone();
-			ecsimple_log_trace!("orig.x 0x0 orig.y 0x0 orig.z 0x0 orig.Z_is_one 0");
-			ecsimple_log_trace!("new.x 0x{:X} new.y 0x{:X} new.z 0x{:X} new.Z_is_one {}",p.x,p.y,p.z,p.z_is_one);
 		} else {
-			let mut pp = ECPrimePoint::new(&self.group);
-			pp.z_is_one = self.group.generator.z_is_one;
-			p = pp.clone();
-			ecsimple_log_trace!("orig.x 0x0 orig.y 0x0 orig.z 0x0 orig.Z_is_one 0");
-			ecsimple_log_trace!("new.x 0x{:X} new.y 0x{:X} new.z 0x{:X} new.Z_is_one {}",p.x,p.y,p.z,p.z_is_one);
+			p = ECPrimePoint::new(&self.group);
 		}
 		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X}",p.x,p.y,p.z);
 
@@ -966,11 +939,10 @@ impl ECPrimePoint {
 
 
 		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
-		ecsimple_log_trace!("p.x 0x{:X} p.y 0x{:X} p.z 0x{:X} Z_is_one {}",p.x,p.y,p.z,p.z_is_one);
 
 
 		ecsimple_log_trace!("p.X 0x{:X} p.Y 0x{:X} p.Z 0x{:X}",p.x,p.y,p.z);
-		p.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
+		self.ladder_pre(&mut r,&mut s, &p, (get_max_bits(&self.group.p) - 1 ) as u64);
 
 		i = (cardbits - 1) as i32;
 		while i >= 0 {
@@ -979,25 +951,14 @@ impl ECPrimePoint {
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
 			ecsimple_log_trace!("[{}]kbit 0x{:x} pbit 0x{:x} [0x{:x}] bitset [0x{:x}]", i,kbit,pbit,i, get_bit_set(&k,i));
 
-
-
+			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
+			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
 
 			if kbit != 0 {
 				tmp = s.clone();
 				s = r.clone();
 				r = tmp.clone();
 			}
-
-			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
-			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
-
-			ecsimple_log_trace!("Z_is_one {} => {} set by r s kbit",z_is_one,z_is_one ^ ((r.z_is_one ^ s.z_is_one) & kbit));
-			z_is_one ^= (r.z_is_one ^ s.z_is_one) & kbit;
-
-			ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => {}",r.x,r.y,r.z,r.z_is_one,r.z_is_one ^ z_is_one);
-			r.z_is_one ^= z_is_one;
-			ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {} => {}",s.x,s.y,s.z,s.z_is_one,s.z_is_one ^ z_is_one);
-			s.z_is_one ^= z_is_one;
 
 			ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
 			ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X}",r.x,r.y,r.z);
@@ -1020,17 +981,6 @@ impl ECPrimePoint {
 			s = r.clone();
 			r = tmp.clone();
 		}
-
-		ecsimple_log_trace!("r.X 0x{:X} r.Y 0x{:X} r.Z 0x{:X} Z_is_one {}",r.x,r.y,r.z,r.z_is_one);
-		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X} Z_is_one {}",s.x,s.y,s.z,s.z_is_one);
-
-		ecsimple_log_trace!("Z_is_one {} => {} set by r s pbit",z_is_one,z_is_one ^ ((r.z_is_one ^ s.z_is_one) & pbit));
-		z_is_one ^= (r.z_is_one ^ s.z_is_one) & pbit;
-
-		ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => {}",r.x,r.y,r.z,r.z_is_one,r.z_is_one ^ z_is_one);
-		r.z_is_one ^= z_is_one;
-		ecsimple_log_trace!("s.x 0x{:X} s.y 0x{:X} s.z 0x{:X} Z_is_one {} => {}",s.x,s.y,s.z,s.z_is_one,s.z_is_one ^ z_is_one);
-		s.z_is_one ^= z_is_one;
 
 		
 		ecsimple_log_trace!("s.X 0x{:X} s.Y 0x{:X} s.Z 0x{:X}",s.x,s.y,s.z);
@@ -1108,14 +1058,11 @@ impl ECPrimePoint {
 		let mut n3 :BigInt;
 
 		if self.infinity {
-			retv.x = zv.clone();
-			retv.y = zv.clone();
 			retv.z = zv.clone();
 			retv.z_is_one = 0;
 			return Ok(retv);
 		}
 
-		ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
 		if self.z_is_one != 0 {
 			n0 = self.field_sqr(&self.x);
 			n1 = self.lshift1_mod_quick(&n0,&field);
@@ -1154,18 +1101,14 @@ impl ECPrimePoint {
 	     	/* n1 = 3 * X_a^2 + a_curve * Z_a^4 */
 	     }
 
-	     ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
 	     if self.z_is_one != 0 {
 	     	n0 = self.y.clone();
 	     	ecsimple_log_trace!("BN_copy(n0 0x{:X},a.y 0x{:X})",n0,self.y);
 	     } else {
 	     	n0 = self.field_mul(&self.y,&self.z);
 	     }
-	     retv.x = zv.clone();
-	     retv.y = zv.clone();
 	     retv.z = self.lshift1_mod_quick(&n0,&field);
 	     ecsimple_log_trace!("mod_lshift_quick(r.z 0x{:X},n0 0x{:X},p 0x{:X})",retv.z,n0,field);
-	     ecsimple_log_trace!("r.x 0x{:X} r.y 0x{:X} r.z 0x{:X} Z_is_one {} => 0",retv.x,retv.y,retv.z,retv.z_is_one);
 	     retv.z_is_one = 0;
 	     /* Z_r = 2 * Y_a * Z_a */
 
@@ -1224,7 +1167,6 @@ impl ECPrimePoint {
 	 		return Ok(retv);
 	 	}
 
-	 	ecsimple_log_trace!("b.x 0x{:X} b.y 0x{:X} b.z 0x{:X} Z_is_one {}",b.x,b.y,b.z,b.z_is_one);
 	 	if b.z_is_one != 0 {
 	 		n1 = self.x.clone();
 	 		ecsimple_log_trace!("BN_copy(n1 0x{:X},a.x 0x{:X})",n1,self.x);
@@ -1242,7 +1184,6 @@ impl ECPrimePoint {
 	 		/* n2 = Y_a * Z_b^3 */
 	 	}
 
-	 	ecsimple_log_trace!("a.x 0x{:X} a.y 0x{:X} a.z 0x{:X} Z_is_one {}",self.x,self.y,self.z,self.z_is_one);
 	 	if self.z_is_one != 0 {
 	 		n3 = b.x.clone();
 	 		ecsimple_log_trace!("BN_copy(n3 0x{:X},b.x 0x{:X})",n3,b.x);
@@ -1544,7 +1485,6 @@ impl ECPrimePoint {
 	 		} else {
 	 			ecsimple_log_trace!("[{}] copy generator",idx);
 	 			val_sub[idx][0] = ECPrimePoint::new(&self.group);
-	 			val_sub[idx][0].z_is_one = self.group.generator.z_is_one;
 	 		}
 
 	 		ecsimple_log_trace!("val_sub[{}][0].X 0x{:X} val_sub[{}][0].Y 0x{:X} val_sub[{}][0].Z 0x{:X}",idx,val_sub[idx][0].x(),idx,val_sub[idx][0].y(),idx,val_sub[idx][0].z());
@@ -1555,8 +1495,6 @@ impl ECPrimePoint {
 	 			ecsimple_log_trace!("tmp.x 0x{:X} tmp.y 0x{:X} tmp.z 0x{:X}",tmp.x,tmp.y,tmp.z);
 	 			jdx = 1;
 	 			while jdx < (1 << (wnaf_bits[idx]-1)) as usize {
-	 				ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X} val_sub[{}][{}].Z_is_one {}",
-	 					idx,jdx-1,val_sub[idx][jdx-1].x,idx,jdx-1,val_sub[idx][jdx-1].y,idx,jdx-1,val_sub[idx][jdx-1].z,idx,jdx-1,val_sub[idx][jdx-1].z_is_one);
 	 				val_sub[idx][jdx] = val_sub[idx][jdx-1].add(&tmp)?;
 	 				ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X}",idx,jdx-1,val_sub[idx][jdx-1].x,idx,jdx-1,val_sub[idx][jdx-1].y,idx,jdx-1,val_sub[idx][jdx-1].z);
 	 				ecsimple_log_trace!("val_sub[{}][{}].x 0x{:X} val_sub[{}][{}].y 0x{:X} val_sub[{}][{}].z 0x{:X}",idx,jdx,val_sub[idx][jdx].x,idx,jdx,val_sub[idx][jdx].y,idx,jdx,val_sub[idx][jdx].z);
@@ -1688,5 +1626,5 @@ impl ECPrimePoint {
 	 	Ok((x,y))
 	 }
 
-	}
+}
 
