@@ -13,7 +13,6 @@ use std::io::Write;
 use std::error::Error;
 
 
-
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct X9_62_PENTANOMIALELem {
@@ -203,5 +202,3 @@ pub struct Asn1Pkcs8PrivKeyInfoElem {
 pub struct Asn1Pkcs8PrivKeyInfo {
 	pub elem : Asn1Seq<Asn1Pkcs8PrivKeyInfoElem>,
 }
-
-

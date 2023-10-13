@@ -341,10 +341,6 @@ impl ECGf2mPubKey {
 		})
 	}
 
-
-	pub fn from_bin_der(grp :&ECGroupBnGf2m, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
-		return Self::from_bin(grp,dercode);
-	}
 	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
 		let ov :BigInt = one();
@@ -740,8 +736,11 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 
 		paramselem.curve.elem.val.push(curveelem);
 
-		let x :BigInt = montv.mont_from(&grp.generator.x);
-		let y :BigInt = montv.mont_from(&grp.generator.y);
+		//let x :BigInt = montv.mont_from(&grp.generator.x);
+		//let y :BigInt = montv.mont_from(&grp.generator.y);
+		/*because in to_bin we get the get_affine_coordinates so this would not let go*/
+		let x:BigInt = grp.generator.x.clone();
+		let y:BigInt = grp.generator.y.clone();
 		let basegrp :ECPrimePubKey = ECPrimePubKey::new(grp,&x,&y);
 		let basedata :Vec<u8> = basegrp.to_bin(cmprtype)?;
 		paramselem.base.data = basedata.clone();
@@ -788,7 +787,7 @@ impl ECPrimePubKey {
 			let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
 			let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
 			let _ = packedelem.typef.set_value(EC_PUBLIC_KEY_OID)?;
-			let pubdata :Vec<u8> = self.to_der_bin(cmprtype)?;
+			let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
 			packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 			pubkasn1elem.packed.elem.val.push(packedelem);
 			pubkasn1elem.pubdata.data = pubdata.clone();
@@ -800,7 +799,7 @@ impl ECPrimePubKey {
 			let mut pubkasn1elem :ECPublicKeyAsn1Elem = ECPublicKeyAsn1Elem::init_asn1();
 			let mut packedelem :ECPublicKeyPackElem = ECPublicKeyPackElem::init_asn1();
 			let _ = packedelem.typef.set_value(SM2_OID)?;
-			let pubdata :Vec<u8> = self.to_der_bin(cmprtype)?;
+			let pubdata :Vec<u8> = self.to_bin(cmprtype)?;
 			packedelem.parameters = form_ecpkparameters_prime(&self.base.group,cmprtype,paramenc)?;
 			pubkasn1elem.packed.elem.val.push(packedelem);
 			pubkasn1elem.pubdata.data = pubdata.clone();
@@ -898,67 +897,6 @@ impl ECPrimePubKey {
 			ecsimple_log_trace!("x 0x{:X}",x);
 			y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
 			ecsimple_log_trace!("y 0x{:X}",y);
-			if x == zero() && ybit != 0 {
-				ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
-			} else {
-			}
-		} else {
-			ecsimple_new_error!{EcKeyError,"unsupport code [0x{:X}] for public point", dercode[0]}
-		}
-		let z :BigInt = one();
-		let pubk = pubk.set_affine_coordinates(&x,&y,&z)?;
-		let _ = pubk.check_on_curve()?;
-		ecsimple_log_trace!("pubkey.x 0x{:X} pubkey.y 0x{:X} pubkey.z 0x{:X}",pubk.x(),pubk.y(),pubk.z());
-
-		Ok(Self {
-			base : b.clone(),
-			pubk : pubk.clone(),
-		})
-	}
-
-	#[allow(unreachable_code)]
-	pub fn from_bin_der(grp :&ECGroupPrime, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
-		return Self::from_bin(grp,dercode);
-		let b = ECPrimePoint::new(grp);
-		let pubk :ECPrimePoint = b.clone();
-		if dercode.len() < 1 {
-			ecsimple_new_error!{EcKeyError,"code [{}] < 1", dercode.len()}
-		}
-		let code :u8 = dercode[0] & EC_CODE_MASK;
-		let ybit :u8 = dercode[0] & EC_CODE_YBIT;
-		let degr :i64 = grp.degree();
-		let fieldsize :usize = ((degr + 7) >> 3) as usize;
-		let x :BigInt;
-		let y :BigInt;
-		ecsimple_log_trace!("grp degree [0x{:x}] fieldsize 0x{:x}", degr,fieldsize);
-
-		if code == EC_CODE_UNCOMPRESSED {
-			if dercode.len() < (1 + 2 *fieldsize) {
-				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}
-			}
-			let _x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
-			ecsimple_log_trace!("x 0x{:X}",_x);
-			let _y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
-			x = b.mont_val_to(&_x);
-			y = b.mont_val_to(&_y);
-		} else if code == EC_CODE_COMPRESSED {
-			if dercode.len() < (1 + fieldsize) {
-				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} ", dercode.len(), fieldsize}	
-			}
-			let _x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
-			ecsimple_log_trace!("x 0x{:X}",_x);
-			x = b.mont_val_to(&_x);
-			y = ECPrimePubKey::uncompress_x_point(grp,&x,ybit)?;
-		} else if code == EC_CODE_HYBRID {
-			if dercode.len() < (1 + 2 * fieldsize) {
-				ecsimple_new_error!{EcKeyError,"len [{}] < 1 + {} * 2", dercode.len(), fieldsize}	
-			}
-			let _x = BigInt::from_bytes_be(Sign::Plus,&dercode[1..(fieldsize+1)]);
-			ecsimple_log_trace!("x 0x{:X}",_x);
-			let _y = BigInt::from_bytes_be(Sign::Plus,&dercode[(fieldsize+1)..(2*fieldsize+1)]);
-			ecsimple_log_trace!("y 0x{:X}",_y);
-			x = b.mont_val_to(&_x);
-			y = b.mont_val_to(&_y);
 			if x == zero() && ybit != 0{
 				ecsimple_new_error!{EcKeyError,"x == 0 and ybit set"}
 			} else {
@@ -977,80 +915,12 @@ impl ECPrimePubKey {
 		})
 	}
 
-	#[allow(unreachable_code)]
-	fn to_der_bin(&self,cmprtype :&str)  -> Result<Vec<u8>,Box<dyn Error>> {
-		//return self.to_bin(cmprtype);
-		let mut retv :Vec<u8> = Vec::new();
-		let outpubk :ECPrimePoint = self.pubk.get_affine_coordinates(&self.pubk);
-		let x :BigInt = outpubk.x();
-		let y :BigInt = outpubk.y();
-		let ov :BigInt = one();
-		let zv :BigInt = zero();
-		let tv :BigInt = ov.clone() + ov.clone();
-		let degr :i64 = self.pubk.group.degree();
-		let fieldsize :usize = ((degr + 7) >> 3) as usize;
-		let mut xvecs :Vec<u8>;
-		let mut yvecs :Vec<u8>;
-
-		if cmprtype == EC_COMPRESSED {
-			retv.push(EC_CODE_COMPRESSED);
-			(_,xvecs) = x.to_bytes_be();
-			while xvecs.len() < fieldsize {
-				xvecs.insert(0,0);
-			}
-			for xb in xvecs {
-				retv.push(xb);
-			}
-			if y % tv != zv {
-				retv[0] |= EC_CODE_YBIT;
-			}
-		} else if cmprtype == EC_UNCOMPRESSED {
-			retv.push(EC_CODE_UNCOMPRESSED);
-			(_,xvecs) = x.to_bytes_be();
-			while xvecs.len() < fieldsize {
-				xvecs.insert(0,0);
-			}
-
-			for xb in xvecs {
-				retv.push(xb);
-			}
-			(_,yvecs) = y.to_bytes_be();
-			while yvecs.len() < fieldsize {
-				yvecs.insert(0,0);
-			}
-			for yb in yvecs {
-				retv.push(yb);
-			}
-		} else if cmprtype == EC_HYBRID {
-			retv.push(EC_CODE_HYBRID);
-			(_,xvecs) = x.to_bytes_be();
-			while xvecs.len() < fieldsize {
-				xvecs.insert(0,0);
-			}
-			for xb in xvecs {
-				retv.push(xb);
-			}
-			(_,yvecs) = y.to_bytes_be();
-			while yvecs.len() < fieldsize {
-				yvecs.insert(0,0);
-			}
-			for yb in yvecs {
-				retv.push(yb);
-			}
-			if y % tv != zv {
-				retv[0] |= EC_CODE_YBIT;
-			}
-		} else {
-			ecsimple_new_error!{EcKeyError,"not supported cmprtype [{}]",cmprtype}
-		}
-		Ok(retv)
-	}
-
 
 	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
-		let x :BigInt = self.pubk.x();
-		let y :BigInt = self.pubk.y();
+		let affinpnt :ECPrimePoint = self.pubk.get_affine_coordinates(&self.pubk);
+		let x :BigInt = affinpnt.x();
+		let y :BigInt = affinpnt.y();
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
 		let tv :BigInt = ov.clone() + ov.clone();
@@ -1209,8 +1079,12 @@ impl ECPrimePrivateKey {
 	}
 
 	pub fn export_pubkey(&self) -> ECPrimePubKey {
-		let ck : ECPrimePoint;
-		ck = self.base.mul_op(&self.privnum,false);
+		let ck2 : ECPrimePoint;
+		ck2 = self.base.mul_op(&self.privnum,false);
+		let x :BigInt = ck2.x();
+		let y :BigInt = ck2.y();
+		let z :BigInt = one();
+		let ck = ck2.set_affine_coordinates(&x,&y,&z).unwrap();
 		let retv :ECPrimePubKey = ECPrimePubKey {
 			base : self.base.clone(),
 			pubk : ck.clone(),
@@ -1762,7 +1636,7 @@ impl ECPublicKey {
 		let _ = pubkeyasn1.decode_asn1(dercode)?;
 		let grp :ECGroup = get_group_from_public_der(&pubkeyasn1)?;
 		let pubkeyasn1elem :ECPublicKeyAsn1Elem = pubkeyasn1.elem.val[0].clone();
-		return Self::from_bin_der(&grp,&pubkeyasn1elem.pubdata.data);
+		return Self::from_bin(&grp,&pubkeyasn1elem.pubdata.data);
 	}
 
 	pub fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {
@@ -1816,24 +1690,6 @@ impl ECPublicKey {
 			};
 		} else {
 			let primekey : ECPrimePubKey = ECPrimePubKey::from_bin(&grp.get_prime_group(),dercode)?;
-			retv = ECPublicKey {
-				bnkey : None,
-				primekey : Some(primekey),
-			};
-		} 
-		Ok(retv)
-	}
-
-	pub fn from_bin_der(grp :&ECGroup, dercode :&[u8]) -> Result<Self,Box<dyn Error>> {
-		let retv :ECPublicKey;
-		if grp.is_bn_group() {
-			let bnkey : ECGf2mPubKey = ECGf2mPubKey::from_bin_der(&grp.get_bn_group(),dercode)?;
-			retv = ECPublicKey {
-				bnkey : Some(bnkey),
-				primekey : None,
-			};
-		} else {
-			let primekey : ECPrimePubKey = ECPrimePubKey::from_bin_der(&grp.get_prime_group(),dercode)?;
 			retv = ECPublicKey {
 				bnkey : None,
 				primekey : Some(primekey),
@@ -1939,7 +1795,6 @@ impl Default for ECPrivateKey {
 		}
 	}
 }
-
 
 
 impl ECPrivateKey {
@@ -2098,6 +1953,7 @@ impl std::fmt::Display for ECPrivateKey {
 		return self.get_bn_key().fmt(f);		
 	}
 }
+
 
 pub fn to_der_sm2(incode :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
 	let mut pk8info :Asn1Pkcs8PrivKeyInfo = Asn1Pkcs8PrivKeyInfo::init_asn1();
