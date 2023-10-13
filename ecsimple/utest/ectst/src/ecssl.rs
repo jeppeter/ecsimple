@@ -29,15 +29,17 @@ use super::pemlib::*;
 use std::io::Write;
 use super::*;
 
-//use num_bigint::{BigInt,Sign};
+use num_bigint::{BigInt,Sign};
 
 //use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
 use ecsimple::group::{ECGroup,ecc_get_curve_group};
-//use ecsimple::signature::{ECSignature};
+use ecsimple::signature::{ECSignature};
 use ecsimple::keys::{ECPublicKey, ECPrivateKey,to_der_sm2};
 use super::strop::{parse_to_bigint};
-use num_bigint::{BigInt};
+//use num_bigint::{BigInt};
 //use ecsimple::consts::*;
+use sha1::{Sha1,Digest};
+use sha2::{Sha256,Sha512};
 
 
 extargs_error_class!{EcsslError}
@@ -155,12 +157,92 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	Ok(())
 }
 
+fn get_file_digest(infile :&str,dgsttype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+	let blob = read_file_bytes(infile)?;
+	let retv :Vec<u8>;
+	if dgsttype == "sha1" {
+		let mut hasher = Sha1::new();
+		hasher.update(&blob);
+		retv = hasher.finalize().to_vec();
+	} else if dgsttype == "sha256" {
+		let mut hasher = Sha256::new();
+		hasher.update(&blob);
+		retv = hasher.finalize().to_vec();
+	} else if dgsttype == "sha512" {
+		let mut hasher = Sha512::new();
+		hasher.update(&blob);
+		retv = hasher.finalize().to_vec();
+	} else {
+		extargs_new_error!{EcsslError,"not support digesttype [{}]",dgsttype}
+	}
+	Ok(retv)
+}
 
-#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler)]
+fn ecsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let ecpriv :String;
+	let dgsttype :String;
+	init_log(ns.clone())?;
+
+	if sarr.len() < 1 {
+		extargs_new_error!{EcsslError,"need one file blob"}
+	}
+	dgsttype = ns.get_string("digesttype");
+	let hashbytes = get_file_digest(&sarr[0],&dgsttype)?;
+	ecpriv = ns.get_string("ecpriv");
+	if ecpriv.len() == 0 {
+		extargs_new_error!{EcsslError,"not set ecpriv"}
+	}
+	let privdata :Vec<u8> = read_file_into_der(&ecpriv)?;
+	let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
+	let sig :ECSignature = privkey.sign_base(&hashbytes)?;
+	let sigdata :Vec<u8> = sig.encode_asn1()?;
+	let output = ns.get_string("output");
+	if output.len() > 0 {
+		write_file_bytes(&output,&sigdata)?;
+	}
+	Ok(())
+}
+
+fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let ecpub :String;
+	let dgsttype :String;
+	init_log(ns.clone())?;
+
+	if sarr.len() < 1 {
+		extargs_new_error!{EcsslError,"need one file blob"}
+	}
+	dgsttype = ns.get_string("digesttype");
+	let hashbytes = get_file_digest(&sarr[0],&dgsttype)?;
+	ecpub = ns.get_string("ecpriv");
+	if ecpub.len() == 0 {
+		extargs_new_error!{EcsslError,"not set ecpub"}
+	}
+	let pubdata :Vec<u8> = read_file_into_der(&ecpub)?;
+	let pubkey :ECPublicKey = ECPublicKey::from_der(&pubdata)?;
+	let sigfile = ns.get_string("input");
+	if sigfile.len() == 0 {
+		extargs_new_error!{EcsslError,"no input for signbin"}
+	}
+	let sigdata = read_file_bytes(&sigfile)?;
+	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
+	let hashnum :BigInt = BigInt::from_bytes_be(Sign::Plus,&hashbytes);
+	let retval = pubkey.verify_base(&sig,&hashnum)?;
+	if !retval  {
+		extargs_new_error!{EcsslError,"verify ecpub[{}] with file [{}] sign[{}] not valid", ecpub,sarr[0],sigfile}
+	}
+	println!("verify ecpub[{}] with file [{}] sign[{}] succ", ecpub,sarr[0],sigfile);
+	Ok(())
+}
+
+
+#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler)]
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
 		"sm2privformat" : true,
+		"digesttype##only support sha1 sha256 sha512##" : "sha1",
 		"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
 			"$" : "+"
 		}},
@@ -169,6 +251,12 @@ pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 		}},
 		"ecpubload<ecpubload_handler>##ecpubpem ... to load ecpub key##" : {{
 			"$" : "+"
+		}},
+		"ecsign<ecsign_handler>##file  the file blob to sign and output is sign ecpriv is private key##" : {{
+			"$" : 1
+		}},
+		"ecvfy<ecvfy_handler>##file the file blob to verify input is sign ecpub is public key##" : {{
+			"$" : 1
 		}}
 	}}
 	"#);
