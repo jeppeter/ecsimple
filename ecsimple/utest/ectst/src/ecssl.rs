@@ -34,7 +34,9 @@ use super::*;
 //use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
 use ecsimple::group::{ECGroup,ecc_get_curve_group};
 //use ecsimple::signature::{ECSignature};
-use ecsimple::keys::{ECPublicKey, ECPrivateKey};
+use ecsimple::keys::{ECPublicKey, ECPrivateKey,to_der_sm2};
+use super::strop::{parse_to_bigint};
+use num_bigint::{BigInt};
 //use ecsimple::consts::*;
 
 
@@ -44,6 +46,7 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let eccmprtype :String = ns.get_string("eccmprtype");
 	let ecparamenc :String = ns.get_string("ecparamenc");
+	let sm2privformat :bool = ns.get_bool("sm2privformat");
 
 	init_log(ns.clone())?;
 
@@ -54,18 +57,40 @@ fn ecgen_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	let ecname :String = format!("{}",sarr[0]);
 
 	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
-	let privkey :ECPrivateKey = ECPrivateKey::generate(&grp);
+	let privkey :ECPrivateKey ;
+	if sarr.len() > 1 {
+		let bn : BigInt = parse_to_bigint(&sarr[1])?;
+		privkey = ECPrivateKey::new(&grp,&bn);
+	} else {
+		privkey = ECPrivateKey::generate(&grp);	
+	}
+	
 	let pubkey :ECPublicKey = privkey.export_pubkey();
 	let ecpub :String = ns.get_string("ecpub");
 	if ecpub.len() > 0 {
-		let pubdata = pubkey.to_bin(&eccmprtype)?;
-		write_file_bytes(&ecpub,&pubdata)?;
+		let pubdata = pubkey.to_der(&eccmprtype,&ecparamenc)?;
+		let pubs :String = der_to_pem(&pubdata,"PUBLIC KEY")?;
+		write_file_bytes(&ecpub,pubs.as_bytes())?;
 	}
 
 	let ecpriv :String = ns.get_string("ecpriv");
 	if ecpriv.len() > 0 {
 		let privdata = privkey.to_der(&eccmprtype,&ecparamenc)?;
-		write_file_bytes(&ecpriv,&privdata)?;
+		let privs :String ;
+		if  privkey.is_sm2() {
+			if sm2privformat {
+				privs = der_to_pem(&privdata,"SM2 PRIVATE KEY")?;
+			} else {
+				let sm2privdata = to_der_sm2(&privdata)?;
+				privs = der_to_pem(&sm2privdata,"PRIVATE KEY")?;
+			}
+			
+		} else {
+			privs = der_to_pem(&privdata,"EC PRIVATE KEY")?;
+		}
+
+		
+		write_file_bytes(&ecpriv,privs.as_bytes())?;
 	}
 
 
@@ -77,6 +102,7 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	let eccmprtype :String = ns.get_string("eccmprtype");
 	let ecparamenc :String = ns.get_string("ecparamenc");
 	let output :String = ns.get_string("output");
+	let sm2privformat :bool = ns.get_bool("sm2privformat");
 	init_log(ns.clone())?;
 	debug_trace!("eccmprtype [{}] ecparamenc [{}]",eccmprtype,ecparamenc);
 	for f in sarr.iter() {
@@ -87,7 +113,12 @@ fn ecprivload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 
 		let outs :String;
 		if privkey.is_sm2() {
-			outs = der_to_pem(&data,"SM2 PRIVATE KEY")?;
+			if sm2privformat {
+				outs = der_to_pem(&data,"SM2 PRIVATE KEY")?;
+			} else {
+				let sm2privdata = to_der_sm2(&data)?;
+				outs = der_to_pem(&sm2privdata,"PRIVATE KEY")?;
+			}			
 		} else {
 			outs = der_to_pem(&data,"EC PRIVATE KEY")?;	
 		}
@@ -129,8 +160,9 @@ fn ecpubload_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
+		"sm2privformat" : true,
 		"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
-			"$" : 1
+			"$" : "+"
 		}},
 		"ecprivload<ecprivload_handler>##ecprivpem ... to load private key##" : {{
 			"$" : "+"

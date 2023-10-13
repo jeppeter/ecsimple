@@ -17,7 +17,7 @@ use num_traits::{zero,one};
 use std::error::Error;
 
 use asn1obj_codegen::{asn1_sequence};
-use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataFlag};
+use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataFlag,Asn1Any};
 use asn1obj::complex::{Asn1Seq,Asn1ImpSet};
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
@@ -736,8 +736,11 @@ fn form_ecpkparameters_prime(grp :&ECGroupPrime,cmprtype :&str,paramenc :&str) -
 
 		paramselem.curve.elem.val.push(curveelem);
 
-		let x :BigInt = montv.mont_from(&grp.generator.x);
-		let y :BigInt = montv.mont_from(&grp.generator.y);
+		//let x :BigInt = montv.mont_from(&grp.generator.x);
+		//let y :BigInt = montv.mont_from(&grp.generator.y);
+		/*because in to_bin we get the get_affine_coordinates so this would not let go*/
+		let x:BigInt = grp.generator.x.clone();
+		let y:BigInt = grp.generator.y.clone();
 		let basegrp :ECPrimePubKey = ECPrimePubKey::new(grp,&x,&y);
 		let basedata :Vec<u8> = basegrp.to_bin(cmprtype)?;
 		paramselem.base.data = basedata.clone();
@@ -915,8 +918,9 @@ impl ECPrimePubKey {
 
 	pub (crate) fn to_bin(&self,cmprtype :&str) -> Result<Vec<u8>,Box<dyn Error>> {
 		let mut retv :Vec<u8> = Vec::new();
-		let x :BigInt = self.pubk.x();
-		let y :BigInt = self.pubk.y();
+		let affinpnt :ECPrimePoint = self.pubk.get_affine_coordinates(&self.pubk);
+		let x :BigInt = affinpnt.x();
+		let y :BigInt = affinpnt.y();
 		let ov :BigInt = one();
 		let zv :BigInt = zero();
 		let tv :BigInt = ov.clone() + ov.clone();
@@ -1075,8 +1079,12 @@ impl ECPrimePrivateKey {
 	}
 
 	pub fn export_pubkey(&self) -> ECPrimePubKey {
-		let ck : ECPrimePoint;
-		ck = self.base.mul_op(&self.privnum,false);
+		let ck2 : ECPrimePoint;
+		ck2 = self.base.mul_op(&self.privnum,false);
+		let x :BigInt = ck2.x();
+		let y :BigInt = ck2.y();
+		let z :BigInt = one();
+		let ck = ck2.set_affine_coordinates(&x,&y,&z).unwrap();
 		let retv :ECPrimePubKey = ECPrimePubKey {
 			base : self.base.clone(),
 			pubk : ck.clone(),
@@ -1947,3 +1955,20 @@ impl std::fmt::Display for ECPrivateKey {
 }
 
 
+pub fn to_der_sm2(incode :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+	let mut pk8info :Asn1Pkcs8PrivKeyInfo = Asn1Pkcs8PrivKeyInfo::init_asn1();
+	let mut elem :Asn1Pkcs8PrivKeyInfoElem = Asn1Pkcs8PrivKeyInfoElem::init_asn1();
+	let mut algelem :Asn1X509AlgorElem = Asn1X509AlgorElem::init_asn1();
+	let mut anydata :Asn1Any = Asn1Any::init_asn1();
+	algelem.algorithm.set_value(SM2_OID)?;
+	let bdata = algelem.algorithm.encode_asn1()?;
+	let _ = anydata.decode_asn1(&bdata)?;	
+	algelem.parameters.val = Some(anydata.clone());
+
+	elem.version.val = 0;
+	elem.pkeyalg.elem.val.push(algelem);
+	elem.pkey.data = incode.to_vec().clone();
+	elem.attributes.val = None;
+	pk8info.elem.val.push(elem);
+	return pk8info.encode_asn1();
+}
