@@ -29,14 +29,14 @@ use super::pemlib::*;
 use std::io::Write;
 use super::*;
 
-use num_bigint::{BigInt,Sign};
+//use num_bigint::{BigInt,Sign};
 
 //use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
 use ecsimple::group::{ECGroup,ecc_get_curve_group};
 use ecsimple::signature::{ECSignature};
 use ecsimple::keys::{ECPublicKey, ECPrivateKey,to_der_sm2};
 use super::strop::{parse_to_bigint};
-//use num_bigint::{BigInt};
+use num_bigint::{BigInt};
 //use ecsimple::consts::*;
 use sha1::{Sha1,Digest};
 use sha2::{Sha256,Sha512};
@@ -215,7 +215,7 @@ fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	}
 	dgsttype = ns.get_string("digesttype");
 	let hashbytes = get_file_digest(&sarr[0],&dgsttype)?;
-	ecpub = ns.get_string("ecpriv");
+	ecpub = ns.get_string("ecpub");
 	if ecpub.len() == 0 {
 		extargs_new_error!{EcsslError,"not set ecpub"}
 	}
@@ -226,9 +226,8 @@ fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 		extargs_new_error!{EcsslError,"no input for signbin"}
 	}
 	let sigdata = read_file_bytes(&sigfile)?;
-	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
-	let hashnum :BigInt = BigInt::from_bytes_be(Sign::Plus,&hashbytes);
-	let retval = pubkey.verify_base(&sig,&hashnum)?;
+	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;	
+	let retval = pubkey.verify_base(&sig,&hashbytes)?;
 	if !retval  {
 		extargs_new_error!{EcsslError,"verify ecpub[{}] with file [{}] sign[{}] not valid", ecpub,sarr[0],sigfile}
 	}

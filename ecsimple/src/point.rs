@@ -1531,6 +1531,7 @@ impl ECPrimePoint {
 	 			if wnaf[idx].len() as i32 > k {
 	 				let mut digit :u8 = wnaf[idx][k as usize];
 	 				let mut is_neg :bool = false;
+	 				ecsimple_log_trace!("wnaf[{}][{}] 0x{:x}",idx,k,digit);
 	 				if digit != 0 {
 	 					if (digit & 0x80) != 0 {
 	 						is_neg = true;

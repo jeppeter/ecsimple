@@ -20,15 +20,19 @@ fn bn_is_odd(a :&BigInt) -> bool {
     return true;
 }
 
-pub (crate) fn format_bigint_as_order(bn :&BigInt, order :&BigInt) -> BigInt {
+pub (crate) fn format_bigint_as_order(bn2 :&[u8], order :&BigInt) -> BigInt {
 	let obits :i64 = get_max_bits(order);
+    ecsimple_log_trace!("order bits 0x{:x}",obits);
 	let mut bs :Vec<u8>;
-	(_,bs) = bn.to_bytes_be();
+	bs = bn2.clone().to_vec();
 	if (8 * bs.len()) > (obits as usize) {
 		bs = bs[0..(((obits as usize) +7) >> 3)].to_vec();
 	}
+    ecsimple_log_trace!("dgst_len 0x{:x}",bs.len());
+    ecsimple_debug_buffer_trace!(bs.as_ptr(),bs.len(),"dgst 0x{:x}",bs.len());
 
 	let mut retv :BigInt = BigInt::from_bytes_be(Sign::Plus,&bs);
+    ecsimple_log_trace!("dgst_len 0x{:x} 0x{:X}",bs.len(),retv);
 	if bs.len() * 8 > (obits as usize) {
 		retv = retv >> (8 - obits & 0x7);
 	}

@@ -418,7 +418,7 @@ impl ECGf2mPubKey {
 	}
 
 
-	pub (crate) fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+	pub (crate) fn verify_base(&self,sig :&ECSignature, hashnum :&[u8]) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
 		let vfypnt :ECGf2mPoint;
@@ -609,14 +609,14 @@ impl ECGf2mPrivateKey {
 
 	#[allow(unused_assignments)]
 	pub fn sign_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
-		let bn :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);
+		//let bn :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);
 		ecsimple_log_trace!("begin sign");
 		let mut s :BigInt = zero();
 		let mut r :BigInt = zero();
 		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
 
-		let realhash = format_bigint_as_order(&bn,&self.base.group.order);
+		let realhash = format_bigint_as_order(hashnum,&self.base.group.order);
 		ecsimple_log_trace!("dgst 0x{:X}", realhash);
 
 		assert!(realhash <= self.base.group.order);
@@ -985,7 +985,7 @@ impl ECPrimePubKey {
 
 
 	#[allow(unused_variables)]
-	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+	pub fn verify_base(&self,sig :&ECSignature, hashnum :&[u8]) -> Result<bool,Box<dyn Error>> {
 		let mut u2 :BigInt;
 		let order :BigInt = self.base.group.order.clone();
 		let x :BigInt;
@@ -1173,7 +1173,7 @@ impl ECPrimePrivateKey {
 		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		ecsimple_log_trace!("order 0x{:X}", self.base.group.order);
 
-		let realhash = format_bigint_as_order(&bn,&self.base.group.order);
+		let realhash = format_bigint_as_order(hashnum,&self.base.group.order);
 		ecsimple_log_trace!("dgst 0x{:X}", realhash);
 		(kinv,r) = self.setup_sign()?;
 		ecsimple_log_trace!("ckinv 0x{:X} r 0x{:X}",kinv,r);
@@ -1728,7 +1728,7 @@ impl ECPublicKey {
 		return retv;
 	}
 
-	pub fn verify_base(&self,sig :&ECSignature, hashnum :&BigInt) -> Result<bool,Box<dyn Error>> {
+	pub fn verify_base(&self,sig :&ECSignature, hashnum :&[u8]) -> Result<bool,Box<dyn Error>> {
 		if self.is_bn_key() {
 			return self.get_bn_key().verify_base(sig,hashnum);
 		}  else if self.is_prime_key() {

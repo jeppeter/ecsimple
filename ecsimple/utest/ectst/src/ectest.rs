@@ -116,6 +116,7 @@ fn ecsignbase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let mut idx :usize = 0;
+	let mut hashsize :usize = 16;
 
 	init_log(ns.clone())?;
 
@@ -130,8 +131,21 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 
 	let ecname = format!("{}",sarr[0]);
 	let ecpubfile = format!("{}",sarr[1]);
-	let hashnum :BigInt = parse_to_bigint(&sarr[2])?;
+	let hashbn :BigInt = parse_to_bigint(&sarr[2])?;
 	let signbin = format!("{}",sarr[3]);
+	let mut hashnum :Vec<u8>;
+	(_,hashnum) = hashbn.to_bytes_be();
+
+	if sarr.len() > 4 {
+		hashsize = parse_u64(&sarr[4])? as usize;
+	}
+	if hashnum.len() > hashsize {
+		hashnum = hashnum[0..hashsize].to_vec();
+	}
+
+	while hashnum.len() < hashsize {
+		hashnum.insert(0,0);
+	}
 
 
 	let grp :ECGroup = ecc_get_curve_group(&ecname)?;
@@ -142,7 +156,8 @@ fn ecvfybase_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;
 	println!("sig.r 0x{:X} sig.s 0x{:X}",sig.r,sig.s);
 	let ok :bool = pubkey.verify_base(&sig,&hashnum)?;
-	println!("verify 0x{:X} with signature [{}] {:?}", hashnum,signbin,ok);
+	let hashbn :BigInt = BigInt::from_bytes_be(Sign::Plus,&hashnum);
+	println!("verify 0x{:X} with signature [{}] {:?}", hashbn,signbin,ok);
 	if  !ok {
 		extargs_new_error!{EcError,"can not verify {} pubkey {} signdata {}",ecname,ecpubfile,signbin}
 	}
@@ -235,31 +250,31 @@ fn encapsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetIm
 #[extargs_map_function(ecgenbase_handler,ecsignbase_handler,ecvfybase_handler,ecpubbinload_handler,extractsign_handler,encapsign_handler)]
 pub fn ec_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
-	{{
-		"ecpriv" : null,
-		"ecpub" : null,
-		"eccmprtype" : "{}",
-		"ecparamenc" : "{}",
-		"ecgenbase<ecgenbase_handler>##ecname privatenum to generate ec private key##" : {{
-			"$" : "+"
-		}},
-		"ecsignbase<ecsignbase_handler>##ecname privatenum hashnum [hashlen] to generate sign values##" : {{
-			"$" : "+"
-		}},
-		"ecvfybase<ecvfybase_handler>##ecname privatenum hashnum signbin to verify sign##" : {{
-			"$" : "+"
-		}},
-		"ecpubbinload<ecpubbinload_handler>##ecname pubbin to load ec public key##" : {{
-			"$" : 2
-		}},
-		"extractsign<extractsign_handler>##input input and output for output##" : {{
-			"$" : 0
-		}},
-		"encapsign<encapsign_handler>##input input and output for output for input sign##" : {{
-			"$" : 0
+		{{
+			"ecpriv" : null,
+			"ecpub" : null,
+			"eccmprtype" : "{}",
+			"ecparamenc" : "{}",
+			"ecgenbase<ecgenbase_handler>##ecname privatenum to generate ec private key##" : {{
+				"$" : "+"
+			}},
+			"ecsignbase<ecsignbase_handler>##ecname privatenum hashnum [hashlen] to generate sign values##" : {{
+				"$" : "+"
+			}},
+			"ecvfybase<ecvfybase_handler>##ecname privatenum hashnum signbin to verify sign##" : {{
+				"$" : "+"
+			}},
+			"ecpubbinload<ecpubbinload_handler>##ecname pubbin to load ec public key##" : {{
+				"$" : 2
+			}},
+			"extractsign<extractsign_handler>##input input and output for output##" : {{
+				"$" : 0
+			}},
+			"encapsign<encapsign_handler>##input input and output for output for input sign##" : {{
+				"$" : 0
+			}}
 		}}
-	}}
-	"#,EC_COMPRESSED,"");
+		"#,EC_COMPRESSED,"");
 	extargs_load_commandline!(parser,&cmdline)?;
 	Ok(())
 }
