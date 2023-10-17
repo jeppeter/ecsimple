@@ -40,6 +40,7 @@ use num_bigint::{BigInt};
 //use ecsimple::consts::*;
 use sha1::{Sha1,Digest};
 use sha2::{Sha256,Sha512};
+use sm3::{Sm3};
 
 
 extargs_error_class!{EcsslError}
@@ -172,6 +173,10 @@ fn get_file_digest(infile :&str,dgsttype :&str) -> Result<Vec<u8>,Box<dyn Error>
 		let mut hasher = Sha512::new();
 		hasher.update(&blob);
 		retv = hasher.finalize().to_vec();
+	} else if dgsttype == "sm3" {
+		let mut hasher = Sm3::new();
+		hasher.update(&blob);
+		retv = hasher.finalize().to_vec();
 	} else {
 		extargs_new_error!{EcsslError,"not support digesttype [{}]",dgsttype}
 	}
@@ -241,7 +246,7 @@ pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 	{{
 		"sm2privformat" : true,
-		"digesttype##only support sha1 sha256 sha512##" : "sha1",
+		"digesttype##only support sha1 sha256 sha512 sm3##" : "sha1",
 		"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
 			"$" : "+"
 		}},
