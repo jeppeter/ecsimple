@@ -1,33 +1,33 @@
  #[allow(unused_imports)]
-use extargsparse_codegen::{extargs_load_commandline,ArgSet,extargs_map_function};
-#[allow(unused_imports)]
-use extargsparse_worker::{extargs_error_class,extargs_new_error};
-#[allow(unused_imports)]
-use extargsparse_worker::namespace::{NameSpaceEx};
-#[allow(unused_imports)]
-use extargsparse_worker::argset::{ArgSetImpl};
-use extargsparse_worker::parser::{ExtArgsParser};
-use extargsparse_worker::funccall::{ExtArgsParseFunc};
+ use extargsparse_codegen::{extargs_load_commandline,ArgSet,extargs_map_function};
+ #[allow(unused_imports)]
+ use extargsparse_worker::{extargs_error_class,extargs_new_error};
+ #[allow(unused_imports)]
+ use extargsparse_worker::namespace::{NameSpaceEx};
+ #[allow(unused_imports)]
+ use extargsparse_worker::argset::{ArgSetImpl};
+ use extargsparse_worker::parser::{ExtArgsParser};
+ use extargsparse_worker::funccall::{ExtArgsParseFunc};
 
-use std::cell::RefCell;
-use std::sync::Arc;
-use std::error::Error;
-use std::boxed::Box;
-#[allow(unused_imports)]
-use regex::Regex;
-#[allow(unused_imports)]
-use std::any::Any;
+ use std::cell::RefCell;
+ use std::sync::Arc;
+ use std::error::Error;
+ use std::boxed::Box;
+ #[allow(unused_imports)]
+ use regex::Regex;
+ #[allow(unused_imports)]
+ use std::any::Any;
 
-use lazy_static::lazy_static;
-use std::collections::HashMap;
+ use lazy_static::lazy_static;
+ use std::collections::HashMap;
 
-use super::loglib::*;
-#[allow(unused_imports)]
-use super::fileop::*;
-use super::pemlib::*;
-#[allow(unused_imports)]
-use std::io::Write;
-use super::*;
+ use super::loglib::*;
+ #[allow(unused_imports)]
+ use super::fileop::*;
+ use super::pemlib::*;
+ #[allow(unused_imports)]
+ use std::io::Write;
+ use super::*;
 
 //use num_bigint::{BigInt,Sign};
 
@@ -184,6 +184,51 @@ fn get_file_digest(infile :&str,dgsttype :&str) -> Result<Vec<u8>,Box<dyn Error>
 	Ok(retv)
 }
 
+fn format_digest(dgsttype :&str,file :&str, data :&[u8]) -> String {
+	let mut rets :String = "".to_string();
+	let mut idx :usize=0;
+	let mut lasti :usize=0;
+	rets.push_str(&format!("[{}]digest [{}]",file,dgsttype));
+	for _ in data.iter() {
+		if (idx % 16) == 0 {
+			if idx > 0 {
+				rets.push_str("    ");
+				while lasti != idx {
+					if data[lasti] >= ' ' as u8 && data[lasti] <= '~' as u8 {
+						rets.push(data[lasti] as char);
+					} else {
+						rets.push_str(".");
+					}
+					lasti += 1;
+				}
+			}
+			rets.push_str(&format!("\n0x{:08x}:",idx));
+		}
+		rets.push_str(&format!(" 0x{:02x}",data[idx]));
+		idx += 1;
+	}
+
+	if idx != lasti {
+		while (idx % 16) != 0 {
+			rets.push_str("     ");
+			idx += 1;
+		}
+		rets.push_str("    ");
+		while lasti < data.len() {
+			if data[lasti] >= ' ' as u8 && data[lasti] <= '~' as u8 {
+				rets.push(data[lasti] as char);
+			} else {
+				rets.push_str(".");
+			}
+			lasti += 1;
+		}
+	}
+
+	rets.push_str("\n");
+
+	return rets;
+}
+
 fn ecsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let ecpriv :String;
@@ -254,30 +299,49 @@ fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	Ok(())
 }
 
+fn digest_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let dgsttype :String;
+	init_log(ns.clone())?;
 
-#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler)]
+	if sarr.len() < 1 {
+		extargs_new_error!{EcsslError,"need one file blob"}
+	}
+	dgsttype = ns.get_string("digesttype");
+	for f in sarr.iter() {
+		let digdata = get_file_digest(f,&dgsttype)?;
+		let rets = format_digest(&dgsttype,f,&digdata);
+		print!("{}",rets);
+	}
+	Ok(())
+}
+
+#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler,digest_handler)]
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
-	{{
-		"sm2privformat" : true,
-		"digesttype##only support sha1 sha256 sha512 sm3##" : "sha1",
-		"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
-			"$" : "+"
-		}},
-		"ecprivload<ecprivload_handler>##ecprivpem ... to load private key##" : {{
-			"$" : "+"
-		}},
-		"ecpubload<ecpubload_handler>##ecpubpem ... to load ecpub key##" : {{
-			"$" : "+"
-		}},
-		"ecsign<ecsign_handler>##file  the file blob to sign and output is sign ecpriv is private key##" : {{
-			"$" : 1
-		}},
-		"ecvfy<ecvfy_handler>##file the file blob to verify input is sign ecpub is public key##" : {{
-			"$" : 1
+		{{
+			"sm2privformat" : true,
+			"digesttype##only support sha1 sha256 sha512 sm3##" : "sha1",
+			"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
+				"$" : "+"
+			}},
+			"ecprivload<ecprivload_handler>##ecprivpem ... to load private key##" : {{
+				"$" : "+"
+			}},
+			"ecpubload<ecpubload_handler>##ecpubpem ... to load ecpub key##" : {{
+				"$" : "+"
+			}},
+			"ecsign<ecsign_handler>##file  the file blob to sign and output is sign ecpriv is private key##" : {{
+				"$" : 1
+			}},
+			"ecvfy<ecvfy_handler>##file the file blob to verify input is sign ecpub is public key##" : {{
+				"$" : 1
+			}},
+			"digest<digest_handler>##file ... to make digest value##" : {{
+				"$" : "+"
+			}}
 		}}
-	}}
-	"#);
+		"#);
 	extargs_load_commandline!(parser,&cmdline)?;
 	Ok(())
 }
