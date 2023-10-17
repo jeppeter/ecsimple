@@ -1020,6 +1020,11 @@ impl ECPrimePubKey {
 		Ok(true)
 	}
 
+	#[allow(unused_variables)]
+	pub (crate) fn verify_sm2_base(&self, sig :&ECSignature,hashnum :&[u8]) -> Result<bool,Box<dyn Error>> {
+		unimplemented!()
+	}
+
 }
 
 impl std::fmt::Display for ECPrimePubKey {
@@ -1184,6 +1189,11 @@ impl ECPrimePrivateKey {
 		ecsimple_log_trace!("r 0x{:X} s 0x{:X}",r,s);
 		let retv :ECSignature = ECSignature::new(&r,&s);
 		Ok(retv)
+	}
+
+	#[allow(unused_variables)]
+	pub (crate) fn sign_sm2_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
+		unimplemented!()
 	}
 }
 
@@ -1736,6 +1746,13 @@ impl ECPublicKey {
 		}
 		ecsimple_new_error!{EcKeyError,"not supported public key"}
 	}
+
+	pub fn verify_sm2_base(&self,sig :&ECSignature,hashnum :&[u8]) -> Result<bool,Box<dyn Error>> {
+		if self.is_sm2() {
+			return self.get_prime_key().verify_sm2_base(sig,hashnum);
+		}
+		ecsimple_new_error!{EcKeyError,"not support sm2"}
+	}
 }
 
 impl std::fmt::Display for ECPublicKey {
@@ -1933,6 +1950,13 @@ impl ECPrivateKey {
 			return self.get_prime_key().sign_base(hashnum);
 		}
 		ecsimple_new_error!{EcKeyError,"not supported private key"}
+	}
+
+	pub fn sign_sm2_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
+		if self.is_sm2() {
+			return self.get_prime_key().sign_sm2_base(hashnum);
+		}
+		ecsimple_new_error!{EcKeyError,"not SM2 to support"}
 	}
 
 	pub fn to_der(&self,cmprtype :&str,paramenc :&str) -> Result<Vec<u8>,Box<dyn Error>> {

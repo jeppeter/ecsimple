@@ -177,6 +177,7 @@ fn get_file_digest(infile :&str,dgsttype :&str) -> Result<Vec<u8>,Box<dyn Error>
 		let mut hasher = Sm3::new();
 		hasher.update(&blob);
 		retv = hasher.finalize().to_vec();
+		debug_buffer_trace!(retv.as_ptr(),retv.len(),"sm3 data");
 	} else {
 		extargs_new_error!{EcsslError,"not support digesttype [{}]",dgsttype}
 	}
@@ -200,8 +201,14 @@ fn ecsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	}
 	let privdata :Vec<u8> = read_file_into_der(&ecpriv)?;
 	let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
-	let sig :ECSignature = privkey.sign_base(&hashbytes)?;
-	let sigdata :Vec<u8> = sig.encode_asn1()?;
+	let sig :ECSignature ;
+	let sigdata :Vec<u8>;
+	if dgsttype == "sm3" {
+		sig = privkey.sign_sm2_base(&hashbytes)?;
+	} else {
+		sig = privkey.sign_base(&hashbytes)?;	
+	}	
+	sigdata = sig.encode_asn1()?;
 	let output = ns.get_string("output");
 	if output.len() > 0 {
 		write_file_bytes(&output,&sigdata)?;
@@ -225,14 +232,21 @@ fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 		extargs_new_error!{EcsslError,"not set ecpub"}
 	}
 	let pubdata :Vec<u8> = read_file_into_der(&ecpub)?;
+	println!("pub data ");
 	let pubkey :ECPublicKey = ECPublicKey::from_der(&pubdata)?;
+	println!("PublicKey");
 	let sigfile = ns.get_string("input");
 	if sigfile.len() == 0 {
 		extargs_new_error!{EcsslError,"no input for signbin"}
 	}
 	let sigdata = read_file_bytes(&sigfile)?;
 	let sig :ECSignature = ECSignature::decode_asn1(&sigdata)?;	
-	let retval = pubkey.verify_base(&sig,&hashbytes)?;
+	let retval :bool;
+	if dgsttype == "sm3" {
+		retval  = pubkey.verify_sm2_base(&sig,&hashbytes)?;
+	} else {
+		retval  = pubkey.verify_base(&sig,&hashbytes)?;	
+	}	
 	if !retval  {
 		extargs_new_error!{EcsslError,"verify ecpub[{}] with file [{}] sign[{}] not valid", ecpub,sarr[0],sigfile}
 	}
