@@ -1191,9 +1191,70 @@ impl ECPrimePrivateKey {
 		Ok(retv)
 	}
 
+	#[allow(non_snake_case)]
 	#[allow(unused_variables)]
 	pub (crate) fn sign_sm2_base(&self,hashnum :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
-		unimplemented!()
+		let mut k :BigInt;
+		let order :BigInt = self.base.group.order.clone();
+		let zv :BigInt = zero();
+		let ov :BigInt = one();
+		let mut kG :ECPrimePoint;
+		let mut r :BigInt;
+		let e :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);
+		let mut x1 :BigInt;
+		let mut rk :BigInt;
+		let mut s :BigInt;
+		let dA :BigInt = self.privnum.clone();
+		let e2 :BigInt = order.clone() - ov.clone() - ov.clone();
+		let rs :ECSignature;
+		let mut tmp :BigInt;
+		let mut tmppnt :ECPrimePoint;
+
+
+		loop {
+			k = ecsimple_private_rand_range(&order);
+			ecsimple_log_trace!("generate k 0x{:X} order 0x{:X}",k,order);
+			if k == zv {
+				continue;
+			}
+
+			kG = self.base.mul_op(&k,false);
+			x1 = kG.x();
+			ecsimple_log_trace!("x1 0x{:X}",x1);
+			r = (&e + &x1) % &order;
+			ecsimple_log_trace!("mod_add(r 0x{:X},e 0x{:X},x1 0x{:X},order 0x{:X})",r,e,x1,order);
+			if r == zv {
+				continue;
+			}
+
+			rk = &r + &k;
+			ecsimple_log_trace!("BN_add(rk 0x{:X},r 0x{:X},k 0x{:X})",rk,r,k);
+
+			if rk == order {
+				continue;
+			}
+
+			s = &dA + &ov;
+			s = s.modpow(&e2,&order);
+			ecsimple_log_trace!("do_inverse_ord(s 0x{:X},s,order 0x{:X})",s,order);
+
+			tmp = (&dA * &r) % &order;
+			ecsimple_log_trace!("BN_mod_mul(tmp 0x{:X},dA 0x{:X},r 0x{:X},order 0x{:X})",tmp,dA,r,order);
+
+			tmp = &k - &tmp;
+			ecsimple_log_trace!("BN_sub(tmp 0x{:X},k 0x{:X},tmp)",tmp,k);
+
+			s = (&s * &tmp) % &order;
+			ecsimple_log_trace!("BN_mod_mul(s 0x{:X},s,tmp 0x{:X},order 0x{:X})",s,tmp,order);
+
+			if s != zv {
+				break;
+			}
+		}
+
+		ecsimple_log_trace!("final r 0x{:X} s 0x{:X}",r,s);
+		rs = ECSignature::new(&r,&s);
+		Ok(rs)
 	}
 }
 
