@@ -23,6 +23,7 @@ use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
 use asn1obj::strop::asn1_format_line;
 use std::io::Write;
+use sm3::{Sm3,Digest};
 
 
 ecsimple_error_class!{EcKeyError}
@@ -1025,6 +1026,76 @@ impl ECPrimePubKey {
 		unimplemented!()
 	}
 
+	#[allow(non_snake_case)]
+	pub (crate) fn get_sm3_hashcode(&self,idv :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+		let retv :Vec<u8>;
+		let mut inputv :Vec<u8> = Vec::new();
+		let idlen :usize = idv.len();
+		let order :BigInt = self.base.group.p.clone();
+		let orderlen :usize = ((get_max_bits(&order) + 7) >> 3) as usize;
+		let mut bufv :Vec<u8>;
+		let idvec :Vec<u8>;
+		let montv :MontNum;
+		montv = MontNum::new(&order)?;
+		let a:BigInt = montv.mont_from(&self.base.group.a);
+		let b:BigInt = montv.mont_from(&self.base.group.b);
+		/*first for the length of id, no id*/
+		inputv.push(((idlen >> 8) & 0xff) as u8);
+		ecsimple_debug_buffer_trace!(inputv.as_ptr(),inputv.len(),"idlen >> 8 number");
+		inputv.push((idlen & 0xff) as u8);
+		ecsimple_debug_buffer_trace!(inputv[1..].as_ptr(),inputv.len()-1,"idlen & 0xff number");
+		idvec = idv.clone().to_vec();
+		ecsimple_debug_buffer_trace!(idvec.as_ptr(),idvec.len(),"id len");
+		inputv.extend(idvec);
+		(_,bufv) = a.to_bytes_be();
+		while bufv.len() < orderlen {
+			bufv.insert(0,0);
+		}
+		ecsimple_debug_buffer_trace!(bufv.as_ptr(),bufv.len(),"a number");
+		inputv.extend(bufv.clone());
+		(_,bufv) = b.to_bytes_be();
+		while bufv.len() < orderlen {
+			bufv.insert(0,0);
+		}
+		ecsimple_debug_buffer_trace!(bufv.as_ptr(),bufv.len(),"b number");
+		inputv.extend(bufv.clone());
+		let mut corpnt :ECPrimePoint;
+		corpnt = self.base.get_affine_coordinates(&self.base);
+		let xG :BigInt = corpnt.x();
+		let yG :BigInt = corpnt.y();
+		(_,bufv) = xG.to_bytes_be();
+		while bufv.len() < orderlen {
+			bufv.insert(0,0);
+		}
+		ecsimple_debug_buffer_trace!(bufv.as_ptr(),bufv.len(),"xG number");
+		inputv.extend(bufv.clone());
+		(_,bufv) = yG.to_bytes_be();
+		while bufv.len() < orderlen {
+			bufv.insert(0,0);
+		}
+		ecsimple_debug_buffer_trace!(bufv.as_ptr(),bufv.len(),"yG number");
+		inputv.extend(bufv.clone());
+		corpnt = self.pubk.get_affine_coordinates(&self.pubk);
+		let xA :BigInt = corpnt.x();
+		let yA :BigInt = corpnt.y();
+		(_,bufv) = xA.to_bytes_be();
+		while bufv.len() < orderlen {
+			bufv.insert(0,0);
+		}
+		ecsimple_debug_buffer_trace!(bufv.as_ptr(),bufv.len(),"xA number");
+		inputv.extend(bufv.clone());
+		(_,bufv) = yA.to_bytes_be();
+		while bufv.len() < orderlen {
+			bufv.insert(0,0);
+		}
+		ecsimple_debug_buffer_trace!(bufv.as_ptr(),bufv.len(),"yA number");
+		inputv.extend(bufv.clone());
+		let mut hasher :Sm3 = Sm3::new();
+		hasher.update(&inputv);
+		retv = hasher.finalize().to_vec();
+		ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"sm3 hash");
+		Ok(retv)
+	}
 }
 
 impl std::fmt::Display for ECPrimePubKey {
@@ -1210,7 +1281,7 @@ impl ECPrimePrivateKey {
 		let mut tmp :BigInt;
 		let mut tmppnt :ECPrimePoint;
 
-
+		ecsimple_debug_buffer_trace!(hashnum.as_ptr(),hashnum.len(),"dgst");
 		loop {
 			k = ecsimple_private_rand_range(&order);
 			ecsimple_log_trace!("generate k 0x{:X} order 0x{:X}",k,order);
@@ -1255,6 +1326,11 @@ impl ECPrimePrivateKey {
 		ecsimple_log_trace!("final r 0x{:X} s 0x{:X}",r,s);
 		rs = ECSignature::new(&r,&s);
 		Ok(rs)
+	}
+
+	pub (crate) fn get_sm3_hashcode(&self, idv :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+		let pubk :ECPrimePubKey = self.export_pubkey();
+		return pubk.get_sm3_hashcode(idv);
 	}
 }
 
@@ -1814,6 +1890,13 @@ impl ECPublicKey {
 		}
 		ecsimple_new_error!{EcKeyError,"not support sm2"}
 	}
+
+	pub fn get_sm3_hashcode(&self,idv :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+		if self.is_sm2() {
+			return self.get_prime_key().get_sm3_hashcode(idv);
+		}
+		ecsimple_new_error!{EcKeyError,"not support sm2"}
+	}
 }
 
 impl std::fmt::Display for ECPublicKey {
@@ -2027,6 +2110,13 @@ impl ECPrivateKey {
 			return self.get_prime_key().to_der(cmprtype,paramenc);
 		}
 		ecsimple_new_error!{EcKeyError,"not supported private key"}		
+	}
+
+	pub fn get_sm3_hashcode(&self,idv :&[u8]) -> Result<Vec<u8>,Box<dyn Error>> {
+		if self.is_bn_key() {
+			ecsimple_new_error!{EcKeyError,"not support sm3"}
+		}
+		return self.get_prime_key().get_sm3_hashcode(idv);
 	}
 }
 

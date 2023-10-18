@@ -184,6 +184,17 @@ fn get_file_digest(infile :&str,dgsttype :&str) -> Result<Vec<u8>,Box<dyn Error>
 	Ok(retv)
 }
 
+fn get_sm3_code(pubk :&ECPublicKey,infile :&str) -> Result<Vec<u8>,Box<dyn Error>> {
+	let idv :Vec<u8> = Vec::new();
+	let precode :Vec<u8> = pubk.get_sm3_hashcode(&idv)?;
+	let fdata :Vec<u8> = read_file_bytes(infile)?;
+	let mut hasher :Sm3 = Sm3::new();
+	hasher.update(&precode);
+	hasher.update(&fdata);
+	Ok(hasher.finalize().to_vec())
+}
+
+
 fn format_digest(dgsttype :&str,file :&str, data :&[u8]) -> String {
 	let mut rets :String = "".to_string();
 	let mut idx :usize=0;
@@ -239,13 +250,19 @@ fn ecsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 		extargs_new_error!{EcsslError,"need one file blob"}
 	}
 	dgsttype = ns.get_string("digesttype");
-	let hashbytes = get_file_digest(&sarr[0],&dgsttype)?;
 	ecpriv = ns.get_string("ecpriv");
 	if ecpriv.len() == 0 {
 		extargs_new_error!{EcsslError,"not set ecpriv"}
 	}
 	let privdata :Vec<u8> = read_file_into_der(&ecpriv)?;
 	let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
+	let pubkey :ECPublicKey = privkey.export_pubkey();
+	let hashbytes :Vec<u8>;
+	if dgsttype == "sm3" {
+		hashbytes = get_sm3_code(&pubkey,&sarr[0])?;
+	} else {
+		hashbytes = get_file_digest(&sarr[0],&dgsttype)?;	
+	}	
 	let sig :ECSignature ;
 	let sigdata :Vec<u8>;
 	if dgsttype == "sm3" {
