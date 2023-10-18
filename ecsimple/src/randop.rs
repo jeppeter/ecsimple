@@ -143,6 +143,7 @@ pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 	let mask :u32 = (0xff << (bit + 1)) as u32;
 
 	let mut retv : Vec<u8> = EC_SIMPLE_RANDOP.write().unwrap().get_bytes(rnbytes).unwrap();
+	ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 	let mut bn :BigInt = BigInt::from_bytes_be(Sign::Plus,&retv);
 	ecsimple_log_trace!("random number 0x{:X} bits 0x{:x} top {} bottom {}", bn,bits,top,bottom);
 	ecsimple_log_trace!("bit [0x{:x}] mask [0x{:x}]", bit, mask);
@@ -173,7 +174,7 @@ pub fn ecsimple_rand_range(rangeval :&BigInt) -> BigInt {
 	loop {
 		let buflen = (get_max_bits(rangeval) + 7) / 8 + 8;
 		let retv = EC_SIMPLE_RANDOP.write()	.unwrap().get_bytes(buflen as usize).unwrap();
-		//ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
+		ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 		let mut bv = BigInt::from_bytes_be(Sign::Plus,&retv);
 		ecsimple_log_trace!("random number 0x{:X}", bv);
 		bv = bv % rangeval;
@@ -191,5 +192,6 @@ pub fn ecsimple_private_rand_range(rangeval :&BigInt) -> BigInt {
 		if retv < rangeval.clone() {
 			return retv;
 		}
+		ecsimple_log_trace!("retv 0x{:X} >= rangeval 0x{:X}",retv,rangeval);
 	}
 }

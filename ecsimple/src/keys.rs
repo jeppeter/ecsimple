@@ -1283,6 +1283,7 @@ impl ECPrimePrivateKey {
 
 		ecsimple_debug_buffer_trace!(hashnum.as_ptr(),hashnum.len(),"dgst");
 		loop {
+			ecsimple_log_trace!("before generate k");
 			k = ecsimple_private_rand_range(&order);
 			ecsimple_log_trace!("generate k 0x{:X} order 0x{:X}",k,order);
 			if k == zv {

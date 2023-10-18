@@ -70,15 +70,48 @@ fn rnadwr_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
+fn insertrand_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let sarr :Vec<String> = ns.get_array("subnargs");
+	let mut bs :Vec<u8> ;
+	let fname :String;
+	let mut idx :i64 = (sarr.len() - 1) as i64;
+	let input :String;
+
+	init_log(ns.clone())?;
+
+	input = ns.get_string("input");
+	bs = read_file_bytes(&input)?;
+
+	/*we from the last one*/
+	while idx >= 0 {
+		let cnt :u64 = parse_u64(&sarr[idx as usize])?;
+		let cbytes :Vec<u8> = get_rand_bytes((cnt - 1) as i32);
+		let mut jdx :i64 = (cbytes.len() - 1) as i64;
+		while jdx >= 0 {
+			bs.insert(0,cbytes[jdx as usize]);
+			jdx -= 1;
+		}
+		/*we make bytes to be less*/
+		bs.insert(0,0);
+		idx -= 1;
+	}
+
+	fname = ns.get_string("output");
+	let _ = write_file_bytes(&fname,&bs)?;
+	Ok(())
+}
 
 
-#[extargs_map_function(rnadwr_handler)]
+#[extargs_map_function(rnadwr_handler,insertrand_handler)]
 pub fn file_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = r#"
 	{
 		"offset|O" : 0,
 		"nonewline|n" : false,
 		"randwr<rnadwr_handler>##bins ... to write bytes##" : {
+			"$" : "+"
+		},
+		"insertrand<insertrand_handler>##bytes ... to from inserts ##" : {
 			"$" : "+"
 		}
 	}
