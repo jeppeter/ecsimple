@@ -35,6 +35,7 @@
 use ecsimple::group::{ECGroup,ecc_get_curve_group};
 use ecsimple::signature::{ECSignature};
 use ecsimple::keys::{ECPublicKey, ECPrivateKey,to_der_sm2};
+use ecsimple::logger::*;
 use super::strop::{parse_to_bigint};
 use num_bigint::{BigInt};
 //use ecsimple::consts::*;
@@ -256,15 +257,17 @@ fn ecsign_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	}
 	let privdata :Vec<u8> = read_file_into_der(&ecpriv)?;
 	let privkey :ECPrivateKey = ECPrivateKey::from_der(&privdata)?;
+	set_ecsimple_logger_disable();
 	let pubkey :ECPublicKey = privkey.export_pubkey();
 	let hashbytes :Vec<u8>;
-	if dgsttype == "sm3" {
+	if dgsttype == "sm3" {		
 		hashbytes = get_sm3_code(&pubkey,&sarr[0])?;
 	} else {
 		hashbytes = get_file_digest(&sarr[0],&dgsttype)?;	
 	}	
 	let sig :ECSignature ;
 	let sigdata :Vec<u8>;
+	set_ecsimple_logger_enable();
 	if dgsttype == "sm3" {
 		sig = privkey.sign_sm2_base(&hashbytes)?;
 	} else {
