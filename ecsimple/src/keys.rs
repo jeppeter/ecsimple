@@ -1023,7 +1023,48 @@ impl ECPrimePubKey {
 
 	#[allow(unused_variables)]
 	pub (crate) fn verify_sm2_base(&self, sig :&ECSignature,hashnum :&[u8]) -> Result<bool,Box<dyn Error>> {
-		unimplemented!()
+		let e :BigInt = BigInt::from_bytes_be(Sign::Plus,hashnum);
+		let ov :BigInt = one();
+		let zv :BigInt = zero();
+		let order :BigInt = self.base.group.order.clone();
+		let mut t :BigInt;
+		let mut retv :bool = false;
+		let x1 :BigInt;
+	    /*
+	     * B1: verify whether r' in [1,n-1], verification failed if not
+	     * B2: verify whether s' in [1,n-1], verification failed if not
+	     * B3: set M'~=ZA || M'
+	     * B4: calculate e'=Hv(M'~)
+	     * B5: calculate t = (r' + s') modn, verification failed if t=0
+	     * B6: calculate the point (x1', y1')=[s']G + [t]PA
+	     * B7: calculate R=(e'+x1') modn, verification pass if yes, otherwise failed
+	     */
+
+		if sig.r  < ov || sig.r >= order {
+			ecsimple_new_error!{EcKeyError,"r 0x{:X} < 1 || > order 0x{:X}",sig.r,order}
+		}
+
+		if sig.s < ov || sig.s >= order {
+			ecsimple_new_error!{EcKeyError,"s 0x{:X} < 1 || > order 0x{:X}",sig.s,order}
+		}
+
+		t = (&sig.r + &sig.s) % &order;
+		ecsimple_log_trace!("BN_mod_add(t 0x{:X},r 0x{:X},s 0x{:X},order 0x{:X})",t,sig.r,sig.s,order);
+		if t == zv {
+			ecsimple_new_error!{EcKeyError,"t == 0"}
+		}
+		let pnt = self.pubk.mulex_op(&sig.s,&t)?;
+		let corpnt = pnt.get_affine_coordinates(&pnt);
+		x1 = corpnt.x();
+		ecsimple_log_trace!("x1 0x{:X}",x1);
+
+		t = (&e + &x1) % &order;
+		ecsimple_log_trace!("BN_mod_add(t 0x{:X},e 0x{:X},x1 0x{:X},order 0x{:X})",t,e,x1,order);
+
+		if t == sig.r {
+			retv = true;
+		}
+		Ok(retv)
 	}
 
 	#[allow(non_snake_case)]
@@ -1317,6 +1358,9 @@ impl ECPrimePrivateKey {
 			ecsimple_log_trace!("BN_sub(tmp 0x{:X},k 0x{:X},tmp)",tmp,k);
 
 			s = (&s * &tmp) % &order;
+			if s < zv {
+				s += &order;
+			}
 			ecsimple_log_trace!("BN_mod_mul(s 0x{:X},s,tmp 0x{:X},order 0x{:X})",s,tmp,order);
 
 			if s != zv {

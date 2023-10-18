@@ -74,8 +74,10 @@ fn insertrand_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	let sarr :Vec<String> = ns.get_array("subnargs");
 	let mut bs :Vec<u8> ;
 	let fname :String;
-	let mut idx :i64 = (sarr.len() - 1) as i64;
+	let mut idx :i64 = sarr.len() as i64;
 	let input :String;
+
+	idx -= 1;
 
 	init_log(ns.clone())?;
 
@@ -86,7 +88,8 @@ fn insertrand_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetI
 	while idx >= 0 {
 		let cnt :u64 = parse_u64(&sarr[idx as usize])?;
 		let cbytes :Vec<u8> = get_rand_bytes((cnt - 1) as i32);
-		let mut jdx :i64 = (cbytes.len() - 1) as i64;
+		let mut jdx :i64 = cbytes.len()  as i64;
+		jdx -= 1;
 		while jdx >= 0 {
 			bs.insert(0,cbytes[jdx as usize]);
 			jdx -= 1;
@@ -112,7 +115,7 @@ pub fn file_load_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			"$" : "+"
 		},
 		"insertrand<insertrand_handler>##bytes ... to from inserts ##" : {
-			"$" : "+"
+			"$" : "*"
 		}
 	}
 	"#;

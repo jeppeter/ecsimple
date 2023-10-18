@@ -291,7 +291,6 @@ fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 		extargs_new_error!{EcsslError,"need one file blob"}
 	}
 	dgsttype = ns.get_string("digesttype");
-	let hashbytes = get_file_digest(&sarr[0],&dgsttype)?;
 	ecpub = ns.get_string("ecpub");
 	if ecpub.len() == 0 {
 		extargs_new_error!{EcsslError,"not set ecpub"}
@@ -300,6 +299,13 @@ fn ecvfy_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>
 	println!("pub data ");
 	let pubkey :ECPublicKey = ECPublicKey::from_der(&pubdata)?;
 	println!("PublicKey");
+	let hashbytes :Vec<u8>;
+	if dgsttype == "sm3" {
+		hashbytes = get_sm3_code(&pubkey,&sarr[0])?;
+	} else {
+		hashbytes = get_file_digest(&sarr[0],&dgsttype)?;	
+	}
+	
 	let sigfile = ns.get_string("input");
 	if sigfile.len() == 0 {
 		extargs_new_error!{EcsslError,"no input for signbin"}
