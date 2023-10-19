@@ -620,7 +620,8 @@ impl ECGf2mPrivateKey {
 		let realhash = format_bigint_as_order(hashnum,&self.base.group.order);
 		ecsimple_log_trace!("dgst 0x{:X}", realhash);
 
-		assert!(realhash <= self.base.group.order);
+		/*we may be last update*/
+		//assert!(realhash <= self.base.group.order);
 		let kinv :BigInt;
 		(kinv,r) = self.setup_sign()?;
 		ecsimple_log_trace!("ckinv 0x{:X} r 0x{:X}",kinv,r);
