@@ -12,5 +12,5 @@ set BIN_FILE=z:\bin.bin
 set SIGN_BIN=z:\sign.bin
 REM set ECTYPE=SECP112r1
 REM pushd %CD% && cd %CURDIR% && cargo build --release && .\target\release\ectst.exe insertrand -i %ECSIMPLE_RANDOP2% -o %ECSIMPLE_RANDOP% 32 32  &&  popd
-pushd %CD% && cd %CURDIR% && cargo build --release && .\target\release\ectst.exe ecvfy --digesttype sm3 --ecpub %ECPUB_FILE% %BIN_FILE% %SIGN_BIN%  2> %OUTFILE% && python z:\pylib\utils.py -i %OUTFILE% -o %SIMPLEOUT% filterlog rust && popd
+pushd %CD% && cd %CURDIR% && cargo build --release && .\target\release\ectst.exe ecvfy --digesttype sm3 --ecpub %ECPUB_FILE% %BIN_FILE% --input %SIGN_BIN%  2> %OUTFILE% && python z:\pylib\utils.py -i %OUTFILE% -o %SIMPLEOUT% filterlog rust && popd
 set ECSIMPLE_LEVEL=

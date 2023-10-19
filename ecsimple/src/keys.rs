@@ -1054,8 +1054,7 @@ impl ECPrimePubKey {
 			ecsimple_new_error!{EcKeyError,"t == 0"}
 		}
 		let pnt = self.pubk.mulex_op(&sig.s,&t)?;
-		let corpnt = pnt.get_affine_coordinates(&pnt);
-		x1 = corpnt.x();
+		(x1,_) = pnt.get_affine_points()?;
 		ecsimple_log_trace!("x1 0x{:X}",x1);
 
 		t = (&e + &x1) % &order;
