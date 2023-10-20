@@ -342,14 +342,24 @@ fn digest_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
+fn sort_string(a :&String, b :&String) -> std::cmp::Ordering {
+	if a < b {
+		return std::cmp::Ordering::Less;
+	} else if a > b {
+		return std::cmp::Ordering::Greater;
+	}
+	return std::cmp::Ordering::Equal;
+}
+
 fn eclist_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
 	let maxnum :i64 = ns.get_int("maxnum");
 	let mut maxlen : usize = 1;
-	let ecnames :Vec<String>;
+	let mut ecnames :Vec<String>;
 	let mut curname :String;
 	let mut curline :String;
 	init_log(ns.clone())?;
 	ecnames = ecc_get_curve_names();
+	ecnames.sort_by(sort_string);
 	let mut idx :usize = 0;
 	while idx < ecnames.len() {
 		if ecnames[idx].len() > maxlen {
@@ -370,7 +380,7 @@ fn eclist_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 			curname.push(' ');
 		}
 		if curline.len() > 0 {
-			curline.push_str(" ");
+			curline.push(' ');
 		}
 		curline.push_str(&format!("{}",curname));
 		idx += 1;
