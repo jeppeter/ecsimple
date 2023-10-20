@@ -5,6 +5,7 @@ use std::fs;
 //use std::io::prelude::*;
 use lazy_static::lazy_static;
 use chrono::{Local,Timelike,Datelike};
+use std::sync::RwLock;
 
 
 
@@ -24,6 +25,9 @@ struct LogVar {
 	level :i32,
 	nostderr : bool,
 	wfile : Option<fs::File>,
+	wfilename :String,
+	baklevel :i32,
+	baknostderr :bool,
 }
 
 
@@ -33,6 +37,7 @@ fn ecsimple_proc_log_init(prefix :&str) -> LogVar {
 	let mut nostderr :bool = false;
 	let mut coptfile :Option<fs::File> = None;
 	let mut key :String;
+	let mut fname :String = "".to_string();
 
 	key = format!("{}_LEVEL", prefix);
 	getv = _ecsimple_get_environ_var(&key);
@@ -59,6 +64,7 @@ fn ecsimple_proc_log_init(prefix :&str) -> LogVar {
 	key = format!("{}_LOGFILE",prefix);
 	getv = _ecsimple_get_environ_var(&key);
 	if getv.len() > 0 {
+		fname = format!("{}",getv);
 		let fo = fs::File::create(&getv);
 		if fo.is_err() {
 			eprintln!("can not open [{}]", getv);
@@ -70,41 +76,65 @@ fn ecsimple_proc_log_init(prefix :&str) -> LogVar {
 	return LogVar {
 		level : retv,
 		nostderr : nostderr,
-		wfile : coptfile,		
+		wfile : coptfile,
+		wfilename : fname,
+		baklevel : 0,
+		baknostderr : true,
 	};
 }
 
 
 lazy_static! {
-	static ref ECSIMPLE_LOG_LEVEL : LogVar = {
-		ecsimple_proc_log_init("ECSIMPLE")
+	static ref ECSIMPLE_LOG_LEVEL : RwLock<LogVar> = {
+	 	RwLock::new(ecsimple_proc_log_init("ECSIMPLE"))
 	};
+}
+
+pub fn set_ecsimple_logger_disable() {
+	let mut ecsimpleref = ECSIMPLE_LOG_LEVEL.write().unwrap();
+	ecsimpleref.baknostderr = ecsimpleref.nostderr;
+	ecsimpleref.baklevel = ecsimpleref.level;
+	ecsimpleref.wfile = None;
+	ecsimpleref.level = 0;
+	ecsimpleref.nostderr = true;
+	return;
+}
+
+pub fn set_ecsimple_logger_enable() {
+	let mut ecsimpleref = ECSIMPLE_LOG_LEVEL.write().unwrap();
+	ecsimpleref.level = ecsimpleref.baklevel;
+	ecsimpleref.nostderr = ecsimpleref.baknostderr;	
+	if ecsimpleref.wfilename.len() > 0 {
+		let fo = fs::File::create(&ecsimpleref.wfilename);
+		if fo.is_ok() {
+			ecsimpleref.wfile = Some(fo.unwrap());
+		}
+	}
+	return ;
 }
 
 
 #[allow(dead_code)]
 pub (crate)  fn ecsimple_debug_out(level :i32, outs :&str) {
-	if ECSIMPLE_LOG_LEVEL.level >= level {
+	let refecsimple = ECSIMPLE_LOG_LEVEL.write().unwrap();
+	if refecsimple.level >= level {
 		let c = format!("{}\n",outs);
-		if !ECSIMPLE_LOG_LEVEL.nostderr {
+		if !refecsimple.nostderr {
 			let _ = std::io::stderr().write_all(c.as_bytes());
 		}
 
-		if ECSIMPLE_LOG_LEVEL.wfile.is_some() {
-			let mut wf = ECSIMPLE_LOG_LEVEL.wfile.as_ref().unwrap();
+		if refecsimple.wfile.is_some() {
+			let mut wf = refecsimple.wfile.as_ref().unwrap();
 			let _ = wf.write(c.as_bytes());
 		}
 	}
 	return;
 }
 
-
-#[allow(dead_code)]
 pub (crate) fn ecsimple_log_get_timestamp() -> String {
 	let now = Local::now();
 	return format!("{}/{}/{} {}:{}:{}",now.year(),now.month(),now.day(),now.hour(),now.minute(),now.second());
 }
-
 
 #[macro_export]
 macro_rules! ecsimple_log_error {
@@ -134,6 +164,7 @@ macro_rules! ecsimple_log_info {
 	}
 }
 
+#[cfg(feature="debug_mode")]
 #[macro_export]
 macro_rules! ecsimple_log_trace {
 	($($arg:tt)+) => {
@@ -141,6 +172,12 @@ macro_rules! ecsimple_log_trace {
 		_c.push_str(&(format!($($arg)+)[..]));
 		ecsimple_debug_out(40, &_c);
 	}
+}
+
+#[cfg(not(feature="debug_mode"))]
+#[macro_export]
+macro_rules! ecsimple_log_trace {
+	($($arg:tt)+) => {}
 }
 
 
@@ -228,27 +265,34 @@ macro_rules! ecsimple_debug_buffer_error {
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_warn {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<WARN>",1,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<WARN>",10,$($arg)+);
 	}
 }
 
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_info {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<INFO>",2,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<INFO>",20,$($arg)+);
 	}
 }
 
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_debug {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<DEBUG>",3,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<DEBUG>",30,$($arg)+);
 	}
 }
 
+#[cfg(feature="debug_mode")]
 #[macro_export]
 macro_rules! ecsimple_debug_buffer_trace {
 	($buf:expr,$len:expr,$($arg:tt)+) => {
-		ecsimple_format_buffer_log!($buf,$len,"<TRACE>",4,$($arg)+);
+		ecsimple_format_buffer_log!($buf,$len,"<TRACE>",40,$($arg)+);
 	}
+}
+
+#[cfg(not(feature="debug_mode"))]
+#[macro_export]
+macro_rules! ecsimple_debug_buffer_trace {
+	($buf:expr,$len:expr,$($arg:tt)+) => {}
 }

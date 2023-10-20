@@ -1,70 +1,96 @@
-extern crate num_bigint_dig as bigint2;
 
-use num_bigint::{BigInt,Sign};
-use num_bigint::BigUint as BaseBigUint;
-
-#[allow(unused_imports)]
-use asn1obj_codegen::{asn1_choice,asn1_obj_selector,asn1_sequence,asn1_int_choice};
-use asn1obj::complex::*;
-use asn1obj::strop::*;
-use asn1obj::base::*;
-use asn1obj::*;
-use asn1obj::asn1impl::*;
-use std::error::Error;
+use num_bigint::{BigInt,Sign,BigUint};
+use asn1obj_codegen::{asn1_sequence};
+use asn1obj::base::{Asn1BigNum};
+use asn1obj::complex::{Asn1Seq};
+use asn1obj::{asn1obj_error_class,asn1obj_new_error};
+use asn1obj::asn1impl::Asn1Op;
+use asn1obj::strop::asn1_format_line;
 use std::io::Write;
-//use rand::RngCore;
 
-ecsimple_error_class!{EccSignatureError}
 
+use std::error::Error;
+use crate::*;
+
+ecsimple_error_class!{ECSignatureError}
 
 #[derive(Clone)]
-pub struct ECCSignature {
-	pub r :BigInt,
-	pub s :BigInt,
-}
-
 #[asn1_sequence()]
-#[derive(Clone)]
-struct Asn1ECCSignatureElem {
+struct Asn1ECSignatureElem {
 	pub r :Asn1BigNum,
 	pub s :Asn1BigNum,
 }
 
-#[asn1_sequence()]
 #[derive(Clone)]
-struct Asn1ECCSignature {
-	pub elem :Asn1Seq<Asn1ECCSignatureElem>,
+#[asn1_sequence()]
+struct Asn1ECSignature {
+	pub elem :Asn1Seq<Asn1ECSignatureElem>,
 }
 
-impl ECCSignature {
+
+pub struct ECSignature {
+	pub r : BigInt,
+	pub s : BigInt,
+}
+
+impl ECSignature {
 	pub fn new(r :&BigInt, s :&BigInt) -> Self {
-		ECCSignature {
+		ECSignature {
 			r : r.clone(),
 			s : s.clone(),
 		}
 	}
 
-	pub fn to_der(&self) -> Result<Vec<u8>,Box<dyn Error>> {
-		let mut sigasn1 :Asn1ECCSignature = Asn1ECCSignature::init_asn1();
-		let mut sigelemasn1 :Asn1ECCSignatureElem = Asn1ECCSignatureElem::init_asn1();
-		let (_ , vecs) = self.r.to_bytes_be();
-		sigelemasn1.r.val = BaseBigUint::from_bytes_be(&vecs);
-		let (_ , vecs) = self.s.to_bytes_be();
-		sigelemasn1.s.val = BaseBigUint::from_bytes_be(&vecs);
-		sigasn1.elem.val.push(sigelemasn1);
-		return sigasn1.encode_asn1();
-	}
-
-	pub fn from_der(sigcode :&[u8]) -> Result<Self,Box<dyn Error>> {
-		let mut sigasn1 :Asn1ECCSignature = Asn1ECCSignature::init_asn1();
-		let _ = sigasn1.decode_asn1(sigcode)?;
-		if sigasn1.elem.val.len() != 1 {
-			ecsimple_new_error!{EccSignatureError,"not valid asn1 code"}
+	pub fn decode_asn1(data :&[u8]) -> Result<ECSignature,Box<dyn Error>> {
+		let mut objec :Asn1ECSignature = Asn1ECSignature::init_asn1();
+		let _ = objec.decode_asn1(data)?;
+		if objec.elem.val.len()!= 1 {
+			ecsimple_new_error!{ECSignatureError,"elem.len [{}] != 1",objec.elem.val.len()}
 		}
-		Ok(ECCSignature {
-			r : BigInt::from_bytes_be(Sign::Plus,&(sigasn1.elem.val[0].r.val.to_bytes_be())),
-			s : BigInt::from_bytes_be(Sign::Plus,&(sigasn1.elem.val[0].s.val.to_bytes_be())),
-		})
+
+		let ur :Vec<u8> = objec.elem.val[0].r.val.to_bytes_be();
+		let us :Vec<u8> = objec.elem.val[0].s.val.to_bytes_be();
+		let r :BigInt = BigInt::from_bytes_be(Sign::Plus,&ur);
+		let s :BigInt = BigInt::from_bytes_be(Sign::Plus,&us);
+		Ok(ECSignature::new(&r,&s))
 	}
 
+	pub fn encode_asn1(&self) -> Result<Vec<u8>,Box<dyn Error>> {
+		let mut objec :Asn1ECSignature = Asn1ECSignature::init_asn1();
+		let mut elemec :Asn1ECSignatureElem = Asn1ECSignatureElem::init_asn1();
+		let ur :Vec<u8>;
+		let us :Vec<u8>;
+		(_,ur ) = self.r.to_bytes_be();
+		(_,us ) = self.s.to_bytes_be();
+		elemec.r.val = BigUint::from_bytes_be(&ur);
+		elemec.s.val = BigUint::from_bytes_be(&us);
+		objec.elem.val.push(elemec);
+		let rdata = objec.encode_asn1()?;
+		Ok(rdata)
+	}
+}
+
+impl std::fmt::Display for ECSignature {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f,"r 0x{:X} s 0x{:X}",self.r,self.s)
+	}
+}
+
+
+impl std::cmp::PartialEq for ECSignature {
+	fn eq(&self,other :&Self) -> bool {
+		let mut retv : bool = true;
+		if self.r != other.r {
+			retv = false;
+		}
+
+		if self.s != other.s {
+			retv = false;
+		}
+		retv
+	}
+
+	fn ne(&self,other :&Self) -> bool {
+		return ! self.eq(other);
+	}
 }
