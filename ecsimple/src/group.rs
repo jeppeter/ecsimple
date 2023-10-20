@@ -3399,3 +3399,11 @@ pub fn ecc_get_curve_group(name :&str) -> Result<ECGroup,Box<dyn Error>> {
 	}
 }
 
+pub fn ecc_get_curve_names() -> Vec<String> {
+	let mut retv :Vec<String> = Vec::new();
+	for (k,_) in ECC_NAME_TO_OID.iter() {
+		retv.push(format!("{}",k));
+	}
+	return retv;
+}
+

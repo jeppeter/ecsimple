@@ -32,7 +32,7 @@
 //use num_bigint::{BigInt,Sign};
 
 //use ecsimple::group::{ECGroupPrime,get_prime_group_curve};
-use ecsimple::group::{ECGroup,ecc_get_curve_group};
+use ecsimple::group::{ECGroup,ecc_get_curve_group,ecc_get_curve_names};
 use ecsimple::signature::{ECSignature};
 use ecsimple::keys::{ECPublicKey, ECPrivateKey,to_der_sm2};
 use ecsimple::logger::*;
@@ -342,11 +342,53 @@ fn digest_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
-#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler,digest_handler)]
+fn eclist_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let maxnum :i64 = ns.get_int("maxnum");
+	let mut maxlen : usize = 1;
+	let ecnames :Vec<String>;
+	let mut curname :String;
+	let mut curline :String;
+	init_log(ns.clone())?;
+	ecnames = ecc_get_curve_names();
+	let mut idx :usize = 0;
+	while idx < ecnames.len() {
+		if ecnames[idx].len() > maxlen {
+			maxlen = ecnames[idx].len();
+		}
+		idx += 1;
+	}
+
+	curline = "".to_string();
+	idx = 0;
+	while idx < ecnames.len() {
+		if (idx % maxnum as usize) == 0 && idx != 0 {
+			println!("{}", curline);
+			curline = "".to_string();
+		}
+		curname = format!("{}",ecnames[idx]);
+		while curname.len() < maxlen {
+			curname.push(' ');
+		}
+		if curline.len() > 0 {
+			curline.push_str(" ");
+		}
+		curline.push_str(&format!("{}",curname));
+		idx += 1;
+	}
+
+	if curline.len() > 0 {
+		println!("{}", curline);
+	}
+	Ok(())
+}
+
+
+#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler,digest_handler,eclist_handler)]
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 		{{
 			"sm2privformat" : true,
+			"maxnum" : 5,
 			"digesttype##only support sha1 sha256 sha512 sm3##" : "sha1",
 			"ecgen<ecgen_handler>##ecname to generate ec private key##" : {{
 				"$" : "+"
@@ -365,6 +407,9 @@ pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 			}},
 			"digest<digest_handler>##file ... to make digest value##" : {{
 				"$" : "+"
+			}},
+			"eclist<eclist_handler>##to list all support ec types##" : {{
+				"$" : 0
 			}}
 		}}
 		"#);
