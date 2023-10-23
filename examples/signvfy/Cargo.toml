@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ecsimple = {path = "../../"}
+sha1 = "^0.10.6"
