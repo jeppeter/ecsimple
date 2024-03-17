@@ -1085,7 +1085,7 @@ impl ECPrimePubKey {
 		ecsimple_debug_buffer_trace!(inputv.as_ptr(),inputv.len(),"idlen >> 8 number");
 		inputv.push((idlen & 0xff) as u8);
 		ecsimple_debug_buffer_trace!(inputv[1..].as_ptr(),inputv.len()-1,"idlen & 0xff number");
-		idvec = idv.clone().to_vec();
+		idvec = idv.to_vec();
 		ecsimple_debug_buffer_trace!(idvec.as_ptr(),idvec.len(),"id len");
 		inputv.extend(idvec);
 		(_,bufv) = a.to_bytes_be();
