@@ -18,7 +18,7 @@ use std::cmp::PartialEq;
 
 ecsimple_error_class!{ECGroupError}
 
-
+#[allow(dead_code)]
 pub (crate) trait ECGroupInterface  {
 	fn x(&self) -> BigInt ;
 	fn y(&self) -> BigInt ;
