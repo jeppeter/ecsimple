@@ -163,7 +163,7 @@ pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 	ecsimple_log_trace!("buf[0] 0x{:x}", retv[0]);
 	if bottom != 0 {
 		retv[rnbytes - 1] |= 1;
-		ecsimple_log_trace!("buf[0x{:x}] = [0x{:x}]",rnbytes - 1,retv[(rnbytes-1)]);
+		ecsimple_log_trace!("buf[0x{:x}] = [0x{:x}]",rnbytes - 1,retv[rnbytes-1]);
 	}
 	bn = BigInt::from_bytes_be(Sign::Plus,&retv);
 	ecsimple_log_trace!("rnd 0x{:X}",bn);

@@ -12,6 +12,8 @@ use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use std::io::Write;
 use std::error::Error;
 
+asn1obj_error_class!{EcAsn1Error}
+
 
 #[derive(Clone)]
 #[asn1_sequence()]
@@ -159,6 +161,26 @@ pub struct ECPrivateKeyAsn1Elem {
 #[asn1_sequence()]
 pub struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
+}
+
+impl ECPrivateKeyAsn1 {
+	pub fn set_ec_type_oid(&mut self, oid :&str) -> Result<(),Box<dyn Error>> {
+		if self.elem.val.len() != 1 {
+			asn1obj_new_error!{EcAsn1Error,"elem {} != 1",self.elem.val.len()}
+		}
+		let mut nobj :Asn1Object = Asn1Object::init_asn1();
+		let _ = nobj.set_value(oid)?;
+		let mut nopt :Asn1Opt<Asn1ImpSet<ECPKPARAMETERS,0>> = Asn1Opt::init_asn1();
+		let mut impset :Asn1ImpSet<ECPKPARAMETERS,0> = Asn1ImpSet::init_asn1();
+		let mut params :ECPKPARAMETERS = ECPKPARAMETERS::init_asn1();
+		/*it is for named_curve*/
+		params.itype = 0;
+		params.named_curve = nobj.clone();
+		impset.val.push(params);
+		nopt.val = Some(impset);
+		self.elem.val[0].parameters = nopt;
+		Ok(())
+	}
 }
 
 #[asn1_sequence()]
