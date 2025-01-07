@@ -2,6 +2,7 @@
 > rust Elliptic Curve Cryptography implementation
 
 ### Release History
+* Jan 7th 2025 release 0.1.2 for export ecasn1
 * Oct 20th 2023 release 0.1.0 for first test cases
 
 ### simple example

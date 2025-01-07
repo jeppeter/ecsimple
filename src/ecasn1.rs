@@ -157,7 +157,7 @@ pub struct ECPrivateKeyAsn1Elem {
 
 #[derive(Clone)]
 #[asn1_sequence()]
-pub (crate) struct ECPrivateKeyAsn1 {
+pub struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }
 
