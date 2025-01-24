@@ -392,8 +392,28 @@ fn eclist_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>
 	Ok(())
 }
 
+fn ecprivexppub_handler(ns :NameSpaceEx,_optargset :Option<Arc<RefCell<dyn ArgSetImpl>>>,_ctx :Option<Arc<RefCell<dyn Any>>>) -> Result<(),Box<dyn Error>> {
+	let eccmprtype :String = ns.get_string("eccmprtype");
+	let ecparamenc :String = ns.get_string("ecparamenc");
+	let infile = ns.get_string("input");
+	let outfile = ns.get_string("output");
 
-#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler,digest_handler,eclist_handler)]
+	init_log(ns.clone())?;
+
+
+	let incode = read_file_into_der(&infile)?;
+	let privkey :ECPrivateKey = ECPrivateKey::from_der(&incode)?;
+	let pubkey :ECPublicKey = privkey.export_pubkey();
+	let outcode = pubkey.to_der(&eccmprtype,&ecparamenc)?;
+	if outfile.len() > 0 {
+		write_file_bytes(&outfile,&outcode)?;
+	}
+
+	Ok(())
+
+}
+
+#[extargs_map_function(ecgen_handler,ecprivload_handler,ecpubload_handler,ecsign_handler,ecvfy_handler,digest_handler,eclist_handler,ecprivexppub_handler)]
 pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 	let cmdline = format!(r#"
 		{{
@@ -419,6 +439,9 @@ pub fn ec_ssl_parser(parser :ExtArgsParser) -> Result<(),Box<dyn Error>> {
 				"$" : "+"
 			}},
 			"eclist<eclist_handler>##to list all support ec types##" : {{
+				"$" : 0
+			}},
+			"ecprivexppub<ecprivexppub_handler>##from input ECPrivateKey to ECPublicKey##" : {{
 				"$" : 0
 			}}
 		}}
