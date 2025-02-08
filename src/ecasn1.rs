@@ -112,7 +112,7 @@ pub struct ECPARAMETERS {
 	pub elem :Asn1Seq<ECPARAMETERSElem>,
 }
 
-#[asn1_int_choice(debug=0,selector=itype,named_curve=0,parameters=1,implicitCA=2)]
+#[asn1_int_choice(selector=itype,named_curve=0,parameters=1,implicitCA=2)]
 #[derive(Clone)]
 pub struct ECPKPARAMETERS {
 	pub itype :i32,
@@ -121,8 +121,8 @@ pub struct ECPKPARAMETERS {
 	pub implicitCA : Asn1Null,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPublicKeyPackElem {
 	pub typef :Asn1Object,
 	pub parameters :ECPKPARAMETERS,

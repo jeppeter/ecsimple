@@ -1,6 +1,6 @@
 [package]
 name = "ecsimple"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 rust-version = "1.59.0"
 author = ["jeppeter <jeppeter@gmail.com>"]
@@ -21,6 +21,8 @@ num-bigint = "^0.4.3"
 hex = "^0.4.3"
 rand_core = "^0.6.4"
 rand = "^0.8.5"
+#asn1obj = { path = "../asn1obj/asn1obj"}
+#asn1obj_codegen = { path = "../asn1obj/asn1obj_codegen"}
 asn1obj = "^0.1.20"
 asn1obj_codegen = "^0.1.4"
 serde_json = "^1.0.42"
