@@ -103,11 +103,10 @@ pub struct ECPARAMETERSElem {
 	pub base :Asn1OctData,
 	pub order :Asn1BigNum,
 	pub cofactor : Asn1Opt<Asn1BigNum>,
-
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPARAMETERS {
 	pub elem :Asn1Seq<ECPARAMETERSElem>,
 }
