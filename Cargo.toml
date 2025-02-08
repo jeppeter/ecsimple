@@ -1,6 +1,6 @@
 [package]
 name = "ecsimple"
-version = "0.1.2"
+version = "0.1.4"
 edition = "2021"
 rust-version = "1.59.0"
 author = ["jeppeter <jeppeter@gmail.com>"]
