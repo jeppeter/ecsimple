@@ -24,7 +24,7 @@ pub (crate) fn format_bigint_as_order(bn2 :&[u8], order :&BigInt) -> BigInt {
 	let obits :i64 = get_max_bits(order);
     ecsimple_log_trace!("order bits 0x{:x}",obits);
 	let mut bs :Vec<u8>;
-	bs = bn2.clone().to_vec();
+	bs = bn2.to_vec();
 	if (8 * bs.len()) > (obits as usize) {
 		bs = bs[0..(((obits as usize) +7) >> 3)].to_vec();
 	}

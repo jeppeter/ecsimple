@@ -495,10 +495,10 @@ impl BnGf2m {
 				d1 = (BVALUE_BITS as i32) - d0;				
 				n = n / (BVALUE_BITS as i32);
 				//ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} >> {}) = 0x{:x}", jdx-(n as usize),retv.data[jdx-(n as usize)],zz,d0,retv.data[jdx-(n as usize)] ^ (zz >> d0));
-				retv.data[(jdx - (n as usize))] ^= ( zz >> d0) as BValue;
+				retv.data[jdx - (n as usize)] ^= ( zz >> d0) as BValue;
 				if d0 != 0 {
 					//ecsimple_log_trace!("z[{}] (0x{:x}) ^ (0x{:x} << {}) = 0x{:x}", jdx-(n as usize)-1,retv.data[jdx-(n as usize)-1],zz,d1,retv.data[jdx-(n as usize) - 1] ^ (zz << d1));
-					retv.data[(jdx - (n as usize) - 1)] ^=  zz << d1;
+					retv.data[jdx - (n as usize) - 1] ^=  zz << d1;
 				}
 				kidx += 1;
 				if kidx < modptr.polyarr.len() {
@@ -546,7 +546,7 @@ impl BnGf2m {
 				d1 = (BVALUE_BITS as i32)- d0;
 				//ecsimple_log_trace!("p[{}] 0x{:x} n {} d0 {} d1 {}",kidx,modptr.polyarr[kidx],n,d0,d1);
 				//ecsimple_log_trace!("z[{}] 0x{:x} ^ (zz 0x{:x} << d0 {}) = 0x{:x}", n,retv.data[(n as usize)],zz,d0,retv.data[(n as usize)] ^ (zz << d0));
-				retv.data[(n as usize)] ^= zz << d0;
+				retv.data[n as usize] ^= zz << d0;
 				tmp_ulong = zz >> d1;
 				if d0 != 0 && tmp_ulong != 0 {
 					//ecsimple_log_trace!("z[{}] 0x{:x} ^ tmp_ulong 0x{:x} = 0x{:x}", n+1,retv.data[(n as usize)+1],tmp_ulong,retv.data[(n as usize)+1]^tmp_ulong);
@@ -681,13 +681,13 @@ impl BnGf2m {
 			if addb > 0  {
 				if kidx > addi as usize {
 					//ecsimple_log_trace!("kidx {} [{}]", kidx,kidx - addi as usize);
-					retvdata[(kidx - addi as usize)] |= self.data[kidx] >> addb;
-					retvdata[(kidx - addi as usize - 1)] |= self.data[kidx] << ( BVALUE_BITS - addb as usize);
+					retvdata[kidx - addi as usize] |= self.data[kidx] >> addb;
+					retvdata[kidx - addi as usize - 1] |= self.data[kidx] << ( BVALUE_BITS - addb as usize);
 				} else {
 					retvdata[0] |= self.data[kidx] >> addb;
 				}
 			} else {
-				retvdata[(kidx- addi as usize)] |= self.data[kidx];
+				retvdata[kidx- addi as usize] |= self.data[kidx];
 			}
 			if kidx == 0 {
 				break;
