@@ -7,6 +7,7 @@ use crate::randop::*;
 use crate::logger::*;
 use std::ops::{Add,Sub,Mul,Div,Rem,Shl,Shr};
 use std::error::Error;
+use std::cmp::{PartialEq};
 
 type BValue = u64;
 
@@ -28,6 +29,25 @@ impl std::default::Default for BnGf2m {
 			data :vec![0],
 			polyarr : Vec::new(),
 		}
+	}
+}
+
+impl PartialEq for BnGf2m {
+	fn eq(&self,other :&BnGf2m) -> bool {
+		if self.data.len() != other.data.len() {
+			return false;
+		}
+
+		for i in 0..self.data.len() {
+			if self.data[i] != other.data[i] {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	fn ne(&self,other :&BnGf2m) -> bool {
+		return ! self.eq(other);
 	}
 }
 

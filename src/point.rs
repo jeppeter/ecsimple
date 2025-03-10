@@ -26,6 +26,7 @@ pub (crate) struct ECGf2mPoint {
 	infinity : bool,
 }
 
+
 impl std::fmt::Display for ECGf2mPoint {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f,"curve[{}] isinfinity {} x 0x{:x} y 0x{:x} z 0x{:x}", self.group,self.infinity,self.x,self.y,self.z)
@@ -41,6 +42,16 @@ impl std::default::Default for ECGf2mPoint {
 			group : ECGroupBnGf2m::default(),
 			infinity : true,
 		}
+	}
+}
+
+impl PartialEq for ECGf2mPoint {
+	fn eq(&self, other :&ECGf2mPoint) -> bool {
+		return self.eq_op(other);
+	}
+
+	fn ne(&self, other :&ECGf2mPoint) -> bool {
+		return !self.eq(other);
 	}
 }
 
@@ -60,6 +71,28 @@ impl ECGf2mPoint {
 		}
 	}
 
+	pub  fn eq_op(&self, other :&ECGf2mPoint) -> bool {
+		if self.x != other.x {
+			return false;
+		}
+
+		if self.y != other.y {
+			return false;
+		}
+
+		if self.z != other.z {
+			return false;
+		}
+
+		if self.group != other.group {
+			return false;
+		}
+
+		if self.infinity != other.infinity {
+			return false;
+		}
+		return true;
+	}
 
 	pub fn new_point(x :&BnGf2m, y :&BnGf2m,z :&BnGf2m, grp :&ECGroupBnGf2m) -> Self {
 		Self {
@@ -467,6 +500,7 @@ impl ECGf2mPoint {
 		}
 		Ok(())
 	}
+
 
 }
 

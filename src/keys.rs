@@ -24,6 +24,7 @@ use asn1obj::asn1impl::Asn1Op;
 use asn1obj::strop::asn1_format_line;
 use std::io::Write;
 use sm3::{Sm3,Digest};
+use std::cmp::{PartialEq};
 
 
 ecsimple_error_class!{EcKeyError}
@@ -51,6 +52,23 @@ pub (crate) struct ECGf2mPubKey {
 	pubk :ECGf2mPoint,
 }
 
+impl PartialEq for ECGf2mPubKey {
+	fn eq(&self, other:&ECGf2mPubKey) -> bool {
+		if self.base != other.base {
+			return false;
+		}
+
+		if self.pubk != other.pubk {
+			return false;
+		}
+		return true;
+	}
+
+	fn ne(&self,other:&ECGf2mPubKey) -> bool {
+		return ! self.eq(other);
+	}
+}
+
 impl Default for ECGf2mPubKey {
 	fn default() -> Self {
 		Self {
@@ -59,6 +77,7 @@ impl Default for ECGf2mPubKey {
 		}
 	}
 }
+
 
 fn form_ecpkparameters_gf2m(grp :&ECGroupBnGf2m,cmprtype:&str, paramenc:&str) -> Result<ECPKPARAMETERS,Box<dyn Error>> {
 	let mut tmpp :BigInt;
@@ -482,6 +501,23 @@ impl std::fmt::Display for ECGf2mPrivateKey {
 	}
 }
 
+impl PartialEq for ECGf2mPrivateKey {
+	fn eq(&self,other:&ECGf2mPrivateKey) ->bool{
+		if self.privnum != other.privnum {
+			return false;
+		}
+
+		if self.base != other.base {
+			return false;
+		}
+		return true;
+	}
+
+	fn ne(&self,other:&ECGf2mPrivateKey) -> bool {
+		return !self.eq(other);
+	}
+}
+
 
 
 impl ECGf2mPrivateKey {
@@ -641,6 +677,23 @@ impl ECGf2mPrivateKey {
 pub (crate) struct ECPrimePubKey {
 	base :ECPrimePoint,
 	pubk :ECPrimePoint,
+}
+
+impl PartialEq for ECPrimePubKey {
+	fn eq(&self,other:&ECPrimePubKey) -> bool {
+		if self.base != other.base {
+			return false;
+		}
+
+		if self.pubk != other.pubk {
+			return false;
+		}
+		return true;
+	}
+
+	fn ne(&self,other:&ECPrimePubKey) -> bool {
+		return !self.eq(other);
+	}
 }
 
 impl Default for ECPrimePubKey {
@@ -1152,6 +1205,25 @@ pub (crate) struct ECPrimePrivateKey {
 	base : ECPrimePoint,
 	privnum :BigInt,
 }
+
+impl PartialEq for ECPrimePrivateKey {
+	fn eq(&self, other:&ECPrimePrivateKey) -> bool {
+		if self.base != other.base {
+			return false;
+		}
+
+		if self.privnum != other.privnum {
+			return false;
+		}
+		return true;
+	}
+
+	fn ne(&self,other:&ECPrimePrivateKey) -> bool {
+		return ! self.eq(other);
+	}
+}
+
+
 
 impl Default for ECPrimePrivateKey {
 	fn default() -> Self {
@@ -1806,6 +1878,27 @@ impl Default for ECPublicKey {
 	}
 }
 
+impl PartialEq for ECPublicKey {
+	fn eq(&self, other:&ECPublicKey) -> bool {
+		if self.bnkey.is_some() && other.bnkey.is_some() {
+			let a :&ECGf2mPubKey = self.bnkey.as_ref().unwrap();
+			let b :&ECGf2mPubKey = other.bnkey.as_ref().unwrap();
+			return a.eq(b);
+		}
+
+		if self.primekey.is_some() && other.primekey.is_some() {
+			let a :&ECPrimePubKey = self.primekey.as_ref().unwrap();
+			let b :&ECPrimePubKey = other.primekey.as_ref().unwrap();
+			return a.eq(b);
+		}
+		return false;
+	}
+
+	fn ne(&self,other :&ECPublicKey) -> bool {
+		return !self.eq(other);
+	}
+}
+
 impl ECPublicKey {
 	pub fn new(grp :&ECGroup,x :&BigInt,y :&BigInt) -> ECPublicKey {
 		let retv :ECPublicKey;
@@ -1993,12 +2086,34 @@ pub struct ECPrivateKey {
 	pub (crate) primekey :Option<ECPrimePrivateKey>,
 }
 
+
 impl Default for ECPrivateKey {
 	fn default() -> Self {
 		Self {
 			bnkey : None,
 			primekey : None,
 		}
+	}
+}
+
+impl PartialEq for ECPrivateKey {
+	fn eq(&self,other :&ECPrivateKey) -> bool {
+		if self.bnkey.is_some() && other.bnkey.is_some() {
+			let a :&ECGf2mPrivateKey = self.bnkey.as_ref().unwrap();
+			let b :&ECGf2mPrivateKey = other.bnkey.as_ref().unwrap();
+			return a.eq(b);
+		}
+
+		if self.primekey.is_some() && other.primekey.is_some() {
+			let a :&ECPrimePrivateKey = self.primekey.as_ref().unwrap();
+			let b :&ECPrimePrivateKey = other.primekey.as_ref().unwrap();
+			return a.eq(b);
+		}
+		return false;
+	}
+
+	fn ne(&self, other:&ECPrivateKey) -> bool {
+		return !self.eq(other);
 	}
 }
 

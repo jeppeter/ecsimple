@@ -33,6 +33,27 @@ pub (crate) struct ECBnGf2mGenerator {
 	pub z :BnGf2m,
 }
 
+impl PartialEq for ECBnGf2mGenerator {
+	fn eq(&self, other:&ECBnGf2mGenerator) -> bool {
+		if self.x != other.x {
+			return false;
+		}
+
+		if self.y != other.y {
+			return false;
+		}
+
+		if self.z != other.z {
+			return false;
+		}
+		return true;
+	}
+
+	fn ne(&self,other:&ECBnGf2mGenerator) -> bool {
+		return ! self.eq(other);
+	}
+}
+
 impl std::fmt::Display for ECBnGf2mGenerator {
 	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		write!(f,"x 0x{:x} y 0x{:x} z 0x{:x}", self.x,self.y,self.z)
@@ -80,6 +101,46 @@ pub (crate) struct ECGroupBnGf2m {
 	pub b :BnGf2m,
 	pub seed :BigInt,
 	pub seed_len :usize,
+}
+
+impl PartialEq for ECGroupBnGf2m {
+	fn eq(&self,other :&ECGroupBnGf2m) -> bool {
+		if self.generator != other.generator {
+			return false;
+		}
+		if self.p != other.p {
+			return false;
+		}
+
+		if self.order != other.order {
+			return false;
+		}
+
+		if self.cofactor != other.cofactor {
+			return false;
+		}
+
+		if self.a != other.a {
+			return false;
+		}
+
+		if self.b != other.b {
+			return false;
+		}
+
+		if self.seed != other.seed {
+			return false;
+		}
+		if self.seed_len != other.seed_len {
+			return false;
+		}
+
+		return true;
+	}
+
+	fn ne(&self,other:&ECGroupBnGf2m) -> bool {
+		return !self.eq(other);
+	}
 }
 
 impl std::fmt::Display for ECGroupBnGf2m {
