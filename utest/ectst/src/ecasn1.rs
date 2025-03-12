@@ -50,9 +50,11 @@ use asn1obj::strop::*;
 use asn1obj::asn1impl::*;
 #[allow(unused_imports)]
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
+use ecsimple::ecasn1::*;
 
 extargs_error_class!{EcAsn1Error}
 
+/*
 #[derive(Clone)]
 #[asn1_sequence()]
 pub struct X9_62_PENTANOMIALELem {
@@ -200,6 +202,7 @@ pub struct ECPrivateKeyAsn1Elem {
 pub (crate) struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }
+*/
 
 #[asn1_sequence()]
 #[derive(Clone)]
