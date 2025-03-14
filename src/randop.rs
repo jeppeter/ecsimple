@@ -53,6 +53,7 @@ impl RandOps {
 			retv.filerand = Some(RandFile::new(fname.as_ref().unwrap())?);
 			retv.begen = false;
 		}
+		ecsimple_log_trace!("get pos [0x{:x}]",retv.pos);
 		Ok(retv)
 	}
 
@@ -66,7 +67,7 @@ impl RandOps {
 		} else {
 			self.filerand.as_mut().unwrap().try_fill_bytes(&mut buf)?;
 		}
-		//ecsimple_log_trace!("get pos [0x{:x}] size [0x{:x}]",self.pos,num);
+		ecsimple_log_trace!("get pos [0x{:x}] size [0x{:x}]",self.pos,num);
 		self.pos += num;
 		Ok(buf)
 	}
@@ -172,7 +173,14 @@ pub fn ecsimple_rand_bits(bits :u64, top :i32 , bottom : i32) -> BigInt {
 
 pub fn ecsimple_rand_range(rangeval :&BigInt) -> BigInt {
 	loop {
-		let buflen = (get_max_bits(rangeval) + 7) / 8 + 8;
+		let mut buflen = (get_max_bits(rangeval) + 7) / 8 + 8;
+		let num_k_bytes = 32;
+		if (buflen % num_k_bytes) != 0 {
+			buflen += num_k_bytes - 1;
+			buflen /= num_k_bytes;
+			buflen *= num_k_bytes;
+		}
+		ecsimple_log_trace!("BN_num_bytes({}) num_k_bytes {}",buflen,num_k_bytes);
 		let retv = EC_SIMPLE_RANDOP.write()	.unwrap().get_bytes(buflen as usize).unwrap();
 		ecsimple_debug_buffer_trace!(retv.as_ptr(),retv.len(),"get value");
 		let mut bv = BigInt::from_bytes_be(Sign::Plus,&retv);
