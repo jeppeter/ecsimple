@@ -167,7 +167,7 @@ def read_file(infile=None):
             except:
                 break
         if sys.version[0] == '3':
-            rets = rdata.decode('utf-8')
+            rets = rdata.decode('utf-8',errors='ignore')
         else:
             rets = rdata
     else:        
