@@ -15,28 +15,28 @@ use std::error::Error;
 asn1obj_error_class!{EcAsn1Error}
 
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_PENTANOMIALELem {
 	pub k1 :Asn1Integer,
 	pub k2 :Asn1Integer,
 	pub k3 :Asn1Integer,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_PENTANOMIAL {
 	pub elem :Asn1Seq<X9_62_PENTANOMIALELem>,
 }
 
-#[derive(Clone)]
 #[asn1_obj_selector(other=default,onBasis="1.2.840.10045.1.2.3.1",tpBasis="1.2.840.10045.1.2.3.2",ppBasis="1.2.840.10045.1.2.3.3")]
+#[derive(Clone)]
 pub struct X962Selector  {
 	pub val :Asn1Object,
 }
 
-#[derive(Clone)]
 #[asn1_choice(selector=otype)]
+#[derive(Clone)]
 pub struct X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE {
 	pub otype : X962Selector,
 	pub onBasis : Asn1Null,
@@ -45,42 +45,42 @@ pub struct X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE {
 	pub other :Asn1Any,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_CHARACTERISTIC_TWO_ELEM {
 	pub m :Asn1Integer,
 	pub elemchoice : X9_62_CHARACTERISTIC_TWO_ELEM_CHOICE,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_CHARACTERISTIC_TWO {
 	pub elem :Asn1Seq<X9_62_CHARACTERISTIC_TWO_ELEM>,
 }
 
 
-#[derive(Clone)]
 #[asn1_obj_selector(prime="1.2.840.10045.1.1",char_two="1.2.840.10045.1.2")]
+#[derive(Clone)]
 pub struct X964FieldSelector {
 	pub val :Asn1Object,
 }
 
-#[derive(Clone)]
 #[asn1_choice(selector=fieldType)]
+#[derive(Clone)]
 pub struct X9_62_FIELDIDElem {
 	pub fieldType :X964FieldSelector,
 	pub prime : Asn1BigNum,
 	pub char_two :X9_62_CHARACTERISTIC_TWO,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_FIELDID {
 	pub elem :Asn1Seq<X9_62_FIELDIDElem>,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_CURVEElem {
 	pub a :Asn1OctData,
 	pub b :Asn1OctData,
@@ -88,14 +88,14 @@ pub struct X9_62_CURVEElem {
 }
 
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct X9_62_CURVE {
 	pub elem :Asn1Seq<X9_62_CURVEElem>,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPARAMETERSElem {
 	pub version : Asn1Integer,
 	pub fieldID : X9_62_FIELDID,
@@ -127,28 +127,28 @@ pub struct ECPublicKeyPackElem {
 	pub parameters :ECPKPARAMETERS,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPublicKeyPack {
 	pub elem :Asn1Seq<ECPublicKeyPackElem>,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPublicKeyAsn1Elem {
 	pub packed :ECPublicKeyPack,
 	pub pubdata :Asn1BitDataFlag,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPublicKeyAsn1 {
 	pub elem :Asn1Seq<ECPublicKeyAsn1Elem>,
 }
 
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPrivateKeyAsn1Elem {
 	pub version :Asn1Integer,
 	pub privkey :Asn1OctData,
@@ -156,8 +156,8 @@ pub struct ECPrivateKeyAsn1Elem {
 	pub pubkey : Asn1ImpSet<Asn1BitDataFlag,1>,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 pub struct ECPrivateKeyAsn1 {
 	pub elem :Asn1Seq<ECPrivateKeyAsn1Elem>,
 }

@@ -19,6 +19,7 @@ use std::error::Error;
 use asn1obj_codegen::{asn1_sequence};
 use asn1obj::base::{Asn1BigNum,Asn1Object,Asn1Integer,Asn1BitData,Asn1BitDataFlag,Asn1Any};
 use asn1obj::complex::{Asn1Seq,Asn1ImpSet};
+#[allow(unused_imports)]
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
 use asn1obj::strop::asn1_format_line;
@@ -30,8 +31,8 @@ use std::cmp::{PartialEq};
 ecsimple_error_class!{EcKeyError}
 
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 struct ECPrivateAsn1Elem {
 	pub (crate) version :Asn1Integer,
 	pub (crate) privnum :Asn1BigNum,
@@ -39,8 +40,8 @@ struct ECPrivateAsn1Elem {
 	pub (crate) pubdata :Asn1ImpSet<Asn1BitData,1>,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 struct ECPrivateAsn1 {
 	pub (crate) elem :Asn1Seq<ECPrivateAsn1Elem>,
 }

@@ -3,6 +3,7 @@ use num_bigint::{BigInt,Sign,BigUint};
 use asn1obj_codegen::{asn1_sequence};
 use asn1obj::base::{Asn1BigNum};
 use asn1obj::complex::{Asn1Seq};
+#[allow(unused_imports)]
 use asn1obj::{asn1obj_error_class,asn1obj_new_error};
 use asn1obj::asn1impl::Asn1Op;
 use asn1obj::strop::asn1_format_line;
@@ -14,15 +15,15 @@ use crate::*;
 
 ecsimple_error_class!{ECSignatureError}
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 struct Asn1ECSignatureElem {
 	pub r :Asn1BigNum,
 	pub s :Asn1BigNum,
 }
 
-#[derive(Clone)]
 #[asn1_sequence()]
+#[derive(Clone)]
 struct Asn1ECSignature {
 	pub elem :Asn1Seq<Asn1ECSignatureElem>,
 }
