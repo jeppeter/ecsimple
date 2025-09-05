@@ -2,6 +2,7 @@
 > rust Elliptic Curve Cryptography implementation
 
 ### Release History
+* Sep 5th 2025 release 0.2.0 for support new version 0.2.0 for asn1obj asn1obj_codegen
 * Aug 29th 2025 release 0.1.10 for support new version of asn1obj asn1obj_codegen
 * Jul 29th 2025 release 0.1.8 for errors handle
 * Jan 7th 2025 release 0.1.2 for export ecasn1
